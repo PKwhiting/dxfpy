@@ -7,6 +7,7 @@ from ezdxf.addons.dxf2code import (
     entities_to_code,
     table_entries_to_code,
     block_to_code,
+    _SourceCodeGenerator,
 )
 from ezdxf.addons.dxf2code import (
     _fmt_mapping,
@@ -743,6 +744,28 @@ def test_multileader_field_to_code():
     assert new_doc.objects.get_field_list() is not None
 
 
+def test_multileader_to_code_tolerates_unresolved_leader_linetype_handle():
+    from ezdxf.render.mleader import ConnectionSide
+
+    source_doc = ezdxf.new("R2010")
+    style = source_doc.mleader_styles.duplicate_entry("Standard", "BROKEN_LT_STYLE")
+    style.dxf.leader_linetype_handle = "25"
+    source_msp = source_doc.modelspace()
+    builder = source_msp.add_multileader_mtext("BROKEN_LT_STYLE")
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+    builder.multileader.dxf.leader_linetype_handle = "25"
+
+    new_doc, new_msp = translate_entities_to_new_layout(source_msp)
+    new_ml = new_msp[-1]
+    new_style = new_doc.mleader_styles.get("BROKEN_LT_STYLE")
+
+    assert new_ml.dxftype() == "MULTILEADER"
+    assert new_style is not None
+    assert new_ml.dxf.style_handle == new_style.dxf.handle
+
+
 def test_multileader_acexpr_field_to_code():
     from ezdxf.render.mleader import ConnectionSide
 
@@ -780,6 +803,36 @@ def test_multileader_acexpr_field_to_code():
     assert len(children) == 2
     assert children[0].object_handles == [new_line.dxf.handle]
     assert children[1].object_handles == [new_circle.dxf.handle]
+
+
+def test_unsupported_translator_does_not_register_entity_handle(monkeypatch):
+    class DummyDXF:
+        def __init__(self, handle: str):
+            self.handle = handle
+
+        def get(self, key: str, default=None):
+            if key == "handle":
+                return self.handle
+            return default
+
+    class DummyEntity:
+        def __init__(self, handle: str):
+            self.dxf = DummyDXF(handle)
+
+        def dxftype(self):
+            return "FAKE"
+
+    generator = _SourceCodeGenerator(layout="msp", doc="doc")
+    monkeypatch.setattr(
+        _SourceCodeGenerator,
+        "_fake",
+        lambda self, entity: False,
+        raising=False,
+    )
+
+    generator.translate_entities([DummyEntity("ABBA")])
+
+    assert '_entity_map["ABBA"]' not in str(generator.code)
 
 
 def test_multileader_custom_style_to_code():

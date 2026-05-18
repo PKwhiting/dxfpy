@@ -325,6 +325,7 @@ class _SourceCodeGenerator:
         self.code = Code()
         self._deferred_code: list[str] = []
         self._translated_handles: set[str] = set()
+        self._emitted_handles: set[str] = set()
 
     def translate_entity(self, entity: DXFEntity) -> None:
         """Translates one DXF entity into Python source code. The generated
@@ -340,8 +341,8 @@ class _SourceCodeGenerator:
         except AttributeError:
             self.add_source_code_line(f'# unsupported DXF entity "{dxftype}"')
         else:
-            entity_translator(entity)
-            if dxftype not in TABLENAMES and dxftype != "MLEADERSTYLE":
+            supported = entity_translator(entity)
+            if supported is not False and dxftype not in TABLENAMES and dxftype != "MLEADERSTYLE":
                 self._register_entity_handle(entity)
                 self._schedule_hosted_fields(entity)
 
@@ -453,6 +454,7 @@ class _SourceCodeGenerator:
     def _register_entity_handle(self, entity: DXFEntity, var_name: str = "e") -> None:
         handle = entity.dxf.get("handle")
         if handle:
+            self._emitted_handles.add(handle)
             self.add_source_code_line(
                 f'_entity_map[{json.dumps(handle)}] = {var_name}'
             )
@@ -730,7 +732,7 @@ class _SourceCodeGenerator:
             )
         for entity in block:
             handle = entity.dxf.get("handle")
-            if not handle:
+            if not handle or handle not in self._emitted_handles:
                 continue
             info = self._entity_rep_etag_info(entity)
             if info is None:
@@ -1341,16 +1343,17 @@ class _SourceCodeGenerator:
         entity,
         *,
         style_name: str,
-        leader_linetype_name: str,
+        leader_linetype_name: Optional[str],
         text_style_name: str,
         mtext_style_name: Optional[str] = None,
     ) -> None:
         self.add_source_code_line(
             f'e.dxf.style_handle = {self.doc}.mleader_styles.get({json.dumps(style_name)}).dxf.handle'
         )
-        self.add_source_code_line(
-            f'e.dxf.leader_linetype_handle = {self.doc}.linetypes.get({json.dumps(leader_linetype_name)}).dxf.handle'
-        )
+        if leader_linetype_name is not None:
+            self.add_source_code_line(
+                f'e.dxf.leader_linetype_handle = {self.doc}.linetypes.get({json.dumps(leader_linetype_name)}).dxf.handle'
+            )
         self.add_source_code_line(
             f'e.dxf.text_style_handle = {self.doc}.styles.get({json.dumps(text_style_name)}).dxf.handle'
         )
@@ -1471,7 +1474,7 @@ class _SourceCodeGenerator:
             if block_name is None:
                 return False, {}
             multi_arrow_block_names.append((arrow_head.index, block_name))
-        if not all((style_name, leader_linetype_name, text_style_name)):
+        if not all((style_name, text_style_name)):
             return False, {}
 
         resources: dict[str, Any] = {
@@ -1507,7 +1510,8 @@ class _SourceCodeGenerator:
     def _schedule_hosted_fields(self, entity: DXFEntity) -> None:
         has_field_dict = getattr(entity, "has_field_dict", None)
         get_field_dict = getattr(entity, "get_field_dict", None)
-        if not callable(has_field_dict) or not callable(get_field_dict):
+        set_field = getattr(entity, "set_field", None)
+        if not callable(has_field_dict) or not callable(get_field_dict) or not callable(set_field):
             return
         if not has_field_dict():
             return
@@ -1987,7 +1991,7 @@ class _SourceCodeGenerator:
         supported, resources = self._multileader_supported(entity)
         if not supported:
             self.add_source_code_line('# unsupported DXF entity "MULTILEADER"')
-            return
+            return False
 
         self.add_import_statement(
             "from ezdxf.entities.mleader import ArrowHeadData, AttribData, BlockData, LeaderData, LeaderLine, MTextData"
@@ -2002,7 +2006,8 @@ class _SourceCodeGenerator:
         ):
             dxfattribs.pop(key, None)
         self.add_used_resources(dxfattribs)
-        self.code.linetypes.add(resources["leader_linetype_name"])
+        if resources["leader_linetype_name"] is not None:
+            self.code.linetypes.add(resources["leader_linetype_name"])
         self.code.styles.add(resources["text_style_name"])
         if resources["content_type"] == "mtext":
             self.code.styles.add(resources["mtext_style_name"])
@@ -2154,6 +2159,7 @@ class _SourceCodeGenerator:
                 self.add_source_code_line("leader.lines.append(line)")
             self.add_source_code_line("ctx.leaders.append(leader)")
         self.add_source_code_line("e.update_proxy_graphic()")
+        return True
 
     def _lwpolyline(self, entity: LWPolyline) -> None:
         self.add_source_code_lines(
