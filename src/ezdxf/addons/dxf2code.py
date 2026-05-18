@@ -1,6 +1,7 @@
 # Copyright (c) 2019-2024, Manfred Moitzi
 # License: MIT License
 from __future__ import annotations
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional
 import json
 
@@ -307,6 +308,27 @@ def _fmt_dxf_tags(tags: Iterable[DXFTag], indent: int = 0):
         yield fmt.format(code, value)
 
 
+@dataclass(frozen=True)
+class _MultiLeaderResources:
+    style_name: str
+    leader_linetype_name: Optional[str]
+    text_style_name: str
+    content_type: str
+    entity_arrow_block_name: Optional[str] = None
+    multi_arrow_block_names: tuple[tuple[int, str], ...] = ()
+    mtext_style_name: Optional[str] = None
+    block_name: Optional[str] = None
+    context_block_name: Optional[str] = None
+
+    @property
+    def has_mtext_content(self) -> bool:
+        return self.content_type == "mtext"
+
+    @property
+    def has_block_content(self) -> bool:
+        return self.content_type == "block"
+
+
 class _SourceCodeGenerator:
     """
     The :class:`_SourceCodeGenerator` translates DXF entities into Python source
@@ -327,6 +349,14 @@ class _SourceCodeGenerator:
         self._translated_handles: set[str] = set()
         self._emitted_handles: set[str] = set()
 
+    @staticmethod
+    def _translation_succeeded(result: Any) -> bool:
+        return result is not False
+
+    @staticmethod
+    def _should_register_translated_entity(dxftype: str) -> bool:
+        return dxftype not in TABLENAMES and dxftype != "MLEADERSTYLE"
+
     def translate_entity(self, entity: DXFEntity) -> None:
         """Translates one DXF entity into Python source code. The generated
         source code is appended to the attribute `source_code`.
@@ -342,7 +372,7 @@ class _SourceCodeGenerator:
             self.add_source_code_line(f'# unsupported DXF entity "{dxftype}"')
         else:
             supported = entity_translator(entity)
-            if supported is not False and dxftype not in TABLENAMES and dxftype != "MLEADERSTYLE":
+            if self._translation_succeeded(supported) and self._should_register_translated_entity(dxftype):
                 self._register_entity_handle(entity)
                 self._schedule_hosted_fields(entity)
 
@@ -1192,43 +1222,41 @@ class _SourceCodeGenerator:
         self._emit_dynamic_insert_appdata_records(appdata_records, handle, base_block.name)
 
     @staticmethod
-    def _dynamic_insert_cache_records(
-        entity: Insert,
-    ) -> list[tuple[str, tuple[tuple[int, Any], ...]]]:
+    def _dynamic_insert_app_cache(entity: Insert) -> Optional[Dictionary]:
         if not entity.has_extension_dict:
-            return []
+            return None
         rep = entity.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
         if not isinstance(rep, Dictionary):
-            return []
+            return None
         cache = rep.get("AppDataCache")
-        if not isinstance(cache, Dictionary):
-            return []
-        enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
-        if not isinstance(enhanced, Dictionary):
-            return []
+        return cache if isinstance(cache, Dictionary) else None
+
+    @staticmethod
+    def _xrecords(dictionary: Dictionary) -> list[tuple[str, tuple[tuple[int, Any], ...]]]:
         records: list[tuple[str, tuple[tuple[int, Any], ...]]] = []
-        for key, value in enhanced.items():
+        for key, value in dictionary.items():
             if isinstance(value, XRecord):
                 records.append((str(key), tuple((tag.code, tag.value) for tag in value.tags)))
         return records
 
     @staticmethod
+    def _dynamic_insert_cache_records(
+        entity: Insert,
+    ) -> list[tuple[str, tuple[tuple[int, Any], ...]]]:
+        cache = _SourceCodeGenerator._dynamic_insert_app_cache(entity)
+        if cache is None:
+            return []
+        enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
+        if not isinstance(enhanced, Dictionary):
+            return []
+        return _SourceCodeGenerator._xrecords(enhanced)
+
+    @staticmethod
     def _dynamic_insert_appdata_records(
         entity: Insert,
     ) -> list[tuple[str, tuple[tuple[int, Any], ...]]]:
-        if not entity.has_extension_dict:
-            return []
-        rep = entity.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
-        if not isinstance(rep, Dictionary):
-            return []
-        cache = rep.get("AppDataCache")
-        if not isinstance(cache, Dictionary):
-            return []
-        records: list[tuple[str, tuple[tuple[int, Any], ...]]] = []
-        for key, value in cache.items():
-            if isinstance(value, XRecord):
-                records.append((str(key), tuple((tag.code, tag.value) for tag in value.tags)))
-        return records
+        cache = _SourceCodeGenerator._dynamic_insert_app_cache(entity)
+        return [] if cache is None else _SourceCodeGenerator._xrecords(cache)
 
     def _emit_dynamic_insert_cache_records(
         self,
@@ -1342,24 +1370,21 @@ class _SourceCodeGenerator:
         self,
         entity,
         *,
-        style_name: str,
-        leader_linetype_name: Optional[str],
-        text_style_name: str,
-        mtext_style_name: Optional[str] = None,
+        resources: _MultiLeaderResources,
     ) -> None:
         self.add_source_code_line(
-            f'e.dxf.style_handle = {self.doc}.mleader_styles.get({json.dumps(style_name)}).dxf.handle'
+            f'e.dxf.style_handle = {self.doc}.mleader_styles.get({json.dumps(resources.style_name)}).dxf.handle'
         )
-        if leader_linetype_name is not None:
+        if resources.leader_linetype_name is not None:
             self.add_source_code_line(
-                f'e.dxf.leader_linetype_handle = {self.doc}.linetypes.get({json.dumps(leader_linetype_name)}).dxf.handle'
+                f'e.dxf.leader_linetype_handle = {self.doc}.linetypes.get({json.dumps(resources.leader_linetype_name)}).dxf.handle'
             )
         self.add_source_code_line(
-            f'e.dxf.text_style_handle = {self.doc}.styles.get({json.dumps(text_style_name)}).dxf.handle'
+            f'e.dxf.text_style_handle = {self.doc}.styles.get({json.dumps(resources.text_style_name)}).dxf.handle'
         )
-        if mtext_style_name is not None:
+        if resources.mtext_style_name is not None:
             self.add_source_code_line(
-                f'mtext.style_handle = {self.doc}.styles.get({json.dumps(mtext_style_name)}).dxf.handle'
+                f'mtext.style_handle = {self.doc}.styles.get({json.dumps(resources.mtext_style_name)}).dxf.handle'
             )
 
     def _setup_multileader_style(self, entity, style_name: str) -> None:
@@ -1436,15 +1461,15 @@ class _SourceCodeGenerator:
         else:
             self.add_source_code_line('mlstyle.dxf.discard("block_record_handle")')
 
-    def _multileader_supported(self, entity: "MultiLeader") -> tuple[bool, dict[str, Any]]:
+    def _multileader_supported(self, entity: "MultiLeader") -> Optional[_MultiLeaderResources]:
         context = entity.context
         doc = entity.doc
         if doc is None:
-            return False, {}
+            return None
         has_mtext_content = entity.has_mtext_content and context.mtext is not None
         has_block_content = context.block is not None
         if not has_mtext_content and not has_block_content:
-            return False, {}
+            return None
         style_name = self._named_object_resource_name(
             entity, "mleader_styles", entity.dxf.style_handle
         )
@@ -1456,43 +1481,41 @@ class _SourceCodeGenerator:
         )
         style = doc.mleader_styles.get(style_name) if style_name is not None else None
         if style is None:
-            return False, {}
+            return None
         style_arrow_handle = style.dxf.get("arrow_head_handle")
         style_block_handle = style.dxf.get("block_record_handle")
         if style_arrow_handle is not None and self._block_name_by_handle(entity, style_arrow_handle) is None:
-            return False, {}
+            return None
         if style_block_handle is not None and self._block_name_by_handle(entity, style_block_handle) is None:
-            return False, {}
+            return None
         entity_arrow_block_name = self._block_name_by_handle(
             entity, entity.dxf.get("arrow_head_handle")
         )
         if entity.dxf.get("arrow_head_handle") is not None and entity_arrow_block_name is None:
-            return False, {}
+            return None
         multi_arrow_block_names: list[tuple[int, str]] = []
         for arrow_head in entity.arrow_heads:
             block_name = self._block_name_by_handle(entity, arrow_head.handle)
             if block_name is None:
-                return False, {}
+                return None
             multi_arrow_block_names.append((arrow_head.index, block_name))
         if not all((style_name, text_style_name)):
-            return False, {}
-
-        resources: dict[str, Any] = {
-            "style_name": style_name,
-            "leader_linetype_name": leader_linetype_name,
-            "text_style_name": text_style_name,
-            "entity_arrow_block_name": entity_arrow_block_name,
-            "multi_arrow_block_names": multi_arrow_block_names,
-        }
+            return None
         if has_mtext_content:
             mtext_style_name = self._resource_name_by_handle(
                 entity, context.mtext.style_handle
             )
             if not mtext_style_name:
-                return False, {}
-            resources["content_type"] = "mtext"
-            resources["mtext_style_name"] = mtext_style_name
-            return True, resources
+                return None
+            return _MultiLeaderResources(
+                style_name=style_name,
+                leader_linetype_name=leader_linetype_name,
+                text_style_name=text_style_name,
+                content_type="mtext",
+                entity_arrow_block_name=entity_arrow_block_name,
+                multi_arrow_block_names=tuple(multi_arrow_block_names),
+                mtext_style_name=mtext_style_name,
+            )
 
         block_name = self._block_name_by_handle(
             entity, entity.dxf.get("block_record_handle")
@@ -1501,19 +1524,29 @@ class _SourceCodeGenerator:
             entity, context.block.block_record_handle
         )
         if not block_name or not context_block_name:
-            return False, {}
-        resources["content_type"] = "block"
-        resources["block_name"] = block_name
-        resources["context_block_name"] = context_block_name
-        return True, resources
+            return None
+        return _MultiLeaderResources(
+            style_name=style_name,
+            leader_linetype_name=leader_linetype_name,
+            text_style_name=text_style_name,
+            content_type="block",
+            entity_arrow_block_name=entity_arrow_block_name,
+            multi_arrow_block_names=tuple(multi_arrow_block_names),
+            block_name=block_name,
+            context_block_name=context_block_name,
+        )
 
-    def _schedule_hosted_fields(self, entity: DXFEntity) -> None:
+    @staticmethod
+    def _supports_hosted_fields(entity: DXFEntity) -> bool:
         has_field_dict = getattr(entity, "has_field_dict", None)
         get_field_dict = getattr(entity, "get_field_dict", None)
         set_field = getattr(entity, "set_field", None)
-        if not callable(has_field_dict) or not callable(get_field_dict) or not callable(set_field):
+        return callable(has_field_dict) and callable(get_field_dict) and callable(set_field)
+
+    def _schedule_hosted_fields(self, entity: DXFEntity) -> None:
+        if not self._supports_hosted_fields(entity):
             return
-        if not has_field_dict():
+        if not entity.has_field_dict():
             return
         handle = entity.dxf.get("handle")
         if not handle:
@@ -1521,7 +1554,7 @@ class _SourceCodeGenerator:
                 f'# unsupported hosted FIELD on {entity.dxftype()}: missing handle'
             )
             return
-        for key, wrapper in get_field_dict().items():
+        for key, wrapper in entity.get_field_dict().items():
             if getattr(wrapper, "dxftype", lambda: "")() != "FIELD":
                 self.add_deferred_source_code_line(
                     f'# unsupported hosted FIELD on {entity.dxftype()} key {json.dumps(key)}'
@@ -1988,8 +2021,8 @@ class _SourceCodeGenerator:
                     )
 
     def _multileader(self, entity: "MultiLeader") -> None:
-        supported, resources = self._multileader_supported(entity)
-        if not supported:
+        resources = self._multileader_supported(entity)
+        if resources is None:
             self.add_source_code_line('# unsupported DXF entity "MULTILEADER"')
             return False
 
@@ -2006,15 +2039,18 @@ class _SourceCodeGenerator:
         ):
             dxfattribs.pop(key, None)
         self.add_used_resources(dxfattribs)
-        if resources["leader_linetype_name"] is not None:
-            self.code.linetypes.add(resources["leader_linetype_name"])
-        self.code.styles.add(resources["text_style_name"])
-        if resources["content_type"] == "mtext":
-            self.code.styles.add(resources["mtext_style_name"])
+        if resources.leader_linetype_name is not None:
+            self.code.linetypes.add(resources.leader_linetype_name)
+        self.code.styles.add(resources.text_style_name)
+        if resources.has_mtext_content:
+            assert resources.mtext_style_name is not None
+            self.code.styles.add(resources.mtext_style_name)
         else:
-            self.code.blocks.add(resources["block_name"])
-            self.code.blocks.add(resources["context_block_name"])
-        self._setup_multileader_style(entity, resources["style_name"])
+            assert resources.block_name is not None
+            assert resources.context_block_name is not None
+            self.code.blocks.add(resources.block_name)
+            self.code.blocks.add(resources.context_block_name)
+        self._setup_multileader_style(entity, resources.style_name)
         self.add_source_code_lines(self.generic_api_call("MULTILEADER", dxfattribs))
         if entity.has_extension_dict:
             self.add_source_code_line(
@@ -2041,7 +2077,7 @@ class _SourceCodeGenerator:
             self.add_source_code_line(
                 f"ctx.{name} = {self._format_python_value(getattr(entity.context, name))}"
             )
-        if resources["content_type"] == "mtext":
+        if resources.has_mtext_content:
             self.add_source_code_line("mtext = MTextData()")
             for name in (
                 "default_content",
@@ -2074,19 +2110,18 @@ class _SourceCodeGenerator:
                 )
             self._set_multileader_resource_handles(
                 entity,
-                style_name=resources["style_name"],
-                leader_linetype_name=resources["leader_linetype_name"],
-                text_style_name=resources["text_style_name"],
-                mtext_style_name=resources["mtext_style_name"],
+                resources=resources,
             )
             self.add_source_code_line("ctx.mtext = mtext")
             self.add_source_code_line("ctx.block = None")
         else:
+            assert resources.block_name is not None
+            assert resources.context_block_name is not None
             self.add_source_code_line(
-                f'_block = {self.doc}.blocks.get({json.dumps(resources["block_name"])})'
+                f'_block = {self.doc}.blocks.get({json.dumps(resources.block_name)})'
             )
             self.add_source_code_line(
-                f'_ctx_block = {self.doc}.blocks.get({json.dumps(resources["context_block_name"])})'
+                f'_ctx_block = {self.doc}.blocks.get({json.dumps(resources.context_block_name)})'
             )
             self.add_source_code_line("block = BlockData()")
             for name in (
@@ -2104,9 +2139,7 @@ class _SourceCodeGenerator:
             )
             self._set_multileader_resource_handles(
                 entity,
-                style_name=resources["style_name"],
-                leader_linetype_name=resources["leader_linetype_name"],
-                text_style_name=resources["text_style_name"],
+                resources=resources,
             )
             self.add_source_code_line("e.dxf.block_record_handle = _block.block_record_handle")
             self.add_source_code_line("block.block_record_handle = _ctx_block.block_record_handle")
@@ -2121,13 +2154,13 @@ class _SourceCodeGenerator:
                     f"index={attrib.index}, width={attrib.width}, text={json.dumps(attrib.text)}"
                     "))"
                 )
-        if resources["entity_arrow_block_name"] is not None:
+        if resources.entity_arrow_block_name is not None:
             self.add_source_code_line(
-                f"e.dxf.arrow_head_handle = {self._block_record_handle_expr(resources['entity_arrow_block_name'])}"
+                f"e.dxf.arrow_head_handle = {self._block_record_handle_expr(resources.entity_arrow_block_name)}"
             )
-        if resources["multi_arrow_block_names"]:
+        if resources.multi_arrow_block_names:
             self.add_source_code_line("e.arrow_heads = []")
-            for index, block_name in resources["multi_arrow_block_names"]:
+            for index, block_name in resources.multi_arrow_block_names:
                 self.add_source_code_line(
                     "e.arrow_heads.append(ArrowHeadData("
                     f"{index}, {self._block_record_handle_expr(block_name)}"
