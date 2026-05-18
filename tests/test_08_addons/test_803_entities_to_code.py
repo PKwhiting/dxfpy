@@ -16,6 +16,7 @@ from ezdxf.addons.dxf2code import (
     _fmt_dxf_tags,
 )
 from ezdxf.dynblkhelper import (
+    DynamicBlockBasePointParameter,
     DynamicBlockLinearParameter,
     DynamicBlockLookupAction,
     DynamicBlockLookupActionBinding,
@@ -27,6 +28,7 @@ from ezdxf.dynblkhelper import (
     DynamicBlockStretchActionTarget,
     DynamicBlockVisibilityParameter,
     DynamicBlockVisibilityState,
+    get_dynamic_block_definition,
     get_dynamic_block_linear_parameters,
     get_dynamic_block_lookup_actions,
     get_dynamic_block_lookup_parameters,
@@ -35,8 +37,10 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_stretch_actions,
     get_dynamic_block_visibility_state,
     get_dynamic_block_visibility_states,
+    set_dynamic_block_base_point_parameter,
     set_dynamic_block_linear_parameter,
     set_dynamic_block_lookup_parameter,
+    set_dynamic_block_properties_editor_support,
     set_dynamic_block_properties_table,
     set_dynamic_block_reference,
     set_dynamic_block_visibility_parameter,
@@ -131,6 +135,247 @@ def execute_entities_code_in_doc(entities, target_doc):
 
 def execute_code_in_namespace(code, namespace):
     exec(code.import_str() + "\n" + str(code), namespace)
+
+
+def _names(table) -> set[str]:
+    return {entry.dxf.name for entry in table}
+
+
+def _maybe_get(table, name: str):
+    try:
+        return table.get(name)
+    except Exception:
+        return None
+
+
+def _resource_entities(doc: ezdxf.document.Drawing) -> list:
+    default_doc = ezdxf.new(doc.dxfversion)
+    entities: list = []
+
+    for name in sorted(_names(doc.layers) - _names(default_doc.layers)):
+        entity = _maybe_get(doc.layers, name)
+        if entity is not None:
+            entities.append(entity)
+    for name in sorted(_names(doc.linetypes) - _names(default_doc.linetypes)):
+        entity = _maybe_get(doc.linetypes, name)
+        if entity is not None:
+            entities.append(entity)
+    for name in sorted(_names(doc.styles) - _names(default_doc.styles)):
+        entity = _maybe_get(doc.styles, name)
+        if entity is not None:
+            entities.append(entity)
+    for name in sorted(_names(doc.dimstyles) - _names(default_doc.dimstyles)):
+        entity = _maybe_get(doc.dimstyles, name)
+        if entity is not None:
+            entities.append(entity)
+    for name in sorted(_names(doc.appids) - _names(default_doc.appids)):
+        entity = _maybe_get(doc.appids, name)
+        if entity is not None:
+            entities.append(entity)
+    return entities
+
+
+def _block_dependencies(blocks) -> dict[str, set[str]]:
+    block_by_name = {block.name: block for block in blocks}
+    dependencies: dict[str, set[str]] = {block.name: set() for block in blocks}
+    for block in blocks:
+        deps = dependencies[block.name]
+        for entity in block:
+            if entity.dxftype() != "INSERT":
+                continue
+            name = entity.dxf.name
+            if name in block_by_name and name != block.name:
+                deps.add(name)
+    return dependencies
+
+
+def _sort_blocks(blocks):
+    dependencies = _block_dependencies(blocks)
+    block_by_name = {block.name: block for block in blocks}
+    ordered: list = []
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(name: str) -> None:
+        if name in visited or name in visiting:
+            return
+        visiting.add(name)
+        for dep in dependencies.get(name, ()): 
+            visit(dep)
+        visiting.remove(name)
+        visited.add(name)
+        ordered.append(block_by_name[name])
+
+    for block in blocks:
+        visit(block.name)
+    return ordered
+
+
+def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.Drawing:
+    target_doc = ezdxf.new(source_doc.dxfversion)
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    resources = _resource_entities(source_doc)
+    if resources:
+        execute_code_in_namespace(table_entries_to_code(resources, drawing="doc"), namespace)
+    blocks = _sort_blocks([block for block in source_doc.blocks if not block.is_any_layout])
+    for block in blocks:
+        execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+    execute_code_in_namespace(entities_to_code(source_doc.modelspace(), layout="msp"), namespace)
+    return target_doc
+
+
+def build_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+    source_doc = ezdxf.new("R2018")
+    source_msp = source_doc.modelspace()
+    base = source_doc.blocks.new_anonymous_block(type_char="U")
+    public_name = "DYN_PROP_BASEPOINT_LINEAR_REPLAY"
+
+    common1 = base.add_line((0, 0), (24, 0))
+    common2 = base.add_line((0, 18), (24, 18))
+    state_a = base.add_circle((12, 9), radius=4)
+    state_b = base.add_lwpolyline([(4, 3), (20, 3), (12, 15)], close=True)
+    parameter = DynamicBlockVisibilityParameter(
+        handle="",
+        label="Visibility State",
+        parameter_name="Visibility1",
+        location=(0.0, 30.0, 0.0),
+        states=(
+            DynamicBlockVisibilityState(
+                "STATE_A",
+                (common1.dxf.handle, common2.dxf.handle, state_a.dxf.handle),
+            ),
+            DynamicBlockVisibilityState(
+                "STATE_B",
+                (common1.dxf.handle, common2.dxf.handle, state_b.dxf.handle),
+            ),
+        ),
+    )
+    set_dynamic_block_visibility_parameter(base, parameter, guid="{GUID}", true_name=public_name)
+    props = DynamicBlockPropertiesTable(
+        handle="",
+        label="Block Table",
+        table_name="Block Table1",
+        description="",
+        location=(36.0, 24.0, 0.0),
+        grip_location=(36.0, 24.0, 0.0),
+        columns=(
+            DynamicBlockPropertyColumn("", "ATTDEF", "PARAM_1", "Block Table1"),
+            DynamicBlockPropertyColumn("", "BLOCKVISIBILITYPARAMETER", "VisibilityState", "VisibilityState"),
+        ),
+        rows=(
+            DynamicBlockPropertyRow(0, ("A", "STATE_A")),
+            DynamicBlockPropertyRow(1, ("B", "STATE_B")),
+        ),
+    )
+    props = set_dynamic_block_properties_table(base, props)
+    set_dynamic_block_base_point_parameter(
+        base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0.0, 0.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+    attdef = next(entity for entity in base if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_1")
+    linear = DynamicBlockLinearParameter(
+        handle="",
+        label="Linear",
+        parameter_name="Distance1",
+        description="",
+        base_point=(0.0, 0.0, 0.0),
+        end_point=(12.0, 0.0, 0.0),
+        distance=12.0,
+        expr_id=0,
+        base_grip_label="Base Grip",
+        end_grip_label="End Grip",
+        base_grip_location=(0.0, 0.0, 0.0),
+        end_grip_location=(12.0, 24.0, 0.0),
+    )
+    stretch = DynamicBlockStretchAction(
+        handle="",
+        label="Stretch1",
+        action_location=(12.0, -6.0, 0.0),
+        x_expr_id=0,
+        x_name="EndXDelta",
+        y_expr_id=0,
+        y_name="EndYDelta",
+        selection_window=((26.0, 20.0, 0.0), (8.0, -6.0, 0.0)),
+        dependency_handles=(attdef.dxf.handle, common1.dxf.handle, common2.dxf.handle),
+        targets=(
+            DynamicBlockStretchActionTarget(common1.dxf.handle, 1, (1,)),
+            DynamicBlockStretchActionTarget(common2.dxf.handle, 1, (1,)),
+            DynamicBlockStretchActionTarget(attdef.dxf.handle, 1, (0,)),
+        ),
+    )
+    set_dynamic_block_linear_parameter(base, linear, stretch)
+    set_dynamic_block_properties_editor_support(base, props)
+
+    def add_reference_block_and_insert(state: str, insert_point: tuple[float, float]):
+        anon = source_doc.blocks.new_anonymous_block(type_char="U")
+        anon.add_line((0, 0), (24, 0))
+        anon.add_line((0, 18), (24, 18))
+        anon.add_circle((12, 9), radius=4)
+        anon.add_lwpolyline([(4, 3), (20, 3), (12, 15)], close=True)
+        set_dynamic_block_reference(anon, base)
+        insert = source_msp.add_blockref(anon.name, insert_point)
+        set_dynamic_block_visibility_state(insert, base, state=state)
+        return insert
+
+    add_reference_block_and_insert("STATE_A", (0, 0))
+    add_reference_block_and_insert("STATE_B", (80, 0))
+    return source_doc, public_name
+
+
+def assert_supported_linear_visibility_replay_doc(doc: ezdxf.document.Drawing, public_name: str) -> None:
+    new_inserts = list(doc.modelspace().query("INSERT"))
+
+    assert len(new_inserts) == 2
+    state_by_x = {
+        round(float(insert.dxf.insert.x), 3): get_dynamic_block_visibility_state(insert)
+        for insert in new_inserts
+    }
+    assert state_by_x[0.0] == "STATE_A"
+    assert state_by_x[80.0] == "STATE_B"
+
+    new_base = next(
+        block
+        for block in doc.blocks
+        if block.block_record.has_xdata("AcDbDynamicBlockTrueName2")
+        and block.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "") == public_name
+    )
+    new_linear = get_dynamic_block_linear_parameters(new_base)
+    new_actions = get_dynamic_block_stretch_actions(new_base)
+    new_props = get_dynamic_block_properties_table(new_base)
+    ref_count = sum(
+        1
+        for block in doc.blocks
+        if block.block_record.has_xdata("AcDbBlockRepBTag")
+        and block.block_record.get_xdata("AcDbBlockRepBTag").get_first_value(1005, "") == new_base.block_record_handle
+    )
+
+    assert new_props is not None
+    assert [row.values for row in new_props.rows] == [("A", "STATE_A"), ("B", "STATE_B")]
+    assert len(new_linear) == 1
+    assert new_linear[0].parameter_name == "Distance1"
+    assert new_linear[0].end_grip_location == (12.0, 24.0, 0.0)
+    assert len(new_actions) == 1
+    assert [(target.mode, target.components) for target in new_actions[0].targets] == [
+        (1, (1,)),
+        (1, (1,)),
+    ]
+    assert ref_count >= 4
+
+    for insert in new_inserts:
+        rep = insert.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
+        cache = rep.get("AppDataCache")
+        enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
+        history = cache.get("ACAD_ENHANCEDBLOCKHISTORY")
+        assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
+        assert "6" not in set(enhanced.keys())
+        assert history is not None
 
 
 def test_line_to_code():
@@ -1532,6 +1777,22 @@ def test_dynamic_block_linear_parameter_to_code():
     assert ref_c is not None
     assert all(entity.has_xdata("AcDbBlockRepETag") for entity in ref_a)
     assert all(entity.has_xdata("AcDbBlockRepETag") for entity in ref_c)
+
+
+def test_dynamic_block_basepoint_linear_full_replay_preserves_supported_path():
+    source_doc, public_name = build_supported_linear_visibility_replay_doc()
+    new_doc = replay_doc_to_new_doc(source_doc)
+
+    assert_supported_linear_visibility_replay_doc(new_doc, public_name)
+
+
+def test_dynamic_block_basepoint_linear_two_generation_replay_preserves_supported_path():
+    source_doc, public_name = build_supported_linear_visibility_replay_doc()
+    gen1_doc = replay_doc_to_new_doc(source_doc)
+    gen2_doc = replay_doc_to_new_doc(gen1_doc)
+
+    assert_supported_linear_visibility_replay_doc(gen1_doc, public_name)
+    assert_supported_linear_visibility_replay_doc(gen2_doc, public_name)
 
 
 def test_dynamic_block_lookup_parameter_to_code():
