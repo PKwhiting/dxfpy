@@ -224,16 +224,28 @@ def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.
     return target_doc
 
 
+def _add_supported_linear_visibility_geometry(block):
+    common1 = block.add_line((0, 0), (24, 0))
+    common2 = block.add_line((0, 18), (24, 18))
+    state_a = block.add_circle((12, 9), radius=4)
+    state_b = block.add_lwpolyline([(4, 3), (20, 3), (12, 15)], close=True)
+    return common1, common2, state_a, state_b
+
+
+def _add_supported_linear_visibility_reference_block(doc, base):
+    anon = doc.blocks.new_anonymous_block(type_char="U")
+    _add_supported_linear_visibility_geometry(anon)
+    set_dynamic_block_reference(anon, base)
+    return anon
+
+
 def build_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
     source_doc = ezdxf.new("R2018")
     source_msp = source_doc.modelspace()
     base = source_doc.blocks.new_anonymous_block(type_char="U")
     public_name = "DYN_PROP_BASEPOINT_LINEAR_REPLAY"
 
-    common1 = base.add_line((0, 0), (24, 0))
-    common2 = base.add_line((0, 18), (24, 18))
-    state_a = base.add_circle((12, 9), radius=4)
-    state_b = base.add_lwpolyline([(4, 3), (20, 3), (12, 15)], close=True)
+    common1, common2, state_a, state_b = _add_supported_linear_visibility_geometry(base)
     parameter = DynamicBlockVisibilityParameter(
         handle="",
         label="Visibility State",
@@ -314,12 +326,7 @@ def build_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawi
     set_dynamic_block_properties_editor_support(base, props)
 
     def add_reference_block_and_insert(state: str, insert_point: tuple[float, float]):
-        anon = source_doc.blocks.new_anonymous_block(type_char="U")
-        anon.add_line((0, 0), (24, 0))
-        anon.add_line((0, 18), (24, 18))
-        anon.add_circle((12, 9), radius=4)
-        anon.add_lwpolyline([(4, 3), (20, 3), (12, 15)], close=True)
-        set_dynamic_block_reference(anon, base)
+        anon = _add_supported_linear_visibility_reference_block(source_doc, base)
         insert = source_msp.add_blockref(anon.name, insert_point)
         set_dynamic_block_visibility_state(insert, base, state=state)
         return insert
