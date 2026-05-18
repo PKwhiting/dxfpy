@@ -830,6 +830,97 @@ def test_dynamic_block_insert_enhanced_cache_sets_reactors():
     assert xrecord.get_reactors() == [enhanced.dxf.handle]
 
 
+def test_basepoint_linear_insert_writes_extended_cache_records():
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    insert = make_dynamic_properties_insert(doc)
+    base = get_dynamic_block_definition(insert)
+
+    assert base is not None
+    entities = list(base)
+    stretch_entity = entities[0]
+    attdef1 = next(entity for entity in entities if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_1")
+    attdef2 = next(entity for entity in entities if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_2")
+    attdef3 = next(entity for entity in entities if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_3")
+    table = get_dynamic_block_properties_table(base)
+    grip = next(obj for obj in doc.objects if obj.dxftype() == "BLOCKPROPERTIESTABLEGRIP")
+
+    assert table is not None
+    set_dynamic_block_base_point_parameter(
+        base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0.0, 0.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+    linear = DynamicBlockLinearParameter(
+        handle="",
+        label="Linear",
+        parameter_name="Distance1",
+        description="",
+        base_point=(0.0, 0.0, 0.0),
+        end_point=(1.0, 0.0, 0.0),
+        distance=1.0,
+        expr_id=0,
+        end_grip_label="End Grip",
+    )
+    action = DynamicBlockStretchAction(
+        handle="",
+        label="Stretch",
+        action_location=(1.0, -0.5, 0.0),
+        x_expr_id=0,
+        x_name="EndXDelta",
+        y_expr_id=0,
+        y_name="EndYDelta",
+        selection_window=((2.0, 1.0, 0.0), (0.5, -0.5, 0.0)),
+        dependency_handles=(
+            grip.dxf.handle,
+            table.handle,
+            attdef3.dxf.handle,
+            attdef2.dxf.handle,
+            attdef1.dxf.handle,
+            stretch_entity.dxf.handle,
+        ),
+        targets=(
+            DynamicBlockStretchActionTarget(stretch_entity.dxf.handle, 2, (1, 2)),
+            DynamicBlockStretchActionTarget(attdef1.dxf.handle, 1, (0,)),
+            DynamicBlockStretchActionTarget(attdef2.dxf.handle, 1, (0,)),
+            DynamicBlockStretchActionTarget(attdef3.dxf.handle, 1, (0,)),
+        ),
+    )
+    set_dynamic_block_linear_parameter(base, linear, action)
+
+    anon = doc.blocks.new_anonymous_block(type_char="U")
+    set_dynamic_block_reference(anon, base)
+    dyn_insert = msp.add_blockref(anon.name, (0, 0))
+    set_dynamic_block_visibility_state(dyn_insert, base, state="STATE_A")
+
+    rep = dyn_insert.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
+    cache = rep.get("AppDataCache")
+    enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
+    history = cache.get("ACAD_ENHANCEDBLOCKHISTORY")
+
+    assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
+    assert "6" not in set(enhanced.keys())
+    assert history is not None
+    assert list(enhanced.get("1").tags)[-2:] == [
+        (10, (0.0, 14.0, 0.0)),
+        (1, "STATE_A"),
+    ]
+    assert list(enhanced.get("5").tags)[-1] == (10, (0.0, 0.0, 0.0))
+    assert list(enhanced.get("16").tags)[-3:] == [
+        (10, (0.0, 0.0, 0.0)),
+        (10, (1.0, 0.0, 0.0)),
+        (10, (0.0, 0.0, -1.0)),
+    ]
+    assert list(enhanced.get("20").tags)[-1] == (40, 0.0)
+    assert (300, "GRIPLOC") in list(history.tags)
+
+
 def test_dynamic_block_writer_applies_invisible_mask_to_default_and_active_states():
     doc = ezdxf.new("R2018")
     insert = make_dynamic_insert_with_entities(doc, "STATE_C")
@@ -1627,6 +1718,22 @@ def test_set_dynamic_block_linear_parameter_uses_basepoint_branch_when_present()
     assert parsed[0].end_grip_handle
     assert graph is not None
     assert list(graph.get_xdata("AcadBPTGraphNodeId")) == [(1071, 6)]
+    stretch_entity_obj = next(
+        obj
+        for obj in doc.objects
+        if obj.dxftype() == "BLOCKSTRETCHACTION" and obj.dxf.owner == graph.dxf.handle
+    )
+    action_tags = [
+        (tag.code, tag.value)
+        for tag in stretch_entity_obj.xtags.get_subclass("AcDbBlockAction")
+    ]
+    stretch_tags = [
+        (tag.code, tag.value)
+        for tag in stretch_entity_obj.xtags.get_subclass("AcDbBlockStretchAction")
+    ]
+    assert action_tags[1:4] == [(70, 1), (91, 5), (71, 6)]
+    assert action_tags[4:6] == [(330, created.end_grip_handle), (330, next(obj for obj in doc.objects if obj.dxftype() == "BLOCKBASEPOINTPARAMETER").dxf.handle)]
+    assert stretch_tags[-7:] == [(75, 1), (95, 5), (76, 1), (94, 0), (140, 1.0), (141, 0.0), (280, 0)]
     table_sub = list(table_entity.xtags.get_subclass("AcDbBlockPropertiesTable"))
     chunks = [table_sub[5 + i * 15 : 5 + (i + 1) * 15] for i in range(4)]
     assert chunks[-1][5].value == 1
@@ -1655,6 +1762,81 @@ def test_set_dynamic_block_linear_parameter_uses_basepoint_branch_when_present()
         ref_chunks.append((count, refs))
     assert all(count == 5 for count, _refs in ref_chunks)
     assert all(refs[:2] == [table_entity.dxf.handle, grip.dxf.handle] for _count, refs in ref_chunks)
+
+
+def test_basepoint_linear_branch_normalizes_simple_line_targets_like_working_file():
+    doc = ezdxf.new("R2018")
+    insert = make_dynamic_properties_insert(doc)
+    base = get_dynamic_block_definition(insert)
+
+    assert base is not None
+    entities = list(base)
+    line1 = entities[0]
+    line2 = entities[1]
+    attdef1 = next(entity for entity in entities if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_1")
+
+    set_dynamic_block_base_point_parameter(
+        base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0.0, 0.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+    linear = DynamicBlockLinearParameter(
+        handle="",
+        label="Linear",
+        parameter_name="Distance1",
+        description="",
+        base_point=(0.0, 0.0, 0.0),
+        end_point=(12.0, 0.0, 0.0),
+        distance=12.0,
+        expr_id=0,
+        end_grip_label="End Grip",
+        end_grip_location=(12.0, 24.0, 0.0),
+    )
+    action = DynamicBlockStretchAction(
+        handle="",
+        label="Stretch1",
+        action_location=(12.0, -6.0, 0.0),
+        x_expr_id=0,
+        x_name="EndXDelta",
+        y_expr_id=0,
+        y_name="EndYDelta",
+        selection_window=((26.0, 20.0, 0.0), (8.0, -6.0, 0.0)),
+        dependency_handles=(attdef1.dxf.handle, line1.dxf.handle, line2.dxf.handle),
+        targets=(
+            DynamicBlockStretchActionTarget(line1.dxf.handle, 1, (1,)),
+            DynamicBlockStretchActionTarget(line2.dxf.handle, 1, (1,)),
+            DynamicBlockStretchActionTarget(attdef1.dxf.handle, 1, (0,)),
+        ),
+    )
+    set_dynamic_block_linear_parameter(base, linear, action)
+
+    actions = get_dynamic_block_stretch_actions(base)
+    graph = base.block_record.get_extension_dict().dictionary.get("ACAD_ENHANCEDBLOCK")
+
+    assert graph is not None
+    assert len(actions) == 1
+    assert len(actions[0].dependency_handles) == 5
+    assert [(target.mode, target.components) for target in actions[0].targets] == [
+        (1, (1,)),
+        (1, (1,)),
+    ]
+    stretch_entity_obj = next(
+        obj
+        for obj in doc.objects
+        if obj.dxftype() == "BLOCKSTRETCHACTION" and obj.dxf.owner == graph.dxf.handle
+    )
+    stretch_tags = [
+        (tag.code, tag.value)
+        for tag in stretch_entity_obj.xtags.get_subclass("AcDbBlockStretchAction")
+    ]
+    assert stretch_tags[-4:] == [(75, 0), (140, 1.0), (141, 0.0), (280, 0)]
+    assert sum(1 for code, _value in stretch_tags if code == 331) == 2
 
 
 def test_set_dynamic_block_linear_parameter_preserves_explicit_grip_location():

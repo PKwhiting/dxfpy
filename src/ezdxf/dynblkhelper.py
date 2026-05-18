@@ -3574,6 +3574,24 @@ def set_dynamic_block_linear_parameter(
         basepoint_entity = next((entity for entity in owned if entity.dxftype() == "BLOCKBASEPOINTPARAMETER"), None)
         if not isinstance(basepoint_entity, DXFTagStorage):
             raise const.DXFStructureError("base point parameter object not found")
+        entity_type_by_handle = {
+            entity.dxf.handle: entity.dxftype()
+            for entity in block
+            if entity.dxf.handle
+        }
+        normalized_targets = tuple(
+            target
+            for target in targets
+            if entity_type_by_handle.get(target.entity_handle, "") != "ATTDEF"
+        )
+        if normalized_targets:
+            targets = normalized_targets
+        simple_line_targets = bool(targets) and all(
+            entity_type_by_handle.get(target.entity_handle, "") == "LINE"
+            and target.mode == 1
+            and tuple(target.components) == (1,)
+            for target in targets
+        )
         _replace_subclass_tags(
             visibility_entity.xtags.get_subclass("AcDbEvalExpr"),
             [(100, "AcDbEvalExpr"), (90, 1), (98, 33), (99, 378)],
@@ -3736,10 +3754,11 @@ def set_dynamic_block_linear_parameter(
                             *[(94, component) for component in target.components],
                         )
                     ],
-                    (75, 1),
-                    (95, 5),
-                    (76, 1),
-                    (94, 0),
+                    *(
+                        [(75, 0)]
+                        if simple_line_targets
+                        else [(75, 1), (95, 5), (76, 1), (94, 0)]
+                    ),
                     (140, 1.0),
                     (141, 0.0),
                     (280, 0),
@@ -5327,6 +5346,8 @@ def set_dynamic_block_visibility_state(
             (1, state),
         ]
     )
+    if _populate_linear_insert_cache_records(insert, dynamic_block, state=state):
+        enhanced.discard("6")
 
 
 def set_dynamic_block_insert_cache(
@@ -5366,6 +5387,14 @@ def set_dynamic_block_insert_cache(
             (10, location),
         ]
     )
+    visibility = get_dynamic_block_visibility_parameter(dynamic_block)
+    if visibility is not None and visibility.states:
+        if _populate_linear_insert_cache_records(
+            insert,
+            dynamic_block,
+            state=visibility.states[0].name,
+        ):
+            enhanced.discard("6")
 
 
 def _ensure_dynamic_insert_cache_dictionary(
@@ -5444,3 +5473,122 @@ def set_dynamic_block_insert_appdata_record(
         xrecord = app_cache.add_xrecord(key)
     xrecord.set_reactors([app_cache.dxf.handle])
     xrecord.reset(tags)
+
+
+def _populate_linear_insert_cache_records(
+    insert: Insert,
+    dynamic_block: BlockLayout,
+    *,
+    state: str,
+) -> bool:
+    basepoint = get_dynamic_block_base_point_parameter(dynamic_block)
+    linear_parameters = get_dynamic_block_linear_parameters(dynamic_block)
+    if basepoint is None or len(linear_parameters) != 1:
+        return False
+    graph = _get_enhanced_block_graph(dynamic_block.block_record)
+    if graph is None:
+        return False
+    owned = tuple(_iter_graph_owned_objects(graph))
+    visibility_entity = next(
+        (entity for entity in owned if entity.dxftype() == "BLOCKVISIBILITYPARAMETER"),
+        None,
+    )
+    table_entity = next(
+        (entity for entity in owned if entity.dxftype() == "BLOCKPROPERTIESTABLE"),
+        None,
+    )
+    linear_entity = next(
+        (entity for entity in owned if entity.dxftype() == "BLOCKLINEARPARAMETER"),
+        None,
+    )
+    stretch_entity = next(
+        (entity for entity in owned if entity.dxftype() == "BLOCKSTRETCHACTION"),
+        None,
+    )
+    if not all(
+        isinstance(entity, DXFTagStorage)
+        for entity in (visibility_entity, table_entity, linear_entity, stretch_entity)
+    ):
+        return False
+    linear = linear_parameters[0]
+    visibility = get_dynamic_block_visibility_parameter(dynamic_block)
+    if visibility is None:
+        return False
+
+    visibility_expr_id = _eval_expr_id(visibility_entity)
+    table_expr_id = _eval_expr_id(table_entity)
+    linear_expr_id = _eval_expr_id(linear_entity)
+    stretch_expr_id = _eval_expr_id(stretch_entity)
+    basepoint_expr_id = basepoint.expr_id
+
+    set_dynamic_block_insert_cache_record(
+        insert,
+        str(visibility_expr_id),
+        [
+            (1071, 135625452),
+            (1071, 184556386),
+            (70, 25),
+            (70, 104),
+            (10, visibility.location),
+            (1, state),
+        ],
+        dynamic_block,
+    )
+    set_dynamic_block_insert_cache_record(
+        insert,
+        str(basepoint_expr_id),
+        [
+            (1071, 82437801),
+            (1071, 112294725),
+            (70, 25),
+            (70, 104),
+            (10, basepoint.base_point),
+        ],
+        dynamic_block,
+    )
+    set_dynamic_block_insert_cache_record(
+        insert,
+        str(linear_expr_id),
+        [
+            (1071, 18597260),
+            (1071, 25303744),
+            (70, 25),
+            (70, 104),
+            (10, linear.base_point),
+            (10, linear.end_point),
+            (10, (0.0, 0.0, -1.0)),
+        ],
+        dynamic_block,
+    )
+    set_dynamic_block_insert_cache_record(
+        insert,
+        str(stretch_expr_id),
+        [
+            (1071, 6895636),
+            (1071, 9291323),
+            (70, 25),
+            (70, 104),
+            (40, 0.0),
+        ],
+        dynamic_block,
+    )
+    set_dynamic_block_insert_appdata_record(
+        insert,
+        "ACAD_ENHANCEDBLOCKHISTORY",
+        [
+            (1070, 3),
+            (1071, 17),
+            (300, "GRIPLOC"),
+            (11, (0.0, 0.0, 0.0)),
+            (1071, table_expr_id),
+            (300, get_dynamic_block_properties_table(dynamic_block).table_name),
+            (70, 1),
+            (1070, -1),
+            (1071, visibility_expr_id),
+            (300, visibility.parameter_name),
+            (1, state),
+            (1070, -2),
+        ],
+        dynamic_block,
+    )
+    return True
