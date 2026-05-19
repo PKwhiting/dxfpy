@@ -47,6 +47,9 @@ __all__ = [
     "get_dynamic_block_visibility_state",
     "get_dynamic_block_visibility_state_handles",
     "get_dynamic_block_visibility_entities",
+    "get_dynamic_block_entity_rep_index_path",
+    "get_dynamic_block_entity_by_rep_index_path",
+    "get_dynamic_block_entity_handle_by_rep_index_path",
     "get_dynamic_block_base_point_parameter",
     "get_dynamic_block_linear_grips",
     "get_dynamic_block_linear_parameters",
@@ -143,6 +146,13 @@ def _set_property_attdef_rep_etag(attdef, rep_index: int) -> None:
     _set_entity_rep_etag(attdef, rep_index, "0")
 
 
+def _entity_rep_index(entity, default_index: Optional[int] = None) -> Optional[int]:
+    try:
+        return int(entity.get_xdata(AcDbBlockRepETag).get_first_value(1071, -1))
+    except const.DXFValueError:
+        return default_index
+
+
 def _ensure_property_attdef_annotative_metadata(
     attdef, *, create_context_record: bool = True
 ) -> None:
@@ -216,10 +226,7 @@ def _attdef_has_context_record(attdef) -> bool:
 
 
 def _attdef_rep_index(attdef) -> Optional[int]:
-    try:
-        return int(attdef.get_xdata(AcDbBlockRepETag).get_first_value(1071, -1))
-    except const.DXFValueError:
-        return None
+    return _entity_rep_index(attdef)
 
 
 @dataclass(frozen=True)
@@ -329,6 +336,186 @@ def _clone_property_attdefs_to_reference(reference: BlockLayout, dynamic_block: 
             clone.dxf.invisible = 1
 
 
+def _propagate_nested_dynamic_insert_state(source: Insert, target: Insert) -> None:
+    source_dynamic_block = get_dynamic_block_definition(source)
+    if source_dynamic_block is None:
+        return
+    target_dynamic_block = get_dynamic_block_definition(target)
+    if target_dynamic_block is None:
+        return
+    if target_dynamic_block.block_record_handle != source_dynamic_block.block_record_handle:
+        return
+
+    state = get_dynamic_block_visibility_state(source)
+    if state:
+        set_dynamic_block_visibility_state(target, source_dynamic_block, state=state)
+        return
+    if source.has_extension_dict:
+        set_dynamic_block_insert_cache(
+            target,
+            source_dynamic_block,
+            location=tuple(target.dxf.insert),
+        )
+
+
+def _propagate_nested_dynamic_insert_states(
+    reference: BlockLayout,
+    dynamic_block: BlockLayout,
+) -> None:
+    source_entities = [entity for entity in dynamic_block if entity.dxftype() != "ATTDEF"]
+    reference_entities = [entity for entity in reference if entity.dxftype() != "ATTDEF"]
+    for source_entity, reference_entity in zip(source_entities, reference_entities):
+        if source_entity.dxftype() != "INSERT" or reference_entity.dxftype() != "INSERT":
+            continue
+        _propagate_nested_dynamic_insert_state(source_entity, reference_entity)
+
+
+def _insert_referenced_block(insert: Insert) -> Optional[BlockLayout]:
+    return get_dynamic_block_reference(insert)
+
+
+def _find_dynamic_block_entity_rep_index_path(
+    block: BlockLayout,
+    handle: str,
+    *,
+    stack: tuple[str, ...] = (),
+) -> Optional[tuple[int, ...]]:
+    block_record_handle = block.block_record_handle
+    next_stack = stack
+    if block_record_handle:
+        if block_record_handle in stack:
+            return None
+        next_stack = (*stack, block_record_handle)
+    for index, entity in enumerate(block):
+        rep_index = _entity_rep_index(entity, index)
+        if rep_index is None:
+            continue
+        if entity.dxf.handle == handle:
+            return (rep_index,)
+        if entity.dxftype() != "INSERT":
+            continue
+        child = _insert_referenced_block(entity)
+        if child is None:
+            continue
+        child_path = _find_dynamic_block_entity_rep_index_path(
+            child,
+            handle,
+            stack=next_stack,
+        )
+        if child_path is not None:
+            return (rep_index, *child_path)
+    return None
+
+
+def get_dynamic_block_entity_rep_index_path(
+    block: BlockLayout,
+    handle: str,
+) -> tuple[int, ...]:
+    path = _find_dynamic_block_entity_rep_index_path(block, handle)
+    return () if path is None else path
+
+
+def get_dynamic_block_entity_by_rep_index_path(
+    block: BlockLayout,
+    rep_index_path: Sequence[int],
+) -> Optional[DXFEntity]:
+    if not rep_index_path:
+        return None
+    current_block = block
+    entity: Optional[DXFEntity] = None
+    for depth, rep_index in enumerate(rep_index_path):
+        entity = next(
+            (
+                candidate
+                for index, candidate in enumerate(current_block)
+                if _entity_rep_index(candidate, index) == rep_index
+            ),
+            None,
+        )
+        if entity is None:
+            return None
+        if depth == len(rep_index_path) - 1:
+            return entity
+        if entity.dxftype() != "INSERT":
+            return None
+        current_block = _insert_referenced_block(entity)
+        if current_block is None:
+            return None
+    return entity
+
+
+def get_dynamic_block_entity_handle_by_rep_index_path(
+    block: BlockLayout,
+    rep_index_path: Sequence[int],
+) -> str:
+    entity = get_dynamic_block_entity_by_rep_index_path(block, rep_index_path)
+    return entity.dxf.handle if entity is not None and entity.dxf.handle is not None else ""
+
+
+def _dynamic_block_entity_by_handle(
+    block: BlockLayout,
+    handle: str,
+) -> Optional[DXFEntity]:
+    path = get_dynamic_block_entity_rep_index_path(block, handle)
+    if not path:
+        return None
+    return get_dynamic_block_entity_by_rep_index_path(block, path)
+
+
+def _visibility_rep_index_paths(
+    block: BlockLayout,
+    handles: Sequence[str],
+) -> tuple[tuple[int, ...], ...]:
+    paths: list[tuple[int, ...]] = []
+    for handle in handles:
+        path = get_dynamic_block_entity_rep_index_path(block, handle)
+        if path:
+            paths.append(path)
+    return tuple(paths)
+
+
+def _apply_visibility_paths_to_block(
+    block: BlockLayout,
+    visible_paths: Sequence[Sequence[int]],
+) -> None:
+    paths_by_index: dict[int, list[tuple[int, ...]]] = {}
+    for path in visible_paths:
+        if not path:
+            continue
+        first = int(path[0])
+        tail = tuple(int(part) for part in path[1:])
+        paths_by_index.setdefault(first, []).append(tail)
+
+    for index, entity in enumerate(block):
+        rep_index = _entity_rep_index(entity, index)
+        if rep_index is None:
+            continue
+        tails = paths_by_index.get(rep_index, [])
+        if tails:
+            entity.dxf.discard("invisible")
+            child_paths = tuple(tail for tail in tails if tail)
+            if child_paths and entity.dxftype() == "INSERT":
+                child = _insert_referenced_block(entity)
+                if child is not None:
+                    _apply_visibility_paths_to_block(child, child_paths)
+        else:
+            entity.dxf.invisible = 1
+
+
+def _compile_nested_visibility_parameter(
+    block: BlockLayout,
+    parameter: DynamicBlockVisibilityParameter,
+) -> DynamicBlockVisibilityParameter:
+    for state in parameter.states:
+        for handle in state.entity_handles:
+            path = get_dynamic_block_entity_rep_index_path(block, handle)
+            if len(path) > 1:
+                raise const.DXFValueError(
+                    "nested dynamic block visibility descendants are not supported"
+                )
+    return parameter
+
+
 
 def _apply_visibility_state_to_block(
     block: BlockLayout,
@@ -347,29 +534,10 @@ def _apply_visibility_state_to_block(
             break
     if not visible_handles:
         return
-
-    if block is dynamic_block:
-        visible = set(visible_handles)
-        for entity in block:
-            if entity.dxf.handle in visible:
-                entity.dxf.discard("invisible")
-            else:
-                entity.dxf.invisible = 1
+    visible_paths = _visibility_rep_index_paths(dynamic_block, visible_handles)
+    if not visible_paths:
         return
-
-    base_entities = list(dynamic_block)
-    ref_entities = list(block)
-    handle_to_index = {
-        entity.dxf.handle: index
-        for index, entity in enumerate(base_entities)
-        if entity.dxf.handle is not None
-    }
-    visible_indices = {handle_to_index[handle] for handle in visible_handles if handle in handle_to_index}
-    for index, entity in enumerate(ref_entities):
-        if index in visible_indices:
-            entity.dxf.discard("invisible")
-        else:
-            entity.dxf.invisible = 1
+    _apply_visibility_paths_to_block(block, visible_paths)
 
 
 def _apply_property_attdef_visibility(
@@ -1296,19 +1464,14 @@ def get_dynamic_block_visibility_entities(
         ref_block = get_dynamic_block_reference(source, doc)
         if base_block is None or ref_block is None:
             return ()
-        base_entities = list(base_block)
-        ref_entities = list(ref_block)
-        handle_to_index = {
-            entity.dxf.handle: index
-            for index, entity in enumerate(base_entities)
-            if entity.dxf.handle is not None
-        }
         result: list[DXFEntity] = []
         for handle in handles:
-            index = handle_to_index.get(handle)
-            if index is None or index >= len(ref_entities):
+            path = get_dynamic_block_entity_rep_index_path(base_block, handle)
+            if not path:
                 continue
-            result.append(ref_entities[index])
+            entity = get_dynamic_block_entity_by_rep_index_path(ref_block, path)
+            if entity is not None:
+                result.append(entity)
         return tuple(result)
 
     block = _resolve_block_layout(source, doc)
@@ -3557,6 +3720,16 @@ def set_dynamic_block_linear_parameter(
             ],
         ]
     )
+    if any(
+        len(get_dynamic_block_entity_rep_index_path(block, handle)) > 1
+        for handle in dependency_handles
+    ) or any(
+        len(get_dynamic_block_entity_rep_index_path(block, target.entity_handle)) > 1
+        for target in targets
+    ):
+        raise const.DXFValueError(
+            "nested dynamic block linear descendant targets are not supported"
+        )
     vector = (
         float(parameter.end_point[0] - parameter.base_point[0]),
         float(parameter.end_point[1] - parameter.base_point[1]),
@@ -3575,9 +3748,9 @@ def set_dynamic_block_linear_parameter(
         if not isinstance(basepoint_entity, DXFTagStorage):
             raise const.DXFStructureError("base point parameter object not found")
         entity_type_by_handle = {
-            entity.dxf.handle: entity.dxftype()
-            for entity in block
-            if entity.dxf.handle
+            target.entity_handle: resolved.dxftype()
+            for target in targets
+            if (resolved := _dynamic_block_entity_by_handle(block, target.entity_handle)) is not None
         }
         normalized_targets = tuple(
             target
@@ -3704,9 +3877,10 @@ def set_dynamic_block_linear_parameter(
                 [(100, "AcDbBlockGripExpr"), (91, 16), (300, "UpdatedEndY")],
             ],
         )
-        entity_handle_set = {entity.dxf.handle for entity in block if entity.dxf.handle}
         explicit_entity_dependencies = tuple(
-            handle for handle in stretch_action.dependency_handles if handle in entity_handle_set
+            handle
+            for handle in stretch_action.dependency_handles
+            if _dynamic_block_entity_by_handle(block, handle) is not None
         )
         dependency_handles = (
             (end_grip.dxf.handle, basepoint_entity.dxf.handle, *explicit_entity_dependencies)
@@ -5001,6 +5175,12 @@ def _ensure_dynamic_block_extension_dict(block_record: BlockRecord) -> Dictionar
     return xdict.dictionary
 
 
+def _hard_owned_dictionary(dictionary: Dictionary, owner_handle: str) -> Dictionary:
+    dictionary._value_code = 360
+    dictionary.set_reactors([owner_handle])
+    return dictionary
+
+
 def set_dynamic_block_visibility_parameter(
     block: BlockLayout,
     parameter: DynamicBlockVisibilityParameter,
@@ -5023,6 +5203,7 @@ def set_dynamic_block_visibility_parameter(
         guid = "{" + str(uuid.uuid4()).upper() + "}"
     if not true_name:
         true_name = block.name
+    parameter = _compile_nested_visibility_parameter(block, parameter)
     block_record.set_xdata(AcDbDynamicBlockGUID, [(1000, guid)])
     block_record.set_xdata(AcDbDynamicBlockTrueName, [(1000, true_name)])
     block_record.set_xdata(AcDbBlockRepETag, [(1070, 1), (1071, len(block))])
@@ -5265,6 +5446,7 @@ def set_dynamic_block_reference(
         properties = get_dynamic_block_properties_table(dynamic_block)
         if properties is not None:
             _set_property_attdef_reactors(block, properties.handle)
+        _propagate_nested_dynamic_insert_states(block, dynamic_block)
     block.block_record.set_xdata(
         AcDbBlockRepBTag,
         [(1070, 1), (1005, dynamic_block.block_record_handle)],
@@ -5316,6 +5498,7 @@ def set_dynamic_block_visibility_state(
     rep = root.get("AcDbBlockRepresentation")
     if not isinstance(rep, Dictionary):
         rep = root.add_new_dict("AcDbBlockRepresentation", hard_owned=True)
+    rep = _hard_owned_dictionary(rep, root.dxf.handle)
     repdata = rep.get("AcDbRepData")
     if not isinstance(repdata, DXFTagStorage) or repdata.dxftype() != "ACDB_BLOCKREPRESENTATION_DATA":
         repdata = _new_tag_storage_object(
@@ -5325,12 +5508,15 @@ def set_dynamic_block_visibility_state(
             [[(100, "AcDbBlockRepresentationData"), (70, 1), (340, dynamic_block.block_record_handle)]],
         )
         rep.add("AcDbRepData", repdata)
+    _set_owner_reactor(repdata, rep.dxf.handle)
     app_cache = rep.get("AppDataCache")
     if not isinstance(app_cache, Dictionary):
         app_cache = rep.add_new_dict("AppDataCache", hard_owned=True)
+    app_cache = _hard_owned_dictionary(app_cache, rep.dxf.handle)
     enhanced = app_cache.get("ACAD_ENHANCEDBLOCKDATA")
     if not isinstance(enhanced, Dictionary):
         enhanced = app_cache.add_new_dict("ACAD_ENHANCEDBLOCKDATA", hard_owned=True)
+    enhanced = _hard_owned_dictionary(enhanced, app_cache.dxf.handle)
     enhanced.set_reactors([app_cache.dxf.handle])
     xrecord = enhanced.get("6")
     if not isinstance(xrecord, XRecord):
@@ -5424,6 +5610,7 @@ def _ensure_dynamic_insert_app_cache_dictionary(
     rep = root.get("AcDbBlockRepresentation")
     if not isinstance(rep, Dictionary):
         rep = root.add_new_dict("AcDbBlockRepresentation", hard_owned=True)
+    rep = _hard_owned_dictionary(rep, root.dxf.handle)
     repdata = rep.get("AcDbRepData")
     if not isinstance(repdata, DXFTagStorage) or repdata.dxftype() != "ACDB_BLOCKREPRESENTATION_DATA":
         repdata = _new_tag_storage_object(
@@ -5433,9 +5620,11 @@ def _ensure_dynamic_insert_app_cache_dictionary(
             [[(100, "AcDbBlockRepresentationData"), (70, 1), (340, dynamic_block.block_record_handle)]],
         )
         rep.add("AcDbRepData", repdata)
+    _set_owner_reactor(repdata, rep.dxf.handle)
     app_cache = rep.get("AppDataCache")
     if not isinstance(app_cache, Dictionary):
         app_cache = rep.add_new_dict("AppDataCache", hard_owned=True)
+    app_cache = _hard_owned_dictionary(app_cache, rep.dxf.handle)
     return app_cache
 
 

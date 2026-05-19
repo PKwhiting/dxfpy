@@ -559,6 +559,38 @@ class _SourceCodeGenerator:
             for tag in field.tags
         )
 
+    @staticmethod
+    def _has_entity_translator(dxftype: str) -> bool:
+        return hasattr(_SourceCodeGenerator, "_" + dxftype.lower())
+
+    def _dynamic_block_entity_handle_expr(
+        self,
+        block,
+        handle: str,
+        *,
+        root_var: str = "b",
+    ) -> Optional[str]:
+        from ezdxf.dynblkhelper import (
+            get_dynamic_block_entity_by_rep_index_path,
+            get_dynamic_block_entity_rep_index_path,
+        )
+
+        path = get_dynamic_block_entity_rep_index_path(block, handle)
+        if not path:
+            return None
+        if len(path) == 1 and handle in self._emitted_handles:
+            return f'_entity_map[{json.dumps(handle)}].dxf.handle'
+        entity = get_dynamic_block_entity_by_rep_index_path(block, path)
+        if entity is None or not self._has_entity_translator(entity.dxftype()):
+            return None
+        self.add_import_statement(
+            "from ezdxf.dynblkhelper import get_dynamic_block_entity_handle_by_rep_index_path"
+        )
+        return (
+            f"get_dynamic_block_entity_handle_by_rep_index_path("
+            f"{root_var}, {self._format_python_value(path)})"
+        )
+
     def _field_format(self, field) -> str:
         tags = list(field.tags)
         for index, tag in enumerate(tags):
@@ -805,11 +837,19 @@ class _SourceCodeGenerator:
                 )
                 self.add_source_code_line("_dyn_states = (")
                 for state in parameter.states:
+                    handle_exprs = []
+                    for handle in state.entity_handles:
+                        expr = self._dynamic_block_entity_handle_expr(block, handle)
+                        if expr is None:
+                            self.add_source_code_line(
+                                "# unsupported dynamic block visibility metadata: unresolved entity handle"
+                            )
+                            return
+                        handle_exprs.append(expr)
                     handles = ", ".join(
-                        f'_entity_map[{json.dumps(handle)}].dxf.handle'
-                        for handle in state.entity_handles
+                        handle_expr for handle_expr in handle_exprs
                     )
-                    if len(state.entity_handles) == 1:
+                    if len(handle_exprs) == 1:
                         handles += ","
                     self.add_source_code_line(
                         f"    DynamicBlockVisibilityState({json.dumps(state.name)}, ({handles})),"
@@ -829,11 +869,17 @@ class _SourceCodeGenerator:
                     f"    location={self._format_python_value(parameter.location)},"
                 )
                 self.add_source_code_line("    states=_dyn_states,")
-                handles = ", ".join(
-                    f'_entity_map[{json.dumps(handle)}].dxf.handle'
-                    for handle in parameter.all_entity_handles
-                )
-                if len(parameter.all_entity_handles) == 1:
+                all_handle_exprs = []
+                for handle in parameter.all_entity_handles:
+                    expr = self._dynamic_block_entity_handle_expr(block, handle)
+                    if expr is None:
+                        self.add_source_code_line(
+                            "# unsupported dynamic block visibility metadata: unresolved entity handle"
+                        )
+                        return
+                    all_handle_exprs.append(expr)
+                handles = ", ".join(handle_expr for handle_expr in all_handle_exprs)
+                if len(all_handle_exprs) == 1:
                     handles += ","
                 self.add_source_code_line(
                     f"    all_entity_handles=({handles}),"
@@ -848,8 +894,13 @@ class _SourceCodeGenerator:
                 )
                 self.add_source_code_line("_dyn_property_columns = (")
                 for column in properties_table.columns:
-                    if column.source_dxftype == "ATTDEF" and column.source_handle in self._translated_handles:
-                        source_handle = f'_entity_map[{json.dumps(column.source_handle)}].dxf.handle'
+                    if column.source_dxftype == "ATTDEF":
+                        source_handle = self._dynamic_block_entity_handle_expr(
+                            block,
+                            column.source_handle,
+                        )
+                        if source_handle is None:
+                            source_handle = json.dumps("")
                     else:
                         source_handle = json.dumps("")
                     self.add_source_code_line(
@@ -987,9 +1038,12 @@ class _SourceCodeGenerator:
                     )
                     if base_point_parameter is not None:
                         translated_deps = [
-                            f'_entity_map[{json.dumps(handle)}].dxf.handle'
+                            expr
                             for handle in action.dependency_handles
-                            if handle in self._translated_handles
+                            if (
+                                expr := self._dynamic_block_entity_handle_expr(block, handle)
+                            )
+                            is not None
                         ]
                         deps = ", ".join(translated_deps)
                         if len(translated_deps) == 1:
@@ -999,7 +1053,13 @@ class _SourceCodeGenerator:
                         )
                         target_vars = []
                         for t_index, target in enumerate(action.targets):
-                            if target.entity_handle not in self._translated_handles:
+                            if (
+                                self._dynamic_block_entity_handle_expr(
+                                    block,
+                                    target.entity_handle,
+                                )
+                                is None
+                            ):
                                 continue
                             target_var = f"{action_var}_target_{t_index}"
                             target_vars.append(target_var)
@@ -1014,12 +1074,16 @@ class _SourceCodeGenerator:
                     if base_point_parameter is not None:
                         target_vars = []
                         for t_index, target in enumerate(action.targets):
-                            if target.entity_handle not in self._translated_handles:
+                            target_expr = self._dynamic_block_entity_handle_expr(
+                                block,
+                                target.entity_handle,
+                            )
+                            if target_expr is None:
                                 continue
                             target_var = f"{action_var}_target_{t_index}"
                             target_vars.append(target_var)
                             self.add_source_code_line(
-                                f"{target_var} = DynamicBlockStretchActionTarget(_entity_map[{json.dumps(target.entity_handle)}].dxf.handle, {self._format_python_value(target.mode)}, {self._format_python_value(target.components)})"
+                                f"{target_var} = DynamicBlockStretchActionTarget({target_expr}, {self._format_python_value(target.mode)}, {self._format_python_value(target.components)})"
                             )
                         joined_targets = ", ".join(target_vars)
                         if len(target_vars) == 1:
@@ -1199,18 +1263,25 @@ class _SourceCodeGenerator:
         cache_records = self._dynamic_insert_cache_records(entity)
         appdata_records = self._dynamic_insert_appdata_records(entity)
         if parameter is None:
-            if entity.has_extension_dict:
+            if entity.has_extension_dict or self.layout == "b":
                 self.add_import_statement(
                     "from ezdxf.dynblkhelper import set_dynamic_block_insert_cache"
                 )
                 self.add_deferred_source_code_line(
-                    f"set_dynamic_block_insert_cache(_entity_map[{json.dumps(handle)}], {self.doc}.blocks.get({json.dumps(base_block.name)}), location={self._format_python_value(tuple(entity.dxf.insert))}, update_cache={not bool(cache_records)})"
+                    f"set_dynamic_block_insert_cache(_entity_map[{json.dumps(handle)}], {self.doc}.blocks.get({json.dumps(base_block.name)}), location={self._format_python_value(tuple(entity.dxf.insert))}, update_cache={not bool(cache_records) and entity.has_extension_dict})"
                 )
                 self._emit_dynamic_insert_cache_records(cache_records, handle, base_block.name)
                 self._emit_dynamic_insert_appdata_records(appdata_records, handle, base_block.name)
             return
         state = get_dynamic_block_visibility_state(entity)
         if not state:
+            if self.layout == "b":
+                self.add_import_statement(
+                    "from ezdxf.dynblkhelper import set_dynamic_block_insert_cache"
+                )
+                self.add_deferred_source_code_line(
+                    f"set_dynamic_block_insert_cache(_entity_map[{json.dumps(handle)}], {self.doc}.blocks.get({json.dumps(base_block.name)}), location={self._format_python_value(tuple(entity.dxf.insert))}, update_cache=False)"
+                )
             return
         self.add_import_statement(
             "from ezdxf.dynblkhelper import set_dynamic_block_visibility_state"
