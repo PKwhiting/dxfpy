@@ -5594,6 +5594,7 @@ def _ensure_dynamic_insert_cache_dictionary(
     enhanced = app_cache.get("ACAD_ENHANCEDBLOCKDATA")
     if not isinstance(enhanced, Dictionary):
         enhanced = app_cache.add_new_dict("ACAD_ENHANCEDBLOCKDATA", hard_owned=True)
+    enhanced = _hard_owned_dictionary(enhanced, app_cache.dxf.handle)
     enhanced.set_reactors([app_cache.dxf.handle])
     return enhanced
 

@@ -1,5 +1,7 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
+from io import StringIO
+
 import pytest
 import ezdxf
 from ezdxf.entities.dxfobj import Field
@@ -1872,6 +1874,46 @@ def test_dynamic_block_basepoint_linear_replay_preserves_nested_dynamic_insert_s
     cache = rep.get("AppDataCache")
     enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
 
+    assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
+    assert "6" not in set(enhanced.keys())
+
+
+def test_dynamic_block_basepoint_linear_nested_replay_survives_write_read_cycle():
+    source_doc, child_public_name = build_nested_supported_linear_visibility_replay_doc()
+    replayed_doc = replay_doc_to_new_doc(source_doc)
+    stream = StringIO()
+    replayed_doc.write(stream)
+    stream.seek(0)
+    reloaded_doc = ezdxf.read(stream)
+
+    parent_insert = next(
+        insert
+        for insert in reloaded_doc.modelspace().query("INSERT")
+        if round(float(insert.dxf.insert.x), 3) == 200.0
+    )
+    parent_ref = get_dynamic_block_reference(parent_insert)
+
+    assert parent_ref is not None
+    assert get_dynamic_block_visibility_state(parent_insert) == "SHOW"
+    nested_insert = list(parent_ref.query("INSERT"))[0]
+    nested_base = get_dynamic_block_definition(nested_insert)
+
+    assert nested_base is not None
+    assert (
+        nested_base.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+        == child_public_name
+    )
+    assert nested_insert.has_extension_dict is True
+    assert get_dynamic_block_visibility_state(nested_insert) == "STATE_B"
+    rep = nested_insert.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
+    cache = rep.get("AppDataCache")
+    enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
+
+    assert rep._value_code == 360
+    assert cache._value_code == 360
+    assert enhanced._value_code == 360
+    assert cache.get_reactors() == [rep.dxf.handle]
+    assert enhanced.get_reactors() == [cache.dxf.handle]
     assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
     assert "6" not in set(enhanced.keys())
 
