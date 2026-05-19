@@ -1,6 +1,7 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 from io import StringIO
+from pathlib import Path
 
 import pytest
 import ezdxf
@@ -36,6 +37,7 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_lookup_actions,
     get_dynamic_block_lookup_parameters,
     get_dynamic_block_properties_table,
+    get_dynamic_block_record_handle,
     get_dynamic_block_reference,
     get_dynamic_block_stretch_actions,
     get_dynamic_block_visibility_entities,
@@ -60,6 +62,7 @@ from ezdxf.math import Vec2, Vec3
 
 doc = ezdxf.new("R2010")
 msp = doc.modelspace()
+NESTED_WORKING_ORACLE = Path(__file__).parent / "autocad_nested_working_minimal_v1_edited.dxf"
 
 
 def test_fmt_mapping():
@@ -181,9 +184,19 @@ def _resource_entities(doc: ezdxf.document.Drawing) -> list:
 
 def _block_dependencies(blocks) -> dict[str, set[str]]:
     block_by_name = {block.name: block for block in blocks}
+    block_by_record_handle = {
+        block.block_record_handle: block
+        for block in blocks
+        if block.block_record_handle
+    }
     dependencies: dict[str, set[str]] = {block.name: set() for block in blocks}
     for block in blocks:
         deps = dependencies[block.name]
+        base_handle = get_dynamic_block_record_handle(block.block_record)
+        if base_handle:
+            base_block = block_by_record_handle.get(base_handle)
+            if base_block is not None and base_block.name != block.name:
+                deps.add(base_block.name)
         for entity in block:
             if entity.dxftype() != "INSERT":
                 continue
@@ -428,6 +441,48 @@ def build_nested_supported_linear_visibility_replay_doc() -> tuple[ezdxf.documen
     parent_insert = source_doc.modelspace().add_blockref(parent_anon.name, (200, 0))
     set_dynamic_block_visibility_state(parent_insert, parent_base, state="SHOW")
     return source_doc, child_public_name
+
+
+def assert_nested_working_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+    inner_base = doc.blocks.get("*U0")
+    outer_base = doc.blocks.get("*U2")
+    inner_ref = doc.blocks.get("*U15")
+    outer_ref = doc.blocks.get("*U16")
+
+    assert inner_base is not None
+    assert outer_base is not None
+    assert inner_ref is not None
+    assert outer_ref is not None
+    assert inner_base.block_record.get_xdata("AcDbDynamicBlockTrueName").get_first_value(1000, "") == "AUTHORED_SIMPLE_DYN_VIS_A"
+    assert outer_base.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "") == "AUTHORED_SIMPLE_DYN_LINEAR_B"
+
+    outer_base_nested = [entity for entity in outer_base if entity.dxftype() == "INSERT"]
+    outer_ref_nested = [entity for entity in outer_ref if entity.dxftype() == "INSERT"]
+
+    assert len(outer_base_nested) == 1
+    assert len(outer_ref_nested) == 1
+    for nested_insert in (outer_base_nested[0], outer_ref_nested[0]):
+        assert nested_insert.has_extension_dict is True
+        assert nested_insert.dxf.name == "*U15"
+        assert get_dynamic_block_definition(nested_insert) == inner_base
+        assert get_dynamic_block_reference(nested_insert) == inner_ref
+        assert get_dynamic_block_visibility_state(nested_insert) == "STATE_B"
+        rep = nested_insert.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
+        cache = rep.get("AppDataCache")
+        enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
+        assert rep._value_code == 360
+        assert cache._value_code == 360
+        assert enhanced._value_code == 360
+        assert set(enhanced.keys()) >= {"6"}
+
+    assert set(inner_ref.block_record.blkref_handles) == {
+        outer_base_nested[0].dxf.handle,
+        outer_ref_nested[0].dxf.handle,
+    }
+
+    modelspace_inserts = list(doc.modelspace().query("INSERT"))
+    outer_model_insert = next(insert for insert in modelspace_inserts if insert.dxf.name == "*U16")
+    assert get_dynamic_block_visibility_state(outer_model_insert) == "STATE_A"
 
 
 def test_line_to_code():
@@ -1916,6 +1971,52 @@ def test_dynamic_block_basepoint_linear_nested_replay_survives_write_read_cycle(
     assert enhanced.get_reactors() == [cache.dxf.handle]
     assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
     assert "6" not in set(enhanced.keys())
+
+
+def test_autocad_nested_working_oracle_replay_survives_write_read_cycle():
+    source_doc = ezdxf.readfile(NESTED_WORKING_ORACLE)
+    replayed_doc = replay_doc_to_new_doc(source_doc)
+    stream = StringIO()
+    replayed_doc.write(stream)
+    stream.seek(0)
+    reloaded_doc = ezdxf.read(stream)
+
+    assert_nested_working_oracle_replay_doc(reloaded_doc)
+
+
+def test_autocad_nested_working_oracle_two_generation_replay_survives_write_read_cycle():
+    source_doc = ezdxf.readfile(NESTED_WORKING_ORACLE)
+    gen1_doc = replay_doc_to_new_doc(source_doc)
+    gen2_doc = replay_doc_to_new_doc(gen1_doc)
+
+    for doc in (gen1_doc, gen2_doc):
+        stream = StringIO()
+        doc.write(stream)
+        stream.seek(0)
+        reloaded_doc = ezdxf.read(stream)
+        assert_nested_working_oracle_replay_doc(reloaded_doc)
+
+
+def test_autocad_nested_working_oracle_block_dependencies_include_dynamic_reference_targets():
+    source_doc = ezdxf.readfile(NESTED_WORKING_ORACLE)
+    blocks = [block for block in source_doc.blocks if not block.is_any_layout]
+
+    dependencies = _block_dependencies(blocks)
+
+    assert dependencies["*U1"] == {"*U0"}
+    assert dependencies["*U15"] == {"*U0"}
+    assert dependencies["*U16"] == {"*U2", "*U15"}
+
+
+def test_autocad_nested_working_oracle_sort_blocks_orders_dynamic_bases_before_refs():
+    source_doc = ezdxf.readfile(NESTED_WORKING_ORACLE)
+    ordered = _sort_blocks([block for block in source_doc.blocks if not block.is_any_layout])
+    order = {block.name: index for index, block in enumerate(ordered)}
+
+    assert order["*U0"] < order["*U1"]
+    assert order["*U0"] < order["*U15"]
+    assert order["*U2"] < order["*U16"]
+    assert order["*U15"] < order["*U16"]
 
 
 def test_dynamic_block_linear_descendant_authoring_is_rejected():
