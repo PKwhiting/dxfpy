@@ -63,6 +63,10 @@ from ezdxf.math import Vec2, Vec3
 doc = ezdxf.new("R2010")
 msp = doc.modelspace()
 NESTED_WORKING_ORACLE = Path(__file__).parent / "autocad_nested_working_minimal_v1_edited.dxf"
+NESTED_RICHER_CHILD_ORACLE = Path(__file__).parent / "autocad_nested_richer_child_gen2_v1.dxf"
+NESTED_TWO_CHILDREN_ORACLE = Path(__file__).parent / "autocad_nested_two_children_candidate_gen2.dxf"
+NESTED_TWO_CHILDREN_MIXED_ORACLE = Path(__file__).parent / "autocad_nested_two_children_mixed_states_gen2_v2.dxf"
+NESTED_THREE_LEVEL_MIXED_ORACLE = Path(__file__).parent / "autocad_nested_three_level_mixed_gen2_v3.dxf"
 
 
 def test_fmt_mapping():
@@ -443,6 +447,371 @@ def build_nested_supported_linear_visibility_replay_doc() -> tuple[ezdxf.documen
     return source_doc, child_public_name
 
 
+def build_multi_nested_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+    source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
+    child_base = next(
+        block
+        for block in source_doc.blocks
+        if block.block_record.has_xdata("AcDbDynamicBlockTrueName2")
+        and block.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+        == child_public_name
+    )
+    child_ref = _add_supported_linear_visibility_reference_block(source_doc, child_base)
+    parent_base = source_doc.blocks.new("PARENT_NESTED_MULTI_BASE")
+    parent_line = parent_base.add_line((0, 0), (20, 0))
+    parent_circle = parent_base.add_circle((0, 8), radius=2)
+    parent_poly = parent_base.add_lwpolyline([(-3, 4), (3, 4), (0, 12)], close=True)
+    parent_child_a = parent_base.add_blockref(child_ref.name, (40, 0))
+    parent_child_b = parent_base.add_blockref(child_ref.name, (80, 0))
+    set_dynamic_block_visibility_parameter(
+        parent_base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="ParentVis",
+            location=(0.0, 18.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "SHOW_BOTH",
+                    (
+                        parent_line.dxf.handle,
+                        parent_circle.dxf.handle,
+                        parent_child_a.dxf.handle,
+                        parent_child_b.dxf.handle,
+                    ),
+                ),
+                DynamicBlockVisibilityState(
+                    "ALT_GEOM",
+                    (
+                        parent_line.dxf.handle,
+                        parent_poly.dxf.handle,
+                        parent_child_a.dxf.handle,
+                        parent_child_b.dxf.handle,
+                    ),
+                ),
+            ),
+        ),
+        guid="{PARENT_MULTI}",
+    )
+    set_dynamic_block_visibility_state(parent_child_a, child_base, state="STATE_B")
+    set_dynamic_block_visibility_state(parent_child_b, child_base, state="STATE_B")
+
+    parent_anon = source_doc.blocks.new_anonymous_block(type_char="U")
+    for entity in parent_base:
+        parent_anon.add_entity(entity.copy())
+    set_dynamic_block_reference(parent_anon, parent_base)
+    parent_insert = source_doc.modelspace().add_blockref(parent_anon.name, (260, 0))
+    set_dynamic_block_visibility_state(parent_insert, parent_base, state="SHOW_BOTH")
+    return source_doc, child_public_name
+
+
+def build_multi_nested_mixed_state_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+    source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
+    child_base = next(
+        block
+        for block in source_doc.blocks
+        if block.block_record.has_xdata("AcDbDynamicBlockTrueName2")
+        and block.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+        == child_public_name
+    )
+    child_ref_a = _add_supported_linear_visibility_reference_block(source_doc, child_base)
+    child_ref_b = _add_supported_linear_visibility_reference_block(source_doc, child_base)
+    parent_base = source_doc.blocks.new("PARENT_NESTED_MULTI_MIXED_BASE")
+    parent_line = parent_base.add_line((0, 0), (20, 0))
+    parent_circle = parent_base.add_circle((0, 8), radius=2)
+    parent_poly = parent_base.add_lwpolyline([(-3, 4), (3, 4), (0, 12)], close=True)
+    parent_child_a = parent_base.add_blockref(child_ref_a.name, (40, 0))
+    parent_child_b = parent_base.add_blockref(child_ref_b.name, (80, 0))
+    set_dynamic_block_visibility_parameter(
+        parent_base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="ParentVis",
+            location=(0.0, 18.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "SHOW_MIXED",
+                    (
+                        parent_line.dxf.handle,
+                        parent_circle.dxf.handle,
+                        parent_child_a.dxf.handle,
+                        parent_child_b.dxf.handle,
+                    ),
+                ),
+                DynamicBlockVisibilityState(
+                    "ALT_GEOM",
+                    (
+                        parent_line.dxf.handle,
+                        parent_poly.dxf.handle,
+                        parent_child_a.dxf.handle,
+                        parent_child_b.dxf.handle,
+                    ),
+                ),
+            ),
+        ),
+        guid="{PARENT_MULTI_MIXED}",
+    )
+    set_dynamic_block_visibility_state(parent_child_a, child_base, state="STATE_A")
+    set_dynamic_block_visibility_state(parent_child_b, child_base, state="STATE_B")
+
+    parent_anon = source_doc.blocks.new_anonymous_block(type_char="U")
+    for entity in parent_base:
+        parent_anon.add_entity(entity.copy())
+    set_dynamic_block_reference(parent_anon, parent_base)
+    parent_insert = source_doc.modelspace().add_blockref(parent_anon.name, (340, 0))
+    set_dynamic_block_visibility_state(parent_insert, parent_base, state="SHOW_MIXED")
+    return source_doc, child_public_name
+
+
+def build_three_level_nested_mixed_state_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+    source_doc, child_public_name = build_multi_nested_mixed_state_replay_doc()
+    source_msp = source_doc.modelspace()
+    middle_insert = next(
+        insert
+        for insert in source_msp.query("INSERT")
+        if round(float(insert.dxf.insert.x), 3) == 340.0
+    )
+    middle_base = get_dynamic_block_definition(middle_insert)
+    middle_ref = get_dynamic_block_reference(middle_insert)
+
+    assert middle_base is not None
+    assert middle_ref is not None
+    parent_base = source_doc.blocks.new("PARENT_NESTED_LEVEL3_BASE")
+    parent_line = parent_base.add_line((0, 0), (30, 0))
+    parent_circle = parent_base.add_circle((0, 12), radius=2)
+    parent_poly = parent_base.add_lwpolyline([(-4, 6), (4, 6), (0, 16)], close=True)
+    parent_child = parent_base.add_blockref(middle_ref.name, (120, 0))
+    set_dynamic_block_visibility_parameter(
+        parent_base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="ParentLevel3Vis",
+            location=(0.0, 24.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "SHOW_CHILD",
+                    (
+                        parent_line.dxf.handle,
+                        parent_circle.dxf.handle,
+                        parent_child.dxf.handle,
+                    ),
+                ),
+                DynamicBlockVisibilityState(
+                    "ALT_GEOM",
+                    (
+                        parent_line.dxf.handle,
+                        parent_poly.dxf.handle,
+                        parent_child.dxf.handle,
+                    ),
+                ),
+            ),
+        ),
+        guid="{PARENT_LEVEL3}",
+    )
+    set_dynamic_block_visibility_state(parent_child, middle_base, state="SHOW_MIXED")
+
+    parent_anon = source_doc.blocks.new_anonymous_block(type_char="U")
+    for entity in parent_base:
+        parent_anon.add_entity(entity.copy())
+    set_dynamic_block_reference(parent_anon, parent_base)
+    top_insert = source_msp.add_blockref(parent_anon.name, (420, 0))
+    set_dynamic_block_visibility_state(top_insert, parent_base, state="SHOW_CHILD")
+    return source_doc, child_public_name
+
+
+def build_multi_richer_child_mixed_state_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+    source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
+    child_base = next(
+        block
+        for block in source_doc.blocks
+        if block.block_record.has_xdata("AcDbDynamicBlockTrueName2")
+        and block.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+        == child_public_name
+    )
+    child_ref_a = _add_supported_linear_visibility_reference_block(source_doc, child_base)
+    child_ref_b = _add_supported_linear_visibility_reference_block(source_doc, child_base)
+    parent_base = source_doc.blocks.new("PARENT_NESTED_RICHER_MULTI_MIXED_BASE")
+    parent_line = parent_base.add_line((0, 0), (24, 0))
+    parent_circle = parent_base.add_circle((0, 10), radius=2)
+    parent_poly = parent_base.add_lwpolyline([(-4, 5), (4, 5), (0, 15)], close=True)
+    parent_child_a = parent_base.add_blockref(child_ref_a.name, (40, 0))
+    parent_child_b = parent_base.add_blockref(child_ref_b.name, (90, 0))
+    set_dynamic_block_visibility_parameter(
+        parent_base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="ParentVis",
+            location=(0.0, 22.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "SHOW_MIXED",
+                    (
+                        parent_line.dxf.handle,
+                        parent_circle.dxf.handle,
+                        parent_child_a.dxf.handle,
+                        parent_child_b.dxf.handle,
+                    ),
+                ),
+                DynamicBlockVisibilityState(
+                    "ALT_GEOM",
+                    (
+                        parent_line.dxf.handle,
+                        parent_poly.dxf.handle,
+                        parent_child_a.dxf.handle,
+                        parent_child_b.dxf.handle,
+                    ),
+                ),
+            ),
+        ),
+        guid="{PARENT_RICHER_MULTI_MIXED}",
+    )
+    set_dynamic_block_visibility_state(parent_child_a, child_base, state="STATE_A")
+    set_dynamic_block_visibility_state(parent_child_b, child_base, state="STATE_B")
+
+    parent_anon = source_doc.blocks.new_anonymous_block(type_char="U")
+    for entity in parent_base:
+        parent_anon.add_entity(entity.copy())
+    set_dynamic_block_reference(parent_anon, parent_base)
+    parent_insert = source_doc.modelspace().add_blockref(parent_anon.name, (520, 0))
+    set_dynamic_block_visibility_state(parent_insert, parent_base, state="SHOW_MIXED")
+    return source_doc, child_public_name
+
+
+def assert_nested_parent_insert_states(
+    doc: ezdxf.document.Drawing,
+    *,
+    insert_x: float,
+    outer_state: str,
+    child_public_name: str,
+    nested_count: int,
+    nested_state: str,
+) -> None:
+    parent_insert = next(
+        insert
+        for insert in doc.modelspace().query("INSERT")
+        if round(float(insert.dxf.insert.x), 3) == insert_x
+    )
+    parent_ref = get_dynamic_block_reference(parent_insert)
+
+    assert parent_ref is not None
+    assert get_dynamic_block_visibility_state(parent_insert) == outer_state
+    nested_inserts = list(parent_ref.query("INSERT"))
+    assert len(nested_inserts) == nested_count
+    refs = []
+    for nested_insert in nested_inserts:
+        nested_base = get_dynamic_block_definition(nested_insert)
+        nested_ref = get_dynamic_block_reference(nested_insert)
+
+        assert nested_base is not None
+        assert nested_ref is not None
+        assert (
+            nested_base.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+            == child_public_name
+        )
+        assert nested_insert.has_extension_dict is True
+        assert get_dynamic_block_visibility_state(nested_insert) == nested_state
+        rep = nested_insert.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
+        cache = rep.get("AppDataCache")
+        enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
+        assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
+        assert "6" not in set(enhanced.keys())
+        refs.append(nested_ref.name)
+    assert len(set(refs)) == 1
+
+
+def assert_nested_parent_insert_mixed_states(
+    doc: ezdxf.document.Drawing,
+    *,
+    insert_x: float,
+    outer_state: str,
+    child_public_name: str,
+    expected_states: tuple[tuple[float, str], ...],
+) -> None:
+    parent_insert = next(
+        insert
+        for insert in doc.modelspace().query("INSERT")
+        if round(float(insert.dxf.insert.x), 3) == insert_x
+    )
+    parent_ref = get_dynamic_block_reference(parent_insert)
+
+    assert parent_ref is not None
+    assert get_dynamic_block_visibility_state(parent_insert) == outer_state
+    nested_inserts = sorted(
+        list(parent_ref.query("INSERT")),
+        key=lambda entity: round(float(entity.dxf.insert.x), 6),
+    )
+    assert len(nested_inserts) == len(expected_states)
+    refs = []
+    for nested_insert, (expected_x, expected_state) in zip(nested_inserts, expected_states):
+        nested_base = get_dynamic_block_definition(nested_insert)
+        nested_ref = get_dynamic_block_reference(nested_insert)
+
+        assert nested_base is not None
+        assert nested_ref is not None
+        assert round(float(nested_insert.dxf.insert.x), 3) == expected_x
+        assert (
+            nested_base.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+            == child_public_name
+        )
+        assert nested_insert.has_extension_dict is True
+        assert get_dynamic_block_visibility_state(nested_insert) == expected_state
+        refs.append(nested_ref.name)
+    assert len(set(refs)) == len({state for _x, state in expected_states})
+
+
+def assert_three_level_nested_parent_insert_mixed_states(
+    doc: ezdxf.document.Drawing,
+    *,
+    insert_x: float,
+    child_public_name: str,
+) -> None:
+    top_insert = next(
+        insert
+        for insert in doc.modelspace().query("INSERT")
+        if round(float(insert.dxf.insert.x), 3) == insert_x
+    )
+    top_ref = get_dynamic_block_reference(top_insert)
+
+    assert top_ref is not None
+    assert get_dynamic_block_visibility_state(top_insert) == "SHOW_CHILD"
+    middle_insert = list(top_ref.query("INSERT"))[0]
+    middle_base = get_dynamic_block_definition(middle_insert)
+    middle_ref = get_dynamic_block_reference(middle_insert)
+
+    assert middle_base is not None
+    assert middle_ref is not None
+    assert middle_insert.has_extension_dict is True
+    assert get_dynamic_block_visibility_state(middle_insert) == "SHOW_MIXED"
+
+    nested_inserts = sorted(
+        list(middle_ref.query("INSERT")),
+        key=lambda entity: round(float(entity.dxf.insert.x), 6),
+    )
+    assert len(nested_inserts) == 2
+    refs = []
+    for nested_insert, (expected_x, expected_state) in zip(
+        nested_inserts,
+        ((40.0, "STATE_A"), (80.0, "STATE_B")),
+    ):
+        nested_base = get_dynamic_block_definition(nested_insert)
+        nested_ref = get_dynamic_block_reference(nested_insert)
+
+        assert nested_base is not None
+        assert nested_ref is not None
+        assert round(float(nested_insert.dxf.insert.x), 3) == expected_x
+        assert (
+            nested_base.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+            == child_public_name
+        )
+        assert nested_insert.has_extension_dict is True
+        assert get_dynamic_block_visibility_state(nested_insert) == expected_state
+        refs.append(nested_ref.name)
+    assert len(set(refs)) == 2
+
+
 def assert_nested_working_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
     inner_base = doc.blocks.get("*U0")
     outer_base = doc.blocks.get("*U2")
@@ -483,6 +852,76 @@ def assert_nested_working_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None
     modelspace_inserts = list(doc.modelspace().query("INSERT"))
     outer_model_insert = next(insert for insert in modelspace_inserts if insert.dxf.name == "*U16")
     assert get_dynamic_block_visibility_state(outer_model_insert) == "STATE_A"
+
+
+def assert_nested_richer_child_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+    assert_nested_parent_insert_states(
+        doc,
+        insert_x=200.0,
+        outer_state="SHOW",
+        child_public_name="DYN_PROP_BASEPOINT_LINEAR_REPLAY",
+        nested_count=1,
+        nested_state="STATE_B",
+    )
+
+
+def assert_nested_two_children_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+    assert_nested_parent_insert_states(
+        doc,
+        insert_x=260.0,
+        outer_state="SHOW_BOTH",
+        child_public_name="DYN_PROP_BASEPOINT_LINEAR_REPLAY",
+        nested_count=2,
+        nested_state="STATE_B",
+    )
+
+
+def assert_nested_two_children_mixed_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+    assert_nested_parent_insert_mixed_states(
+        doc,
+        insert_x=340.0,
+        outer_state="SHOW_MIXED",
+        child_public_name="DYN_PROP_BASEPOINT_LINEAR_REPLAY",
+        expected_states=((40.0, "STATE_A"), (80.0, "STATE_B")),
+    )
+
+
+def assert_nested_three_level_mixed_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+    assert_three_level_nested_parent_insert_mixed_states(
+        doc,
+        insert_x=420.0,
+        child_public_name="DYN_PROP_BASEPOINT_LINEAR_REPLAY",
+    )
+
+
+def nested_oracle_cases():
+    return (
+        pytest.param(
+            NESTED_WORKING_ORACLE,
+            assert_nested_working_oracle_replay_doc,
+            id="working-minimal",
+        ),
+        pytest.param(
+            NESTED_RICHER_CHILD_ORACLE,
+            assert_nested_richer_child_oracle_replay_doc,
+            id="richer-child",
+        ),
+        pytest.param(
+            NESTED_TWO_CHILDREN_ORACLE,
+            assert_nested_two_children_oracle_replay_doc,
+            id="two-children-same-state",
+        ),
+        pytest.param(
+            NESTED_TWO_CHILDREN_MIXED_ORACLE,
+            assert_nested_two_children_mixed_oracle_replay_doc,
+            id="two-children-mixed-states",
+        ),
+        pytest.param(
+            NESTED_THREE_LEVEL_MIXED_ORACLE,
+            assert_nested_three_level_mixed_oracle_replay_doc,
+            id="three-level-mixed",
+        ),
+    )
 
 
 def test_line_to_code():
@@ -1973,19 +2412,141 @@ def test_dynamic_block_basepoint_linear_nested_replay_survives_write_read_cycle(
     assert "6" not in set(enhanced.keys())
 
 
-def test_autocad_nested_working_oracle_replay_survives_write_read_cycle():
-    source_doc = ezdxf.readfile(NESTED_WORKING_ORACLE)
+def test_dynamic_block_basepoint_linear_replay_preserves_multiple_nested_dynamic_insert_states():
+    source_doc, child_public_name = build_multi_nested_supported_linear_visibility_replay_doc()
+    new_doc = replay_doc_to_new_doc(source_doc)
+
+    assert_nested_parent_insert_states(
+        new_doc,
+        insert_x=260.0,
+        outer_state="SHOW_BOTH",
+        child_public_name=child_public_name,
+        nested_count=2,
+        nested_state="STATE_B",
+    )
+
+
+def test_dynamic_block_basepoint_linear_multi_nested_replay_survives_write_read_cycle():
+    source_doc, child_public_name = build_multi_nested_supported_linear_visibility_replay_doc()
     replayed_doc = replay_doc_to_new_doc(source_doc)
     stream = StringIO()
     replayed_doc.write(stream)
     stream.seek(0)
     reloaded_doc = ezdxf.read(stream)
 
-    assert_nested_working_oracle_replay_doc(reloaded_doc)
+    assert_nested_parent_insert_states(
+        reloaded_doc,
+        insert_x=260.0,
+        outer_state="SHOW_BOTH",
+        child_public_name=child_public_name,
+        nested_count=2,
+        nested_state="STATE_B",
+    )
 
 
-def test_autocad_nested_working_oracle_two_generation_replay_survives_write_read_cycle():
-    source_doc = ezdxf.readfile(NESTED_WORKING_ORACLE)
+def test_dynamic_block_basepoint_linear_replay_preserves_multiple_nested_dynamic_insert_mixed_states():
+    source_doc, child_public_name = build_multi_nested_mixed_state_replay_doc()
+    new_doc = replay_doc_to_new_doc(source_doc)
+
+    assert_nested_parent_insert_mixed_states(
+        new_doc,
+        insert_x=340.0,
+        outer_state="SHOW_MIXED",
+        child_public_name=child_public_name,
+        expected_states=((40.0, "STATE_A"), (80.0, "STATE_B")),
+    )
+
+
+def test_dynamic_block_basepoint_linear_multi_nested_mixed_state_replay_survives_write_read_cycle():
+    source_doc, child_public_name = build_multi_nested_mixed_state_replay_doc()
+    replayed_doc = replay_doc_to_new_doc(source_doc)
+    stream = StringIO()
+    replayed_doc.write(stream)
+    stream.seek(0)
+    reloaded_doc = ezdxf.read(stream)
+
+    assert_nested_parent_insert_mixed_states(
+        reloaded_doc,
+        insert_x=340.0,
+        outer_state="SHOW_MIXED",
+        child_public_name=child_public_name,
+        expected_states=((40.0, "STATE_A"), (80.0, "STATE_B")),
+    )
+
+
+def test_dynamic_block_basepoint_linear_replay_preserves_three_level_nested_mixed_states():
+    source_doc, child_public_name = build_three_level_nested_mixed_state_replay_doc()
+    new_doc = replay_doc_to_new_doc(source_doc)
+
+    assert_three_level_nested_parent_insert_mixed_states(
+        new_doc,
+        insert_x=420.0,
+        child_public_name=child_public_name,
+    )
+
+
+def test_dynamic_block_basepoint_linear_three_level_nested_mixed_state_replay_survives_write_read_cycle():
+    source_doc, child_public_name = build_three_level_nested_mixed_state_replay_doc()
+    replayed_doc = replay_doc_to_new_doc(source_doc)
+    stream = StringIO()
+    replayed_doc.write(stream)
+    stream.seek(0)
+    reloaded_doc = ezdxf.read(stream)
+
+    assert_three_level_nested_parent_insert_mixed_states(
+        reloaded_doc,
+        insert_x=420.0,
+        child_public_name=child_public_name,
+    )
+
+
+def test_dynamic_block_basepoint_linear_replay_preserves_multi_richer_child_mixed_states():
+    source_doc, child_public_name = build_multi_richer_child_mixed_state_replay_doc()
+    new_doc = replay_doc_to_new_doc(source_doc)
+
+    assert_nested_parent_insert_mixed_states(
+        new_doc,
+        insert_x=520.0,
+        outer_state="SHOW_MIXED",
+        child_public_name=child_public_name,
+        expected_states=((40.0, "STATE_A"), (90.0, "STATE_B")),
+    )
+
+
+def test_dynamic_block_basepoint_linear_multi_richer_child_mixed_state_replay_survives_write_read_cycle():
+    source_doc, child_public_name = build_multi_richer_child_mixed_state_replay_doc()
+    replayed_doc = replay_doc_to_new_doc(source_doc)
+    stream = StringIO()
+    replayed_doc.write(stream)
+    stream.seek(0)
+    reloaded_doc = ezdxf.read(stream)
+
+    assert_nested_parent_insert_mixed_states(
+        reloaded_doc,
+        insert_x=520.0,
+        outer_state="SHOW_MIXED",
+        child_public_name=child_public_name,
+        expected_states=((40.0, "STATE_A"), (90.0, "STATE_B")),
+    )
+
+
+@pytest.mark.parametrize("oracle, checker", nested_oracle_cases())
+def test_autocad_nested_oracle_replay_survives_write_read_cycle(oracle, checker):
+    source_doc = ezdxf.readfile(oracle)
+    replayed_doc = replay_doc_to_new_doc(source_doc)
+    stream = StringIO()
+    replayed_doc.write(stream)
+    stream.seek(0)
+    reloaded_doc = ezdxf.read(stream)
+
+    checker(reloaded_doc)
+
+
+@pytest.mark.parametrize("oracle, checker", nested_oracle_cases())
+def test_autocad_nested_oracle_two_generation_replay_survives_write_read_cycle(
+    oracle, checker
+):
+    source_doc = ezdxf.readfile(oracle)
     gen1_doc = replay_doc_to_new_doc(source_doc)
     gen2_doc = replay_doc_to_new_doc(gen1_doc)
 
@@ -1994,7 +2555,7 @@ def test_autocad_nested_working_oracle_two_generation_replay_survives_write_read
         doc.write(stream)
         stream.seek(0)
         reloaded_doc = ezdxf.read(stream)
-        assert_nested_working_oracle_replay_doc(reloaded_doc)
+        checker(reloaded_doc)
 
 
 def test_autocad_nested_working_oracle_block_dependencies_include_dynamic_reference_targets():
