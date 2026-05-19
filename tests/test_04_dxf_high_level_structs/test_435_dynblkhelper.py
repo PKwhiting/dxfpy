@@ -37,6 +37,8 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_reference,
     get_dynamic_block_stretch_actions,
     get_dynamic_block_visibility_entities,
+    get_dynamic_block_entity_by_rep_index_path,
+    get_dynamic_block_entity_rep_index_path,
     get_dynamic_block_visibility_parameter,
     get_dynamic_block_visibility_state,
     get_dynamic_block_visibility_state_handles,
@@ -919,6 +921,161 @@ def test_basepoint_linear_insert_writes_extended_cache_records():
     ]
     assert list(enhanced.get("20").tags)[-1] == (40, 0.0)
     assert (300, "GRIPLOC") in list(history.tags)
+
+
+def test_dynamic_block_reference_propagates_nested_dynamic_insert_state_and_cache():
+    doc = ezdxf.new("R2018")
+    child_insert = make_dynamic_insert_with_entities(doc, "STATE_B")
+    child_base = get_dynamic_block_definition(child_insert)
+    child_ref = get_dynamic_block_reference(child_insert)
+
+    assert child_base is not None
+    assert child_ref is not None
+
+    parent_base = doc.blocks.new("DYN_NESTED_PROPAGATE_PARENT")
+    parent_line = parent_base.add_line((0, 0), (20, 0))
+    source_nested = parent_base.add_blockref(child_ref.name, (40, 0))
+    set_dynamic_block_visibility_parameter(
+        parent_base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="ParentVisibility",
+            location=(0.0, 10.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "SHOW_CHILD",
+                    (parent_line.dxf.handle, source_nested.dxf.handle),
+                ),
+                DynamicBlockVisibilityState("LINE_ONLY", (parent_line.dxf.handle,)),
+            ),
+        ),
+        guid="{PARENT}",
+    )
+    set_dynamic_block_visibility_state(source_nested, child_base, state="STATE_B")
+
+    parent_ref = doc.blocks.new_anonymous_block(type_char="U")
+    _clone_non_attdef_entities(parent_base, parent_ref)
+    set_dynamic_block_reference(parent_ref, parent_base)
+
+    target_nested = next(entity for entity in parent_ref if entity.dxftype() == "INSERT")
+
+    assert target_nested.has_extension_dict is True
+    assert get_dynamic_block_definition(target_nested) == child_base
+    assert get_dynamic_block_reference(target_nested) == child_ref
+    assert get_dynamic_block_visibility_state(target_nested) == "STATE_B"
+    rep = target_nested.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
+    cache = rep.get("AppDataCache")
+    enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
+
+    assert set(enhanced.keys()) >= {"6"}
+
+
+def test_dynamic_block_visibility_descendant_authoring_is_rejected():
+    doc = ezdxf.new("R2018")
+    child_insert = make_dynamic_insert_with_entities(doc, "STATE_A")
+    child_ref = get_dynamic_block_reference(child_insert)
+
+    assert child_ref is not None
+    child_state_handles = tuple(
+        entity.dxf.handle
+        for entity in child_ref
+        if entity.dxftype() in {"LINE", "CIRCLE"} and entity.dxf.get("invisible", 0) == 0
+    )
+
+    parent_base = doc.blocks.new("DYN_VIS_NESTED_DESCENDANT")
+    parent_line = parent_base.add_line((0, 0), (20, 0))
+    parent_base.add_blockref(child_ref.name, (40, 0))
+    with pytest.raises(
+        ezdxf.lldxf.const.DXFValueError,
+        match="nested dynamic block visibility descendants are not supported",
+    ):
+        set_dynamic_block_visibility_parameter(
+            parent_base,
+            DynamicBlockVisibilityParameter(
+                handle="",
+                label="Visibility State",
+                parameter_name="ParentVisibility",
+                location=(0.0, 10.0, 0.0),
+                states=(
+                    DynamicBlockVisibilityState(
+                        "SHOW_DESC",
+                        (parent_line.dxf.handle, *child_state_handles),
+                    ),
+                    DynamicBlockVisibilityState("LINE_ONLY", (parent_line.dxf.handle,)),
+                ),
+            ),
+            guid="{PARENT}",
+        )
+
+
+def test_set_dynamic_block_linear_parameter_rejects_nested_descendant_targets():
+    doc = ezdxf.new("R2018")
+    child_insert = make_dynamic_insert_with_entities(doc, "STATE_A")
+    child_ref = get_dynamic_block_reference(child_insert)
+    parent_insert = make_dynamic_properties_insert(doc)
+    parent_base = get_dynamic_block_definition(parent_insert)
+
+    assert child_ref is not None
+    assert parent_base is not None
+    child_line = next(entity for entity in child_ref if entity.dxftype() == "LINE")
+    parent_base.add_blockref(child_ref.name, (40, 0))
+
+    entities = list(parent_base)
+    stretch_entity = entities[0]
+    attdef1 = next(entity for entity in entities if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_1")
+    table = get_dynamic_block_properties_table(parent_base)
+    grip = next(obj for obj in doc.objects if obj.dxftype() == "BLOCKPROPERTIESTABLEGRIP")
+
+    assert table is not None
+    set_dynamic_block_base_point_parameter(
+        parent_base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0.0, 0.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+    linear = DynamicBlockLinearParameter(
+        handle="",
+        label="Linear",
+        parameter_name="Distance1",
+        description="",
+        base_point=(0.0, 0.0, 0.0),
+        end_point=(1.0, 0.0, 0.0),
+        distance=1.0,
+        expr_id=0,
+        end_grip_label="End Grip",
+    )
+    action = DynamicBlockStretchAction(
+        handle="",
+        label="Stretch",
+        action_location=(1.0, -0.5, 0.0),
+        x_expr_id=0,
+        x_name="EndXDelta",
+        y_expr_id=0,
+        y_name="EndYDelta",
+        selection_window=((2.0, 1.0, 0.0), (0.5, -0.5, 0.0)),
+        dependency_handles=(
+            grip.dxf.handle,
+            table.handle,
+            attdef1.dxf.handle,
+            child_line.dxf.handle,
+            stretch_entity.dxf.handle,
+        ),
+        targets=(
+            DynamicBlockStretchActionTarget(child_line.dxf.handle, 1, (1,)),
+            DynamicBlockStretchActionTarget(attdef1.dxf.handle, 1, (0,)),
+        ),
+    )
+    with pytest.raises(
+        ezdxf.lldxf.const.DXFValueError,
+        match="nested dynamic block linear descendant targets are not supported",
+    ):
+        set_dynamic_block_linear_parameter(parent_base, linear, action)
 
 
 def test_dynamic_block_writer_applies_invisible_mask_to_default_and_active_states():

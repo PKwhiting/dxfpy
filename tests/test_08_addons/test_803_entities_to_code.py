@@ -29,12 +29,14 @@ from ezdxf.dynblkhelper import (
     DynamicBlockVisibilityParameter,
     DynamicBlockVisibilityState,
     get_dynamic_block_definition,
+    get_dynamic_block_entity_rep_index_path,
     get_dynamic_block_linear_parameters,
     get_dynamic_block_lookup_actions,
     get_dynamic_block_lookup_parameters,
     get_dynamic_block_properties_table,
     get_dynamic_block_reference,
     get_dynamic_block_stretch_actions,
+    get_dynamic_block_visibility_entities,
     get_dynamic_block_visibility_state,
     get_dynamic_block_visibility_states,
     set_dynamic_block_base_point_parameter,
@@ -383,6 +385,47 @@ def assert_supported_linear_visibility_replay_doc(doc: ezdxf.document.Drawing, p
         assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
         assert "6" not in set(enhanced.keys())
         assert history is not None
+
+
+def build_nested_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+    source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
+    child_base = next(
+        block
+        for block in source_doc.blocks
+        if block.block_record.has_xdata("AcDbDynamicBlockTrueName2")
+        and block.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+        == child_public_name
+    )
+    child_ref = _add_supported_linear_visibility_reference_block(source_doc, child_base)
+    parent_base = source_doc.blocks.new("PARENT_NESTED_BASE")
+    parent_line = parent_base.add_line((0, 0), (20, 0))
+    parent_child = parent_base.add_blockref(child_ref.name, (40, 0))
+    set_dynamic_block_visibility_parameter(
+        parent_base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="ParentVis",
+            location=(0.0, 10.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "SHOW",
+                    (parent_line.dxf.handle, parent_child.dxf.handle),
+                ),
+                DynamicBlockVisibilityState("LINE_ONLY", (parent_line.dxf.handle,)),
+            ),
+        ),
+        guid="{PARENT}",
+    )
+    set_dynamic_block_visibility_state(parent_child, child_base, state="STATE_B")
+
+    parent_anon = source_doc.blocks.new_anonymous_block(type_char="U")
+    for entity in parent_base:
+        parent_anon.add_entity(entity.copy())
+    set_dynamic_block_reference(parent_anon, parent_base)
+    parent_insert = source_doc.modelspace().add_blockref(parent_anon.name, (200, 0))
+    set_dynamic_block_visibility_state(parent_insert, parent_base, state="SHOW")
+    return source_doc, child_public_name
 
 
 def test_line_to_code():
@@ -1800,6 +1843,124 @@ def test_dynamic_block_basepoint_linear_two_generation_replay_preserves_supporte
 
     assert_supported_linear_visibility_replay_doc(gen1_doc, public_name)
     assert_supported_linear_visibility_replay_doc(gen2_doc, public_name)
+
+
+def test_dynamic_block_basepoint_linear_replay_preserves_nested_dynamic_insert_state():
+    source_doc, child_public_name = build_nested_supported_linear_visibility_replay_doc()
+    new_doc = replay_doc_to_new_doc(source_doc)
+
+    parent_insert = next(
+        insert
+        for insert in new_doc.modelspace().query("INSERT")
+        if round(float(insert.dxf.insert.x), 3) == 200.0
+    )
+    parent_ref = get_dynamic_block_reference(parent_insert)
+
+    assert parent_ref is not None
+    assert get_dynamic_block_visibility_state(parent_insert) == "SHOW"
+    nested_insert = list(parent_ref.query("INSERT"))[0]
+    nested_base = get_dynamic_block_definition(nested_insert)
+
+    assert nested_base is not None
+    assert (
+        nested_base.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+        == child_public_name
+    )
+    assert nested_insert.has_extension_dict is True
+    assert get_dynamic_block_visibility_state(nested_insert) == "STATE_B"
+    rep = nested_insert.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
+    cache = rep.get("AppDataCache")
+    enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
+
+    assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
+    assert "6" not in set(enhanced.keys())
+
+
+def test_dynamic_block_linear_descendant_authoring_is_rejected():
+    source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
+    child_base = next(
+        block
+        for block in source_doc.blocks
+        if block.block_record.has_xdata("AcDbDynamicBlockTrueName2")
+        and block.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+        == child_public_name
+    )
+    child_ref = _add_supported_linear_visibility_reference_block(source_doc, child_base)
+    child_line = next(entity for entity in child_ref if entity.dxftype() == "LINE")
+    base = source_doc.blocks.new("PARENT_NESTED_DESC_LINEAR")
+    parent_line = base.add_line((0, 0), (24, 0))
+    base.add_blockref(child_ref.name, (40, 0))
+    set_dynamic_block_visibility_parameter(
+        base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="Visibility1",
+            location=(0.0, 30.0, 0.0),
+            states=(DynamicBlockVisibilityState("STATE_A", (parent_line.dxf.handle,)),),
+        ),
+        guid="{GUID}",
+    )
+    props = DynamicBlockPropertiesTable(
+        handle="",
+        label="Block Table",
+        table_name="Block Table1",
+        description="",
+        location=(36.0, 24.0, 0.0),
+        grip_location=(36.0, 24.0, 0.0),
+        columns=(
+            DynamicBlockPropertyColumn("", "ATTDEF", "PARAM_1", "Block Table1"),
+            DynamicBlockPropertyColumn("", "BLOCKVISIBILITYPARAMETER", "VisibilityState", "VisibilityState"),
+        ),
+        rows=(DynamicBlockPropertyRow(0, ("A", "STATE_A")),),
+    )
+    props = set_dynamic_block_properties_table(base, props)
+    set_dynamic_block_base_point_parameter(
+        base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0.0, 0.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+    attdef = next(entity for entity in base if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_1")
+    with pytest.raises(
+        ezdxf.lldxf.const.DXFValueError,
+        match="nested dynamic block linear descendant targets are not supported",
+    ):
+        set_dynamic_block_linear_parameter(
+            base,
+            DynamicBlockLinearParameter(
+                handle="",
+                label="Linear",
+                parameter_name="Distance1",
+                description="",
+                base_point=(0.0, 0.0, 0.0),
+                end_point=(12.0, 0.0, 0.0),
+                distance=12.0,
+                expr_id=0,
+                end_grip_label="End Grip",
+            ),
+            DynamicBlockStretchAction(
+                handle="",
+                label="Stretch1",
+                action_location=(12.0, -6.0, 0.0),
+                x_expr_id=0,
+                x_name="EndXDelta",
+                y_expr_id=0,
+                y_name="EndYDelta",
+                selection_window=((26.0, 20.0, 0.0), (8.0, -6.0, 0.0)),
+                dependency_handles=(attdef.dxf.handle, parent_line.dxf.handle, child_line.dxf.handle),
+                targets=(
+                    DynamicBlockStretchActionTarget(parent_line.dxf.handle, 1, (1,)),
+                    DynamicBlockStretchActionTarget(child_line.dxf.handle, 1, (1,)),
+                    DynamicBlockStretchActionTarget(attdef.dxf.handle, 1, (0,)),
+                ),
+            ),
+        )
 
 
 def test_dynamic_block_lookup_parameter_to_code():
