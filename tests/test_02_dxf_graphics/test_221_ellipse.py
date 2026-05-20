@@ -2,12 +2,13 @@
 # License: MIT License
 import pytest
 import math
+from io import StringIO
 
 import ezdxf
 from ezdxf.audit import Auditor
 from ezdxf.math import Vec3
 from ezdxf.entities.ellipse import Ellipse, MIN_RATIO, MAX_RATIO
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from ezdxf.lldxf.tagwriter import TagCollector, TagWriter, basic_tags_from_text
 
 ELLIPSE = """0
 ELLIPSE
@@ -39,6 +40,14 @@ AcDbEllipse
 0.0
 42
 6.283185307179586
+"""
+
+ELLIPSE_WITH_DEFAULT_EXTRUSION = ELLIPSE + """210
+0.0
+220
+0.0
+230
+1.0
 """
 
 
@@ -149,6 +158,16 @@ def test_write_dxf():
     result = TagCollector.dxftags(entity)
     expected = basic_tags_from_text(ELLIPSE)
     assert result == expected
+
+
+def test_tagwriter_preserves_explicit_default_extrusion_from_loaded_entity():
+    entity = Ellipse.from_text(ELLIPSE_WITH_DEFAULT_EXTRUSION)
+
+    stream = StringIO()
+    entity.export_dxf(TagWriter(stream, dxfversion="AC1024"))
+    text = stream.getvalue().replace("\r\n", "\n")
+
+    assert "\n210\n0.0\n220\n0.0\n230\n1.0\n" in text
 
 
 def test_from_arc():

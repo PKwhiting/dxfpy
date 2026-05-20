@@ -369,6 +369,7 @@ def test_create_gradient_low_level_dxf_tags(hatch):
     for code in [450, 451, 452, 453, 460, 461, 462, 470]:
         assert tags.has_tag(code) is True, "missing required tag: %d" % code
     assert 2 == len(tags.find_all(463))
+    assert [tag.value for tag in tags.find_all(463)] == [0.0, 1.0]
     assert 2 == len(tags.find_all(421))
 
 

@@ -145,10 +145,10 @@ class LWPolyline(DXFGraphic):
         """Export entity specific data as DXF tags."""
         super().export_entity(tagwriter)
         tagwriter.write_tag2(SUBCLASS_MARKER, acdb_lwpolyline.name)
-        self.dxf.export_dxf_attribs(
-            tagwriter,
-            ["count", "flags", "const_width", "elevation", "thickness"],
-        )
+        self.dxf.export_dxf_attribs(tagwriter, ["count", "flags"])
+        if self.dxf.hasattr("const_width"):
+            tagwriter.write_tag2(43, self.dxf.const_width)
+        self.dxf.export_dxf_attribs(tagwriter, ["elevation", "thickness"])
         tagwriter.write_tags(Tags(self.lwpoints.dxftags()))
         self.dxf.export_dxf_attribs(tagwriter, "extrusion")
 

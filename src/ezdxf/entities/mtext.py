@@ -674,6 +674,7 @@ class MText(DXFGraphic):
         # Linked MText columns do not have a MTextColumns() object!
         self._columns: Optional[MTextColumns] = None
         self._force_optional_line_spacing_style = False
+        self._force_optional_line_spacing_factor = False
 
     def _get_text(self):
         """Getter for virtual Mtext.dxf.text attribute.
@@ -1368,8 +1369,6 @@ class MText(DXFGraphic):
                 "rect_width",
                 "rect_height",
                 "rotation",
-                "line_spacing_style",
-                "line_spacing_factor",
                 "box_fill_scale",
                 "bg_fill",
                 "bg_fill_color",
@@ -1380,6 +1379,12 @@ class MText(DXFGraphic):
         )
         if self._force_optional_line_spacing_style:
             tagwriter.write_tag2(73, self.dxf.get("line_spacing_style", 1))
+        else:
+            self.dxf.export_dxf_attribs(tagwriter, ["line_spacing_style"])
+        if self._force_optional_line_spacing_factor:
+            tagwriter.write_tag2(44, self.dxf.get("line_spacing_factor", 1))
+        else:
+            self.dxf.export_dxf_attribs(tagwriter, ["line_spacing_factor"])
         columns = self._columns
         if columns is None or columns.column_type == ColumnType.NONE:
             return

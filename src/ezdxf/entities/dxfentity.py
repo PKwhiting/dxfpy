@@ -64,6 +64,7 @@ DYN_UUID_ATTRIBUTE = "_uuid"
 # Source block reference, which created the virtual entity, bound entities can
 # not have such an attribute:
 DYN_SOURCE_BLOCK_REFERENCE_ATTRIBUTE = "_source_block_reference"
+RAW_TAGS_OVERRIDE_ATTRIBUTE = "_raw_tags_override"
 
 base_class: DefSubclass = DefSubclass(
     None,
@@ -647,6 +648,13 @@ class DXFEntity:
 
         """
         if tagwriter.dxfversion < self.MIN_DXF_VERSION_FOR_EXPORT:
+            return
+        raw_tags = getattr(self, RAW_TAGS_OVERRIDE_ATTRIBUTE, None)
+        if raw_tags is not None:
+            if isinstance(raw_tags, str):
+                tagwriter.write_str(raw_tags)
+            else:
+                tagwriter.write_tags(raw_tags)
             return
         if not self.preprocess_export(tagwriter):
             return

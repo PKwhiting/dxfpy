@@ -2,6 +2,9 @@ from io import StringIO
 
 import pytest
 import ezdxf
+from ezdxf.lldxf.extendedtags import ExtendedTags
+from ezdxf.lldxf.tagwriter import TagWriter
+from ezdxf.math import Vec2
 from ezdxf.dynblkhelper import (
     _clone_non_attdef_entities,
     _clone_property_attdef,
@@ -33,6 +36,11 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_property_representation_families,
     get_dynamic_block_property_representations,
     get_dynamic_block_property_rows,
+    snapshot_raw_dynamic_block_definition,
+    snapshot_raw_dynamic_block_layout,
+    restore_raw_dynamic_block_definition,
+    restore_raw_dynamic_block_layout,
+    set_dynamic_block_definition_metadata,
     set_dynamic_block_properties_editor_support,
     get_dynamic_block_reference,
     get_dynamic_block_stretch_actions,
@@ -969,6 +977,279 @@ def test_dynamic_block_reference_propagates_nested_dynamic_insert_state_and_cach
     enhanced = cache.get("ACAD_ENHANCEDBLOCKDATA")
 
     assert set(enhanced.keys()) >= {"6"}
+
+
+def test_set_dynamic_block_base_point_parameter_creates_basepoint_only_graph():
+    doc = ezdxf.new("R2018")
+    block = doc.blocks.new("DYN_BASEPOINT_ONLY")
+    block.add_line((0, 0), (1, 0))
+    set_dynamic_block_definition_metadata(
+        block,
+        guid="{GUID}",
+        true_name="DYN_BASEPOINT_ONLY",
+    )
+
+    created = set_dynamic_block_base_point_parameter(
+        block,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(2.0, 3.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+    parsed = get_dynamic_block_base_point_parameter(block)
+
+    assert created.handle
+    assert parsed is not None
+    assert parsed.location == (2.0, 3.0, 0.0)
+
+
+def test_raw_dynamic_block_definition_snapshot_restore_preserves_supported_linear_shape():
+    doc = ezdxf.new("R2018")
+    insert = make_dynamic_properties_insert(doc)
+    base = get_dynamic_block_definition(insert)
+
+    assert base is not None
+    entities = list(base)
+    stretch_entity = entities[0]
+    attdef1 = next(entity for entity in entities if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_1")
+    attdef2 = next(entity for entity in entities if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_2")
+    attdef3 = next(entity for entity in entities if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_3")
+    table = get_dynamic_block_properties_table(base)
+    grip = next(obj for obj in doc.objects if obj.dxftype() == "BLOCKPROPERTIESTABLEGRIP")
+
+    assert table is not None
+    set_dynamic_block_base_point_parameter(
+        base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0.0, 0.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+    set_dynamic_block_linear_parameter(
+        base,
+        DynamicBlockLinearParameter(
+            handle="",
+            label="Linear",
+            parameter_name="Distance1",
+            description="",
+            base_point=(0.0, 0.0, 0.0),
+            end_point=(1.0, 0.0, 0.0),
+            distance=1.0,
+            expr_id=0,
+            end_grip_label="End Grip",
+        ),
+        DynamicBlockStretchAction(
+            handle="",
+            label="Stretch",
+            action_location=(1.0, -0.5, 0.0),
+            x_expr_id=0,
+            x_name="EndXDelta",
+            y_expr_id=0,
+            y_name="EndYDelta",
+            selection_window=((2.0, 1.0, 0.0), (0.5, -0.5, 0.0)),
+            dependency_handles=(
+                grip.dxf.handle,
+                table.handle,
+                attdef3.dxf.handle,
+                attdef2.dxf.handle,
+                attdef1.dxf.handle,
+                stretch_entity.dxf.handle,
+            ),
+            targets=(
+                DynamicBlockStretchActionTarget(stretch_entity.dxf.handle, 2, (1, 2)),
+                DynamicBlockStretchActionTarget(attdef1.dxf.handle, 1, (0,)),
+                DynamicBlockStretchActionTarget(attdef2.dxf.handle, 1, (0,)),
+                DynamicBlockStretchActionTarget(attdef3.dxf.handle, 1, (0,)),
+            ),
+        ),
+    )
+    base.block_record.preview_data = bytes.fromhex("01020304")
+    base.block_record.dxf.units = 1
+
+    snapshot = snapshot_raw_dynamic_block_definition(base)
+    clone = doc.blocks.new("DYN_RAW_RESTORED")
+    entity_handle_map = []
+    for entity in base:
+        copied = entity.copy()
+        clone.add_entity(copied)
+        entity_handle_map.append((entity.dxf.handle, copied.dxf.handle))
+    restore_raw_dynamic_block_definition(clone, snapshot, entity_handle_map)
+
+    restored_visibility = get_dynamic_block_visibility_parameter(clone)
+    restored_basepoint = get_dynamic_block_base_point_parameter(clone)
+    restored_props = get_dynamic_block_properties_table(clone)
+    restored_linear = get_dynamic_block_linear_parameters(clone)
+
+    assert restored_visibility is not None
+    assert restored_basepoint is not None
+    assert restored_props is not None
+    assert len(restored_linear) == 1
+    assert restored_basepoint.location == (0.0, 0.0, 0.0)
+    assert restored_linear[0].parameter_name == "Distance1"
+    assert clone.block_record.preview_data == bytes.fromhex("01020304")
+    assert clone.block_record.dxf.units == 1
+
+
+def test_raw_dynamic_block_layout_restore_remaps_entity_and_xdata_handles_for_export():
+    doc = ezdxf.new("R2018")
+    doc.appids.new("SELF_REF")
+
+    source = doc.blocks.new("RAW_LAYOUT_SOURCE")
+    line = source.add_line((0, 0), (1, 0))
+    source_handle = line.dxf.handle
+    line.set_xdata("SELF_REF", [(1005, source_handle)])
+
+    snapshot = snapshot_raw_dynamic_block_layout(source)
+    clone = doc.blocks.new("RAW_LAYOUT_CLONE")
+    restore_raw_dynamic_block_layout(clone, snapshot)
+
+    restored_line = next(entity for entity in clone if entity.dxftype() == "LINE")
+
+    assert restored_line.dxf.handle != source_handle
+    assert list(restored_line.get_xdata("SELF_REF")) == [(1005, restored_line.dxf.handle)]
+
+    stream = StringIO()
+    restored_line.export_dxf(TagWriter(stream, dxfversion=doc.dxfversion))
+    exported = ExtendedTags.from_text(stream.getvalue())
+
+    assert exported.get_handle() == restored_line.dxf.handle
+    assert source_handle not in stream.getvalue()
+
+
+def test_raw_dynamic_block_layout_snapshot_preserves_authored_mtext_column_xdata():
+    from ezdxf.entities.mtext import ColumnType, MTextColumns
+
+    doc = ezdxf.new("R2010")
+    if "ACAD" not in doc.appids:
+        doc.appids.new("ACAD")
+
+    block = doc.blocks.new("RAW_MTEXT_SOURCE")
+    mtext = block.add_mtext(
+        "A",
+        dxfattribs={
+            "insert": (0, 0, 0),
+            "line_spacing_style": 1,
+            "line_spacing_factor": 1.0,
+        },
+    )
+    cols = MTextColumns()
+    cols.column_type = ColumnType.STATIC
+    cols.count = 2
+    cols.width = 1.0
+    cols.gutter_width = 0.2
+    cols.defined_height = 2.0
+    mtext._columns = cols
+    mtext.set_xdata(
+        "ACAD",
+        [
+            (1000, "ACAD_MTEXT_COLUMN_INFO_BEGIN"),
+            (1070, 2),
+            (1070, 1),
+            (1000, "ACAD_MTEXT_COLUMN_INFO_END"),
+        ],
+    )
+
+    snapshot = snapshot_raw_dynamic_block_layout(block)
+    entity_text = snapshot[1][0][0]
+    tags = ExtendedTags.from_text(entity_text)
+
+    assert "ACAD_MTEXT_COLUMN_INFO_BEGIN" in entity_text
+    assert "ACAD_MTEXT_COLUMNS_BEGIN" not in entity_text
+    assert any(tag.code == 73 and tag.value == 1 for tag in tags)
+    assert any(tag.code == 44 and tag.value == 1.0 for tag in tags)
+
+
+def test_raw_dynamic_block_layout_restore_preserves_multileader_proxy_payload():
+    from ezdxf.render.mleader import ConnectionSide
+    from ezdxf.lldxf.tagwriter import TagWriter
+
+    doc = ezdxf.new("R2010")
+    block = doc.blocks.new("RAW_MLEADER_SOURCE")
+    builder = block.add_multileader_mtext()
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+    mleader = next(entity for entity in block if entity.dxftype() == "MULTILEADER")
+    mleader.proxy_graphic = b"\x01\x02\x03\x04"
+
+    snapshot = snapshot_raw_dynamic_block_layout(block)
+    clone = doc.blocks.new("RAW_MLEADER_CLONE")
+    restore_raw_dynamic_block_layout(clone, snapshot)
+
+    restored = next(entity for entity in clone if entity.dxftype() == "MULTILEADER")
+    stream = StringIO()
+    restored.export_dxf(TagWriter(stream, dxfversion=doc.dxfversion))
+    text = stream.getvalue().replace("\r\n", "\n")
+
+    assert getattr(restored, "_raw_tags_override") is not None
+    assert "\n 92\n4\n310\n01020304\n" in text
+
+
+def test_raw_dynamic_block_definition_restore_preserves_multileader_proxy_payload():
+    from ezdxf.render.mleader import ConnectionSide
+
+    doc = ezdxf.new("R2010")
+    block = doc.blocks.new("RAW_DEF_MLEADER_SOURCE")
+    builder = block.add_multileader_mtext()
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+    mleader = next(entity for entity in block if entity.dxftype() == "MULTILEADER")
+    mleader.proxy_graphic = b"\x01\x02\x03\x04"
+
+    snapshot = snapshot_raw_dynamic_block_definition(block)
+    clone = doc.blocks.new("RAW_DEF_MLEADER_CLONE")
+    entity_handle_map = []
+    for entity in block:
+        copied = entity.copy()
+        if copied.dxftype() == "MULTILEADER":
+            copied.proxy_graphic = None
+        clone.add_entity(copied)
+        entity_handle_map.append((entity.dxf.handle, copied.dxf.handle))
+
+    restore_raw_dynamic_block_definition(clone, snapshot, entity_handle_map)
+
+    restored = next(entity for entity in clone if entity.dxftype() == "MULTILEADER")
+    stream = StringIO()
+    restored.export_dxf(TagWriter(stream, dxfversion=doc.dxfversion))
+    text = stream.getvalue().replace("\r\n", "\n")
+
+    assert getattr(restored, "_raw_tags_override") is not None
+    assert "\n 92\n4\n310\n01020304\n" in text
+
+
+def test_raw_dynamic_block_layout_snapshot_uses_authored_file_text_when_available(
+    tmp_path,
+):
+    from ezdxf.render.mleader import ConnectionSide
+
+    source_doc = ezdxf.new("R2010")
+    block = source_doc.blocks.new("RAW_FILE_TEXT_BLOCK")
+    builder = block.add_multileader_mtext()
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+    path = tmp_path / "raw_file_text_block.dxf"
+    source_doc.saveas(path)
+
+    text = path.read_text(encoding="utf-8", errors="surrogateescape")
+    text = text.replace("\n270\n2\n", "\n", 1)
+    path.write_text(text, encoding="utf-8", errors="surrogateescape")
+
+    loaded = ezdxf.readfile(path)
+    loaded_block = loaded.blocks.get("RAW_FILE_TEXT_BLOCK")
+    snapshot = snapshot_raw_dynamic_block_layout(loaded_block)
+    entity_text = next(entry[0] for entry in snapshot[1] if "MULTILEADER" in entry[0])
+
+    assert "\n270\n2\n" not in entity_text
 
 
 def test_dynamic_block_visibility_descendant_authoring_is_rejected():

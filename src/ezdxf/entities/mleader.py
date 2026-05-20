@@ -749,7 +749,8 @@ class MultiLeader(DXFGraphic):
         write_tag2 = tagwriter.write_tag2
 
         write_tag2(100, acdb_mleader.name)
-        write_tag2(270, dxf.version)
+        if dxf.hasattr("version"):
+            write_tag2(270, dxf.version)
         self.context.export_dxf(tagwriter)
 
         # Export common MLEADER tags:

@@ -2,9 +2,10 @@
 # License: MIT License
 # created 2019-02-15
 import pytest
+from io import StringIO
 
 from ezdxf.entities.lwpolyline import LWPolyline
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from ezdxf.lldxf.tagwriter import TagCollector, TagWriter, basic_tags_from_text
 from ezdxf.lldxf.const import DXFAttributeError, DXFStructureError
 
 LWPOLYLINE = """0
@@ -97,6 +98,17 @@ def test_write_dxf():
     result = collector.tags
     expected = basic_tags_from_text(RESULT1)
     assert result == expected
+
+
+def test_tagwriter_preserves_explicit_zero_const_width_from_loaded_entity():
+    entity = LWPolyline.from_text(LWPOLYLINE)
+    entity.append((1, 2))
+
+    stream = StringIO()
+    entity.export_dxf(TagWriter(stream, dxfversion="AC1024"))
+    text = stream.getvalue().replace("\r\n", "\n")
+
+    assert "\n 43\n0.0\n" in text
 
 
 def test_has_const_width():

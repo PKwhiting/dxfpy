@@ -2,10 +2,13 @@
 # License: MIT License
 from io import StringIO
 from pathlib import Path
+from collections import Counter
 
 import pytest
 import ezdxf
 from ezdxf.entities.dxfobj import Field
+from ezdxf.lldxf.extendedtags import ExtendedTags
+from ezdxf.lldxf.tagwriter import TagWriter
 from ezdxf.addons.dxf2code import (
     entities_to_code,
     table_entries_to_code,
@@ -31,6 +34,7 @@ from ezdxf.dynblkhelper import (
     DynamicBlockStretchActionTarget,
     DynamicBlockVisibilityParameter,
     DynamicBlockVisibilityState,
+    get_dynamic_block_base_point_parameter,
     get_dynamic_block_definition,
     get_dynamic_block_entity_rep_index_path,
     get_dynamic_block_linear_parameters,
@@ -43,6 +47,9 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_visibility_entities,
     get_dynamic_block_visibility_state,
     get_dynamic_block_visibility_states,
+    restore_raw_entity_export,
+    restore_raw_extension_subtree,
+    restore_raw_rootdict_entries,
     set_dynamic_block_base_point_parameter,
     set_dynamic_block_linear_parameter,
     set_dynamic_block_lookup_parameter,
@@ -51,11 +58,14 @@ from ezdxf.dynblkhelper import (
     set_dynamic_block_reference,
     set_dynamic_block_visibility_parameter,
     set_dynamic_block_visibility_state,
+    snapshot_raw_entity_export,
+    snapshot_raw_extension_subtree,
+    snapshot_raw_rootdict_entries,
 )
 
 
 import ezdxf.entities
-from ezdxf.lldxf.types import dxftag
+from ezdxf.lldxf.types import dxftag, is_pointer_code
 from ezdxf.lldxf.tags import Tags  # required by exec() or eval()
 from ezdxf.entities.ltype import LinetypePattern  # required by exec() or eval()
 from ezdxf.math import Vec2, Vec3
@@ -67,6 +77,22 @@ NESTED_RICHER_CHILD_ORACLE = Path(__file__).parent / "autocad_nested_richer_chil
 NESTED_TWO_CHILDREN_ORACLE = Path(__file__).parent / "autocad_nested_two_children_candidate_gen2.dxf"
 NESTED_TWO_CHILDREN_MIXED_ORACLE = Path(__file__).parent / "autocad_nested_two_children_mixed_states_gen2_v2.dxf"
 NESTED_THREE_LEVEL_MIXED_ORACLE = Path(__file__).parent / "autocad_nested_three_level_mixed_gen2_v3.dxf"
+ROOTDICT_RESOURCE_KEYS = (
+    "ACAD_VISUALSTYLE",
+    "ACAD_DETAILVIEWSTYLE",
+    "ACAD_SECTIONVIEWSTYLE",
+    "AcDbVariableDictionary",
+    "ACAD_CIP_PREVIOUS_PRODUCT_INFO",
+    "ACAD_LAST_SAVED_VERSION_INFO",
+    "ACDB_RECOMPOSE_DATA",
+)
+HEADER_STATE_SKIP = {
+    "$HANDSEED",
+    "$VERSIONGUID",
+    "$FINGERPRINTGUID",
+    "$TDCREATE",
+    "$TDUPDATE",
+}
 
 
 def test_fmt_mapping():
@@ -148,6 +174,36 @@ def execute_code_in_namespace(code, namespace):
     exec(code.import_str() + "\n" + str(code), namespace)
 
 
+def _normalize_handle_refs_in_text(text: str) -> str:
+    lines = text.replace("\r\n", "\n").split("\n")
+    normalized: list[str] = []
+    index = 0
+    while index < len(lines):
+        code_line = lines[index]
+        normalized.append(code_line)
+        if index + 1 >= len(lines):
+            break
+        value_line = lines[index + 1]
+        try:
+            code = int(code_line.strip())
+        except ValueError:
+            normalized.append(value_line)
+            index += 2
+            continue
+        if code in (5, 105, 1005) or is_pointer_code(code):
+            normalized.append("<REF>")
+        else:
+            normalized.append(value_line)
+        index += 2
+    return "\n".join(normalized)
+
+
+def _export_text(entity, dxfversion: str) -> str:
+    stream = StringIO()
+    entity.export_dxf(TagWriter(stream, dxfversion=dxfversion))
+    return stream.getvalue()
+
+
 def _names(table) -> set[str]:
     return {entry.dxf.name for entry in table}
 
@@ -162,6 +218,10 @@ def _maybe_get(table, name: str):
 def _resource_entities(doc: ezdxf.document.Drawing) -> list:
     default_doc = ezdxf.new(doc.dxfversion)
     entities: list = []
+
+    active_viewports = doc.viewports.get("*Active")
+    if active_viewports:
+        entities.append(active_viewports[0])
 
     for name in sorted(_names(doc.layers) - _names(default_doc.layers)):
         entity = _maybe_get(doc.layers, name)
@@ -238,11 +298,120 @@ def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.
     resources = _resource_entities(source_doc)
     if resources:
         execute_code_in_namespace(table_entries_to_code(resources, drawing="doc"), namespace)
+    restore_raw_rootdict_entries(
+        target_doc,
+        snapshot_raw_rootdict_entries(source_doc, ROOTDICT_RESOURCE_KEYS),
+    )
+    for name in _names(source_doc.layers):
+        source_layer = _maybe_get(source_doc.layers, name)
+        target_layer = _maybe_get(target_doc.layers, name)
+        if source_layer is not None and target_layer is not None and source_layer.has_extension_dict:
+            restore_raw_extension_subtree(
+                target_layer, snapshot_raw_extension_subtree(source_layer)
+            )
+    for name, _entry in source_doc.mleader_styles.object_dict.items():
+        source_style = source_doc.mleader_styles.get(name)
+        target_style = target_doc.mleader_styles.get(name)
+        if source_style is not None and target_style is not None and source_style.has_extension_dict:
+            restore_raw_extension_subtree(
+                target_style, snapshot_raw_extension_subtree(source_style)
+            )
+    for name, _entry in source_doc.table_styles.object_dict.items():
+        source_style = source_doc.table_styles.get(name)
+        target_style = target_doc.table_styles.get(name)
+        if source_style is not None and target_style is not None and source_style.has_extension_dict:
+            restore_raw_extension_subtree(
+                target_style, snapshot_raw_extension_subtree(source_style)
+            )
+    if source_doc.layers.head.has_extension_dict:
+        restore_raw_extension_subtree(
+            target_doc.layers.head, snapshot_raw_extension_subtree(source_doc.layers.head)
+        )
     blocks = _sort_blocks([block for block in source_doc.blocks if not block.is_any_layout])
     for block in blocks:
         execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+    for name in _names(source_doc.dimstyles):
+        source_dimstyle = _maybe_get(source_doc.dimstyles, name)
+        target_dimstyle = _maybe_get(target_doc.dimstyles, name)
+        if source_dimstyle is None or target_dimstyle is None:
+            continue
+        restore_raw_entity_export(
+            target_dimstyle,
+            snapshot_raw_entity_export(source_dimstyle),
+            _resource_handle_mapping_for_raw_text(
+                source_doc, target_doc, snapshot_raw_entity_export(source_dimstyle)[0]
+            ),
+        )
     execute_code_in_namespace(entities_to_code(source_doc.modelspace(), layout="msp"), namespace)
+    _copy_header_state(source_doc, target_doc)
     return target_doc
+
+
+def _copy_header_state(
+    source_doc: ezdxf.document.Drawing, target_doc: ezdxf.document.Drawing
+) -> None:
+    target_doc.encoding = source_doc.encoding
+    for name in source_doc.header.varnames():
+        if name in HEADER_STATE_SKIP:
+            continue
+        target_doc.header[name] = source_doc.header.get(name)
+    target_doc.header.custom_vars.clear()
+    for tag, value in source_doc.header.custom_vars:
+        target_doc.header.custom_vars.append(tag, value)
+
+
+def _resource_handle_mapping_for_raw_text(
+    source_doc: ezdxf.document.Drawing,
+    target_doc: ezdxf.document.Drawing,
+    text: str,
+) -> list[tuple[str, str]]:
+    mapping: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for tag in ExtendedTags.from_text(text):
+        if tag.code == 5 or tag.code == 1005 or is_pointer_code(tag.code):
+            handle = str(tag.value)
+            if handle in seen:
+                continue
+            seen.add(handle)
+            source_entity = source_doc.entitydb.get(handle)
+            if source_entity is None:
+                continue
+            target_handle = None
+            dxftype = source_entity.dxftype()
+            if dxftype == "STYLE":
+                target = target_doc.styles.get(source_entity.dxf.name)
+                target_handle = target.dxf.handle if target is not None else None
+            elif dxftype == "LTYPE":
+                target = target_doc.linetypes.get(source_entity.dxf.name)
+                target_handle = target.dxf.handle if target is not None else None
+            elif dxftype == "LAYER":
+                target = target_doc.layers.get(source_entity.dxf.name)
+                target_handle = target.dxf.handle if target is not None else None
+            elif dxftype == "APPID":
+                target = target_doc.appids.get(source_entity.dxf.name)
+                target_handle = target.dxf.handle if target is not None else None
+            elif dxftype == "BLOCK_RECORD":
+                block = target_doc.blocks.get(source_entity.dxf.name)
+                target_handle = block.block_record_handle if block is not None else None
+            if target_handle is not None:
+                mapping.append((handle, target_handle))
+    return mapping
+
+
+def _dynamic_block_by_public_name(doc: ezdxf.document.Drawing, public_name: str):
+    for block in doc.blocks:
+        block_record = block.block_record
+        if block_record.has_xdata("AcDbDynamicBlockTrueName") and (
+            block_record.get_xdata("AcDbDynamicBlockTrueName").get_first_value(1000, "")
+            == public_name
+        ):
+            return block
+        if block_record.has_xdata("AcDbDynamicBlockTrueName2") and (
+            block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+            == public_name
+        ):
+            return block
+    raise StopIteration(public_name)
 
 
 def _add_supported_linear_visibility_geometry(block):
@@ -355,6 +524,76 @@ def build_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawi
     add_reference_block_and_insert("STATE_A", (0, 0))
     add_reference_block_and_insert("STATE_B", (80, 0))
     return source_doc, public_name
+
+
+def build_basepoint_only_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+    source_doc = ezdxf.new("R2018")
+    base = source_doc.blocks.new("DYN_BASEPOINT_ONLY_REPLAY")
+    base.add_line((0, 0), (24, 0))
+    public_name = "DYN_BASEPOINT_ONLY_REPLAY"
+    from ezdxf.dynblkhelper import set_dynamic_block_definition_metadata
+
+    set_dynamic_block_definition_metadata(
+        base,
+        guid="{GUID}",
+        true_name=public_name,
+    )
+    set_dynamic_block_base_point_parameter(
+        base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(5.0, 6.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+    return source_doc, public_name
+
+
+def test_insert_xdata_replay_preserves_nonhandle_payload():
+    source_doc = ezdxf.new("R2018")
+    block = source_doc.blocks.new("XDATA_BLOCK")
+    block.add_line((0, 0), (1, 0))
+    insert = source_doc.modelspace().add_blockref(block.name, (0, 0))
+    insert.set_xdata(
+        "AcadAnnotativeAttributeDecomposition",
+        [
+            (1000, "AnnotativeData"),
+            (1002, "{"),
+            (1070, 1),
+            (1070, 1),
+            (1002, "}"),
+        ],
+    )
+
+    new_doc = replay_doc_to_new_doc(source_doc)
+    new_insert = list(new_doc.modelspace().query("INSERT"))[0]
+
+    assert list(new_insert.get_xdata("AcadAnnotativeAttributeDecomposition")) == [
+        (1000, "AnnotativeData"),
+        (1002, "{"),
+        (1070, 1),
+        (1070, 1),
+        (1002, "}"),
+    ]
+
+
+def build_plain_wrapper_nested_dynamic_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+    source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
+    child_base = next(
+        block
+        for block in source_doc.blocks
+        if block.block_record.has_xdata("AcDbDynamicBlockTrueName2")
+        and block.block_record.get_xdata("AcDbDynamicBlockTrueName2").get_first_value(1000, "")
+        == child_public_name
+    )
+    child_ref = _add_supported_linear_visibility_reference_block(source_doc, child_base)
+    wrapper = source_doc.blocks.new("PLAIN_WRAPPER_NESTED_DYNAMIC")
+    wrapper.add_blockref(child_ref.name, (0, 0))
+    source_doc.modelspace().add_blockref(wrapper.name, (600, 0))
+    return source_doc, wrapper.name
 
 
 def assert_supported_linear_visibility_replay_doc(doc: ezdxf.document.Drawing, public_name: str) -> None:
@@ -1141,6 +1380,130 @@ def test_mtext_to_code():
     assert new_entity.text == "xxx \"yyy\" 'zzz'"
 
 
+def test_mtext_to_code_preserves_explicit_optional_line_spacing_style():
+    from ezdxf.entities.mtext import MText
+
+    entity = MText.new(
+        handle="ABBA",
+        owner="0",
+        dxfattribs={
+            "insert": (2, 3, 4),
+            "line_spacing_style": 1,
+        },
+    )
+
+    new_entity = translate_to_code_and_execute(entity)
+    stream = StringIO()
+    new_entity.export_dxf(TagWriter(stream, dxfversion=new_entity.doc.dxfversion))
+    tags = ExtendedTags.from_text(stream.getvalue())
+
+    assert any(tag.code == 73 and tag.value == 1 for tag in tags)
+
+
+def test_mtext_to_code_preserves_explicit_optional_line_spacing_factor():
+    from ezdxf.entities.mtext import MText
+
+    entity = MText.new(
+        handle="ABBA",
+        owner="0",
+        dxfattribs={
+            "insert": (2, 3, 4),
+            "line_spacing_factor": 1.0,
+        },
+    )
+
+    new_entity = translate_to_code_and_execute(entity)
+    stream = StringIO()
+    new_entity.export_dxf(TagWriter(stream, dxfversion=new_entity.doc.dxfversion))
+    tags = ExtendedTags.from_text(stream.getvalue())
+
+    assert any(tag.code == 44 and tag.value == 1.0 for tag in tags)
+
+
+def test_wipeout_to_code_preserves_proxy_graphic_payload():
+    source_doc = ezdxf.new("R2010")
+    wipeout = source_doc.modelspace().add_wipeout([(0, 0), (2, 0), (2, 1), (0, 1)])
+    wipeout.proxy_graphic = b"\x01\x02\x03\x04"
+
+    _, new_msp = translate_entities_to_new_layout([wipeout])
+    new_entity = new_msp[0]
+    stream = StringIO()
+    new_entity.export_dxf(TagWriter(stream, dxfversion=new_entity.doc.dxfversion))
+    text = stream.getvalue().replace("\r\n", "\n")
+
+    assert new_entity.proxy_graphic == wipeout.proxy_graphic
+    assert "\n 92\n4\n310\n01020304\n" in text
+
+
+def test_insert_attrib_to_code_preserves_explicit_attrib_layer():
+    source_doc = ezdxf.new("R2010")
+    block = source_doc.blocks.new("ATTRIB_LAYER_BLOCK")
+    insert = block.add_blockref(
+        "TEST_REF", (0, 0), dxfattribs={"layer": "INSERT_LAYER"}
+    )
+    insert.add_attrib(
+        "TAG",
+        "TEXT",
+        insert=(1, 2),
+        dxfattribs={"layer": "ATTRIB_LAYER"},
+    )
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+
+    new_insert = next(
+        e
+        for e in namespace["doc"].blocks.get("ATTRIB_LAYER_BLOCK")
+        if e.dxftype() == "INSERT"
+    )
+
+    assert new_insert.attribs[0].dxf.layer == "ATTRIB_LAYER"
+
+
+def test_insert_attrib_to_code_preserves_context_data_subtree():
+    source_doc = ezdxf.new("R2010")
+    block = source_doc.blocks.new("ATTRIB_CONTEXT_BLOCK")
+    insert = block.add_blockref("TEST_REF", (0, 0))
+    attrib = insert.add_attrib("TAG", "TEXT", insert=(1, 2))
+    xdict = attrib.new_extension_dict()
+    mgr = xdict.dictionary.add_new_dict("AcDbContextDataManager")
+    mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+
+    new_insert = next(
+        e
+        for e in namespace["doc"].blocks.get("ATTRIB_CONTEXT_BLOCK")
+        if e.dxftype() == "INSERT"
+    )
+    new_attrib = new_insert.attribs[0]
+
+    assert new_attrib.has_extension_dict is True
+    assert new_attrib.get_extension_dict().dictionary.dxf.owner == new_attrib.dxf.handle
+    new_mgr = new_attrib.get_extension_dict().dictionary.get("AcDbContextDataManager")
+    assert new_mgr is not None
+    assert new_mgr.dxf.owner == new_attrib.get_extension_dict().dictionary.dxf.handle
+    assert new_mgr.get("ACDB_ANNOTATIONSCALES") is not None
+
+
+def test_block_to_code_preserves_block_record_preview_data():
+    source_doc = ezdxf.new("R2010")
+    block = source_doc.blocks.new("BLOCK_PREVIEW_DATA")
+    block.add_line((0, 0), (1, 0))
+    block.block_record.preview_data = bytes.fromhex("01020304")
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+
+    new_block = namespace["doc"].blocks.get("BLOCK_PREVIEW_DATA")
+
+    assert new_block.block_record.preview_data == block.block_record.preview_data
+
+
 def test_lwpolyline_to_code():
     from ezdxf.entities.lwpolyline import LWPolyline
 
@@ -1332,6 +1695,41 @@ def test_mleaderstyle_entry_missing_block_handle_is_safe():
 
     assert new_style is not None
     assert new_style.dxf.hasattr("block_record_handle") is False
+
+
+def test_dimstyle_replay_preserves_normalized_raw_export():
+    source_doc = ezdxf.new("R2010")
+    source_doc.styles.new("DIM_TXT", dxfattribs={"font": "txt"})
+    ltype = source_doc.linetypes.new("DIM_LT", dxfattribs={"description": "DIM_LT"})
+    ltype.setup_pattern([0.2, 0.1, -0.1])
+    arrow = source_doc.blocks.new("DIM_ARROW")
+    arrow.add_line((0, 0), (1, 0))
+
+    dimstyle = source_doc.dimstyles.new("TEST_DIMSTYLE")
+    dimstyle.dxf.dimtxsty = "DIM_TXT"
+    dimstyle.dxf.dimblk = "DIM_ARROW"
+    dimstyle.dxf.dimldrblk = "DIM_ARROW"
+    dimstyle.dxf.dimltype = "DIM_LT"
+    dimstyle.dxf.dimltex1 = "DIM_LT"
+    dimstyle.dxf.dimltex2 = "DIM_LT"
+    dimstyle.set_xdata(
+        "ACAD_DSTYLE_DIMBREAK",
+        [(1070, 391), (1040, 0.125)],
+    )
+
+    new_doc = replay_doc_to_new_doc(source_doc)
+    new_dimstyle = new_doc.dimstyles.get("TEST_DIMSTYLE")
+
+    assert new_dimstyle is not None
+    assert new_dimstyle.dxf.dimtxsty == "DIM_TXT"
+    assert new_dimstyle.dxf.dimblk == "DIM_ARROW"
+    assert new_dimstyle.dxf.dimldrblk == "DIM_ARROW"
+    assert new_dimstyle.dxf.dimltype == "DIM_LT"
+    assert new_dimstyle.dxf.dimltex1 == "DIM_LT"
+    assert new_dimstyle.dxf.dimltex2 == "DIM_LT"
+    assert _normalize_handle_refs_in_text(
+        _export_text(new_dimstyle, new_doc.dxfversion)
+    ) == _normalize_handle_refs_in_text(_export_text(dimstyle, source_doc.dxfversion))
 
 
 def test_block_to_code():
@@ -1535,6 +1933,47 @@ def test_multileader_field_to_code():
     assert new_doc.objects.get_field_list() is not None
 
 
+def test_multileader_to_code_preserves_proxy_graphic_payload():
+    from ezdxf.render.mleader import ConnectionSide
+
+    source_doc = ezdxf.new("R2010")
+    source_msp = source_doc.modelspace()
+    builder = source_msp.add_multileader_mtext()
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+    builder.multileader.proxy_graphic = b"\x01\x02\x03\x04"
+
+    _, new_msp = translate_entities_to_new_layout(source_msp)
+    new_ml = new_msp[-1]
+    stream = StringIO()
+    new_ml.export_dxf(TagWriter(stream, dxfversion=new_ml.doc.dxfversion))
+    text = stream.getvalue().replace("\r\n", "\n")
+
+    assert new_ml.proxy_graphic == builder.multileader.proxy_graphic
+    assert "\n 92\n4\n310\n01020304\n" in text
+
+
+def test_multileader_to_code_does_not_inject_version_tag_when_source_omits_it():
+    from ezdxf.render.mleader import ConnectionSide
+
+    source_doc = ezdxf.new("R2010")
+    source_msp = source_doc.modelspace()
+    builder = source_msp.add_multileader_mtext()
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+
+    _, new_msp = translate_entities_to_new_layout(source_msp)
+    new_ml = new_msp[-1]
+    stream = StringIO()
+    new_ml.export_dxf(TagWriter(stream, dxfversion=new_ml.doc.dxfversion))
+    text = stream.getvalue().replace("\r\n", "\n")
+
+    assert new_ml.dxf.hasattr("version") is False
+    assert "\n270\n2\n" not in text
+
+
 def test_multileader_to_code_tolerates_unresolved_leader_linetype_handle():
     from ezdxf.render.mleader import ConnectionSide
 
@@ -1649,6 +2088,33 @@ def test_multileader_custom_style_to_code():
     assert new_style.dxf.char_height == 3.5
     assert new_style.dxf.text_alignment_type == 1
     assert new_ml.dxf.style_handle == new_style.dxf.handle
+
+
+def test_multileader_custom_style_to_code_does_not_inherit_standard_extension_dict():
+    from ezdxf.render.mleader import ConnectionSide
+
+    source_doc = ezdxf.new("R2010")
+    standard = source_doc.mleader_styles.get("Standard")
+    assert standard is not None
+    if not standard.has_extension_dict:
+        xdict = standard.new_extension_dict()
+        xdict.dictionary.add_xrecord("ACAD_XREC_ROUNDTRIP")
+    style = source_doc.mleader_styles.duplicate_entry("Standard", "CUSTOM_NO_XDICT")
+    if style.has_extension_dict:
+        style.discard_extension_dict()
+    source_msp = source_doc.modelspace()
+    builder = source_msp.add_multileader_mtext("CUSTOM_NO_XDICT")
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+
+    new_doc, new_msp = translate_entities_to_new_layout(source_msp)
+    new_ml = new_msp[-1]
+    new_style = new_doc.mleader_styles.get("CUSTOM_NO_XDICT")
+
+    assert new_ml.dxftype() == "MULTILEADER"
+    assert new_style is not None
+    assert new_style.has_extension_dict is False
 
 
 def test_multileader_custom_style_arrow_to_code():
@@ -2327,9 +2793,60 @@ def test_dynamic_block_linear_parameter_to_code():
 
 def test_dynamic_block_basepoint_linear_full_replay_preserves_supported_path():
     source_doc, public_name = build_supported_linear_visibility_replay_doc()
+    source_base = _dynamic_block_by_public_name(source_doc, public_name)
+    source_base.block_record.preview_data = bytes.fromhex("01020304")
+    source_base.block_record.dxf.units = 1
     new_doc = replay_doc_to_new_doc(source_doc)
+    new_base = _dynamic_block_by_public_name(new_doc, public_name)
 
     assert_supported_linear_visibility_replay_doc(new_doc, public_name)
+    assert source_base.block_record.has_extension_dict is True
+    assert new_base.block_record.has_extension_dict is True
+    assert new_base.block_record.preview_data == source_base.block_record.preview_data
+    assert new_base.block_record.dxf.units == source_base.block_record.dxf.units
+    assert list(source_base.block_record.xdata.data.keys()) == list(
+        new_base.block_record.xdata.data.keys()
+    )
+    assert list(source_base.block_record.get_extension_dict().dictionary.keys()) == list(
+        new_base.block_record.get_extension_dict().dictionary.keys()
+    )
+
+
+def test_dynamic_block_basepoint_only_replay_preserves_supported_path():
+    source_doc, public_name = build_basepoint_only_replay_doc()
+    source_base = _dynamic_block_by_public_name(source_doc, public_name)
+    source_base.block_record.preview_data = bytes.fromhex("01020304")
+    source_base.block_record.dxf.units = 1
+    new_doc = replay_doc_to_new_doc(source_doc)
+    new_base = _dynamic_block_by_public_name(new_doc, public_name)
+    new_basepoint = get_dynamic_block_base_point_parameter(new_base)
+
+    assert new_basepoint is not None
+    assert new_basepoint.location == (5.0, 6.0, 0.0)
+    assert source_base.block_record.has_extension_dict is True
+    assert new_base.block_record.has_extension_dict is True
+    assert new_base.block_record.preview_data == source_base.block_record.preview_data
+    assert new_base.block_record.dxf.units == source_base.block_record.dxf.units
+    assert list(source_base.block_record.xdata.data.keys()) == list(
+        new_base.block_record.xdata.data.keys()
+    )
+    assert list(source_base.block_record.get_extension_dict().dictionary.keys()) == list(
+        new_base.block_record.get_extension_dict().dictionary.keys()
+    )
+
+
+def test_plain_wrapper_nested_dynamic_replay_preserves_blkref_handles():
+    source_doc, wrapper_name = build_plain_wrapper_nested_dynamic_replay_doc()
+    new_doc = replay_doc_to_new_doc(source_doc)
+    wrapper = new_doc.blocks.get(wrapper_name)
+
+    assert wrapper is not None
+    wrapper_insert = next(
+        insert
+        for insert in new_doc.modelspace().query("INSERT")
+        if insert.dxf.name == wrapper_name
+    )
+    assert list(wrapper.block_record.blkref_handles) == [wrapper_insert.dxf.handle]
 
 
 def test_dynamic_block_basepoint_linear_two_generation_replay_preserves_supported_path():
@@ -2339,6 +2856,23 @@ def test_dynamic_block_basepoint_linear_two_generation_replay_preserves_supporte
 
     assert_supported_linear_visibility_replay_doc(gen1_doc, public_name)
     assert_supported_linear_visibility_replay_doc(gen2_doc, public_name)
+
+
+def test_dynamic_block_basepoint_linear_replay_does_not_duplicate_helper_objects():
+    source_doc, _public_name = build_supported_linear_visibility_replay_doc()
+    new_doc = replay_doc_to_new_doc(source_doc)
+
+    source_counts = Counter(obj.dxftype() for obj in source_doc.objects)
+    new_counts = Counter(obj.dxftype() for obj in new_doc.objects)
+
+    for dxftype in (
+        "BLOCKBASEPOINTPARAMETER",
+        "BLOCKVISIBILITYPARAMETER",
+        "BLOCKVISIBILITYGRIP",
+        "BLOCKGRIPLOCATIONCOMPONENT",
+        "ACAD_EVALUATION_GRAPH",
+    ):
+        assert new_counts[dxftype] == source_counts[dxftype]
 
 
 def test_dynamic_block_basepoint_linear_replay_preserves_nested_dynamic_insert_state():

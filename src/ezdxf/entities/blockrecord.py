@@ -19,6 +19,7 @@ from ezdxf.lldxf.const import (
     DXF2007,
     DXFInternalEzdxfError,
 )
+from ezdxf.lldxf.types import DXFBinaryTag
 from ezdxf.entities.dxfentity import base_class, SubclassProcessor, DXFEntity
 from ezdxf.entities.block import Block, EndBlk
 from ezdxf.entities.layer import acdb_symbol_table_record
@@ -113,6 +114,7 @@ class BlockRecord(DXFEntity):
         # stores also the block layout structure
         self.block_layout: Optional[BlockLayout] = None
         self.blkref_handles: list[str] = []
+        self.preview_data: bytes = b""
 
     def set_block(self, block: Block, endblk: EndBlk):
         self.block = block
@@ -140,6 +142,7 @@ class BlockRecord(DXFEntity):
                 return dxf
             self.blkref_handles = []
             in_blkrefs = False
+            preview = bytearray()
             for code, value in tags:
                 if code == 102 and value == "{BLKREFS":
                     in_blkrefs = True
@@ -149,6 +152,9 @@ class BlockRecord(DXFEntity):
                     continue
                 if in_blkrefs and code == 331:
                     self.blkref_handles.append(str(value))
+                elif code == 310:
+                    preview.extend(value)
+            self.preview_data = bytes(preview)
         return dxf
 
     def export_entity(self, tagwriter: AbstractTagWriter) -> None:
@@ -164,6 +170,10 @@ class BlockRecord(DXFEntity):
             for handle in self.blkref_handles:
                 write_tag2(331, handle)
             write_tag2(102, "}")
+        preview_data = self.preview_data
+        while preview_data:
+            tagwriter.write_tag(DXFBinaryTag(310, preview_data[:127]))
+            preview_data = preview_data[127:]
         self.dxf.export_dxf_attribs(tagwriter, ["units", "explode", "scale"])
 
     def export_block_definition(self, tagwriter: AbstractTagWriter) -> None:

@@ -110,13 +110,13 @@ class Gradient:
         write_tag(462, self.tint)
         write_tag(453, self.number_of_colors)
         if self.number_of_colors > 0:
-            write_tag(463, 0)  # first value, see DXF standard
+            write_tag(463, 0.0)  # first value, preserve authored float form
             if self.aci1 is not None:
                 # code 63 "color as ACI" could be left off
                 write_tag(63, self.aci1)
             write_tag(421, rgb2int(self.color1))  # first color
         if self.number_of_colors > 1:
-            write_tag(463, 1)  # second value, see DXF standard
+            write_tag(463, 1.0)  # second value, preserve authored float form
             if self.aci2 is not None:
                 # code 63 "color as ACI" could be left off
                 write_tag(63, self.aci2)

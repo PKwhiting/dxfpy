@@ -17,6 +17,7 @@ from ezdxf.lldxf.const import (
     SUBCLASS_MARKER,
     DXF12,
     DXF2000,
+    DXF2004,
     MODEL_SPACE_R12,
     PAPER_SPACE_R12,
     MODEL_SPACE_R2000,
@@ -45,6 +46,12 @@ acdb_entity = DefSubclass(
             optional=True,
             validator=validator.is_integer_bool,
             fixer=RETURN_DEFAULT,
+        ),
+        "transparency": DXFAttr(
+            440,
+            dxfversion=DXF2004,
+            optional=True,
+            validator=validator.is_transparency,
         ),
     },
 )
@@ -144,7 +151,7 @@ class Block(DXFEntity):
             tagwriter.write_tag2(SUBCLASS_MARKER, acdb_entity.name)
         if self.dxf.hasattr("paperspace"):
             tagwriter.write_tag2(67, 1)
-        self.dxf.export_dxf_attribs(tagwriter, "layer")
+        self.dxf.export_dxf_attribs(tagwriter, ["layer", "transparency"])
         if tagwriter.dxfversion > DXF12:
             tagwriter.write_tag2(SUBCLASS_MARKER, acdb_block_begin.name)
 
@@ -237,6 +244,6 @@ class EndBlk(DXFEntity):
             tagwriter.write_tag2(SUBCLASS_MARKER, acdb_entity.name)
         if self.dxf.hasattr("paperspace"):
             tagwriter.write_tag2(67, 1)
-        self.dxf.export_dxf_attribs(tagwriter, "layer")
+        self.dxf.export_dxf_attribs(tagwriter, ["layer", "transparency"])
         if tagwriter.dxfversion > DXF12:
             tagwriter.write_tag2(SUBCLASS_MARKER, acdb_block_end.name)

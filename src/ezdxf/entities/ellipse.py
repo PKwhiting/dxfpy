@@ -134,17 +134,10 @@ class Ellipse(DXFGraphic):
             self.dxf.ratio
         ), f"axis-ratio out of range [{MIN_RATIO}, {MAX_RATIO}]"
         self.dxf.ratio = clamp_axis_ratio(self.dxf.ratio)
-        self.dxf.export_dxf_attribs(
-            tagwriter,
-            [
-                "center",
-                "major_axis",
-                "extrusion",
-                "ratio",
-                "start_param",
-                "end_param",
-            ],
-        )
+        self.dxf.export_dxf_attribs(tagwriter, ["center", "major_axis"])
+        if self.dxf.hasattr("extrusion"):
+            tagwriter.write_vertex(210, self.dxf.extrusion)
+        self.dxf.export_dxf_attribs(tagwriter, ["ratio", "start_param", "end_param"])
 
     @property
     def minor_axis(self) -> Vec3:
