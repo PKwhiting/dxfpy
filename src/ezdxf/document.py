@@ -665,16 +665,20 @@ class Drawing:
         self._update_metadata()
 
     def update_extents(self):
+        def has_valid_extents(extmin, extmax) -> bool:
+            return all(float(a) <= float(b) for a, b in zip(extmin, extmax))
+
         msp = self.modelspace()
         # many applications not maintain these values
         extmin = msp.dxf.extmin
         extmax = msp.dxf.extmax
-        if bool(extmin) and bool(extmax):
+        if has_valid_extents(extmin, extmax):
             self.header["$EXTMIN"] = extmin
             self.header["$EXTMAX"] = extmax
         active_layout = self.active_layout()
-        self.header["$PEXTMIN"] = active_layout.dxf.extmin
-        self.header["$PEXTMAX"] = active_layout.dxf.extmax
+        if has_valid_extents(active_layout.dxf.extmin, active_layout.dxf.extmax):
+            self.header["$PEXTMIN"] = active_layout.dxf.extmin
+            self.header["$PEXTMAX"] = active_layout.dxf.extmax
 
     def update_limits(self):
         msp = self.modelspace()
@@ -697,7 +701,9 @@ class Drawing:
                 handle = self.materials.get("Global").dxf.handle
             self.header["$CMATERIAL"] = handle
         # set ACAD maintenance version - same values as used by BricsCAD
-        self.header["$ACADMAINTVER"] = acad_maint_ver.get(self.dxfversion, 0)
+        current_maint_ver = self.header.get("$ACADMAINTVER", 0)
+        if current_maint_ver in (None, 0):
+            self.header["$ACADMAINTVER"] = acad_maint_ver.get(self.dxfversion, 0)
 
     def _update_metadata(self):
         self._update_ezdxf_metadata()

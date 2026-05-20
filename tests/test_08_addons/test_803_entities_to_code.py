@@ -9,6 +9,8 @@ import ezdxf
 from ezdxf.entities.dxfobj import Field
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tagwriter import TagWriter
+from ezdxf.sections.header import restore_raw_header_vars, snapshot_raw_header_vars
+from ezdxf.sections.classes import restore_raw_classes, snapshot_raw_classes
 from ezdxf.addons.dxf2code import (
     entities_to_code,
     table_entries_to_code,
@@ -47,6 +49,9 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_visibility_entities,
     get_dynamic_block_visibility_state,
     get_dynamic_block_visibility_states,
+    reorder_objects_by_source_order,
+    remap_header_resource_handles,
+    restore_dictionary_key_order,
     restore_raw_entity_export,
     restore_raw_extension_subtree,
     restore_raw_rootdict_entries,
@@ -58,6 +63,8 @@ from ezdxf.dynblkhelper import (
     set_dynamic_block_reference,
     set_dynamic_block_visibility_parameter,
     set_dynamic_block_visibility_state,
+    snapshot_dictionary_key_order,
+    snapshot_object_handle_order,
     snapshot_raw_entity_export,
     snapshot_raw_extension_subtree,
     snapshot_raw_rootdict_entries,
@@ -77,15 +84,6 @@ NESTED_RICHER_CHILD_ORACLE = Path(__file__).parent / "autocad_nested_richer_chil
 NESTED_TWO_CHILDREN_ORACLE = Path(__file__).parent / "autocad_nested_two_children_candidate_gen2.dxf"
 NESTED_TWO_CHILDREN_MIXED_ORACLE = Path(__file__).parent / "autocad_nested_two_children_mixed_states_gen2_v2.dxf"
 NESTED_THREE_LEVEL_MIXED_ORACLE = Path(__file__).parent / "autocad_nested_three_level_mixed_gen2_v3.dxf"
-ROOTDICT_RESOURCE_KEYS = (
-    "ACAD_VISUALSTYLE",
-    "ACAD_DETAILVIEWSTYLE",
-    "ACAD_SECTIONVIEWSTYLE",
-    "AcDbVariableDictionary",
-    "ACAD_CIP_PREVIOUS_PRODUCT_INFO",
-    "ACAD_LAST_SAVED_VERSION_INFO",
-    "ACDB_RECOMPOSE_DATA",
-)
 HEADER_STATE_SKIP = {
     "$HANDSEED",
     "$VERSIONGUID",
@@ -93,6 +91,14 @@ HEADER_STATE_SKIP = {
     "$TDCREATE",
     "$TDUPDATE",
 }
+HEADER_RAW_OVERRIDE_KEYS = (
+    "$TDCREATE",
+    "$TDUPDATE",
+    "$PEXTMIN",
+    "$PEXTMAX",
+    "$FINGERPRINTGUID",
+    "$VERSIONGUID",
+)
 
 
 def test_fmt_mapping():
@@ -300,7 +306,11 @@ def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.
         execute_code_in_namespace(table_entries_to_code(resources, drawing="doc"), namespace)
     restore_raw_rootdict_entries(
         target_doc,
-        snapshot_raw_rootdict_entries(source_doc, ROOTDICT_RESOURCE_KEYS),
+        snapshot_raw_rootdict_entries(source_doc, tuple(source_doc.rootdict.keys())),
+    )
+    target_doc.layouts.setup_from_rootdict()
+    restore_dictionary_key_order(
+        target_doc.rootdict, snapshot_dictionary_key_order(source_doc.rootdict)
     )
     for name in _names(source_doc.layers):
         source_layer = _maybe_get(source_doc.layers, name)
@@ -344,6 +354,16 @@ def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.
         )
     execute_code_in_namespace(entities_to_code(source_doc.modelspace(), layout="msp"), namespace)
     _copy_header_state(source_doc, target_doc)
+    remap_header_resource_handles(source_doc, target_doc)
+    if source_doc.filename:
+        restore_raw_header_vars(
+            target_doc.header,
+            snapshot_raw_header_vars(source_doc.filename, HEADER_RAW_OVERRIDE_KEYS),
+        )
+    restore_raw_classes(target_doc.classes, snapshot_raw_classes(source_doc.classes))
+    reorder_objects_by_source_order(
+        target_doc, snapshot_object_handle_order(source_doc)
+    )
     return target_doc
 
 
@@ -578,6 +598,16 @@ def test_insert_xdata_replay_preserves_nonhandle_payload():
         (1070, 1),
         (1002, "}"),
     ]
+
+
+def test_header_material_handle_replay_maps_by_material_name():
+    source_doc = ezdxf.new("R2010")
+    material = source_doc.materials.get("ByLayer")
+    source_doc.header["$CMATERIAL"] = material.dxf.handle
+
+    new_doc = replay_doc_to_new_doc(source_doc)
+
+    assert new_doc.header["$CMATERIAL"] == new_doc.materials.get("ByLayer").dxf.handle
 
 
 def build_plain_wrapper_nested_dynamic_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
@@ -2940,8 +2970,8 @@ def test_dynamic_block_basepoint_linear_nested_replay_survives_write_read_cycle(
     assert rep._value_code == 360
     assert cache._value_code == 360
     assert enhanced._value_code == 360
-    assert cache.get_reactors() == [rep.dxf.handle]
-    assert enhanced.get_reactors() == [cache.dxf.handle]
+    assert cache.get_reactors() == []
+    assert enhanced.get_reactors() == []
     assert set(enhanced.keys()) >= {"1", "5", "16", "20"}
     assert "6" not in set(enhanced.keys())
 

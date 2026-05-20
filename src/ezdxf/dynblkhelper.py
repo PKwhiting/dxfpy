@@ -75,9 +75,15 @@ __all__ = [
     "snapshot_raw_rootdict_entries",
     "restore_raw_dynamic_block_definition",
     "restore_raw_dynamic_block_layout",
+    "restore_dictionary_key_order",
     "restore_raw_entity_export",
     "restore_raw_extension_subtree",
     "restore_raw_rootdict_entries",
+    "reorder_objects_by_source_order",
+    "map_extension_subtree_handles",
+    "remap_header_resource_handles",
+    "snapshot_dictionary_key_order",
+    "snapshot_object_handle_order",
     "set_dynamic_block_definition_metadata",
     "setup_dynamic_block_property_attdef_support",
     "set_dynamic_block_linear_parameter",
@@ -5225,7 +5231,6 @@ def _ensure_dynamic_block_extension_dict(block_record: BlockRecord) -> Dictionar
 
 def _hard_owned_dictionary(dictionary: Dictionary, owner_handle: str) -> Dictionary:
     dictionary._value_code = 360
-    dictionary.set_reactors([owner_handle])
     return dictionary
 
 
@@ -5334,7 +5339,7 @@ def snapshot_raw_entity_export(
     return _raw_entity_text(entity), _snapshot_raw_extension_subtree(entity)
 
 
-def _raw_block_entity_snapshot(entity) -> tuple[tuple[tuple[int, Any], ...], tuple[tuple[tuple[int, Any], ...], ...]]:
+def _raw_block_entity_snapshot(entity) -> tuple[str, tuple[tuple[tuple[int, Any], ...], ...]]:
     return _raw_entity_text(entity), _snapshot_raw_extension_subtree(entity)
 
 
@@ -5593,6 +5598,7 @@ def _restore_raw_object_graph(
 ) -> None:
     from ezdxf.lldxf.extendedtags import ExtendedTags
 
+    global_mapping = _raw_object_handle_mapping(doc)
     stale_objects = list(_iter_owned_object_graph(root_dict))[1:]
     root_dict.clear()
     for entity in reversed(stale_objects):
@@ -5609,6 +5615,7 @@ def _restore_raw_object_graph(
     source_root_handle = _handle_from_raw_tags(root_tags)
     if source_root_handle:
         handle_mapping[source_root_handle] = root_dict.dxf.handle
+        global_mapping[source_root_handle] = root_dict.dxf.handle
 
     created = {source_root_handle: root_dict} if source_root_handle else {}
     for raw_tags in objects[1:]:
@@ -5618,6 +5625,7 @@ def _restore_raw_object_graph(
             continue
         created[source_handle] = _new_empty_object(doc, dxftype)
         handle_mapping[source_handle] = created[source_handle].dxf.handle
+        global_mapping[source_handle] = created[source_handle].dxf.handle
 
     deferred: list[Any] = []
     for raw_tags in objects:
@@ -5626,7 +5634,10 @@ def _restore_raw_object_graph(
             continue
         entity = created[source_handle]
         remapped_tags = _remap_raw_tags(raw_tags, handle_mapping)
-        xtags = ExtendedTags(_make_raw_tag(code, value) for code, value in remapped_tags)
+        remapped_text = "".join(
+            _make_raw_tag(code, value).dxfstr() for code, value in remapped_tags
+        )
+        xtags = ExtendedTags.from_text(remapped_text)
         entity.load_tags(xtags, dxfversion=doc.dxfversion)
         if isinstance(entity, DXFTagStorage):
             entity.store_tags(xtags)
@@ -5759,6 +5770,71 @@ def _purge_orphan_owned_objects(doc: Drawing) -> None:
                 doc.entitydb.delete_entity(obj)
 
 
+def _raw_object_handle_mapping(doc: Drawing) -> dict[str, str]:
+    mapping = getattr(doc, "_raw_object_handle_mapping", None)
+    if not isinstance(mapping, dict):
+        mapping = {}
+        setattr(doc, "_raw_object_handle_mapping", mapping)
+    return mapping
+
+
+def snapshot_object_handle_order(doc: Drawing) -> tuple[str, ...]:
+    return tuple(obj.dxf.handle for obj in doc.objects if obj.dxf.handle)
+
+
+def reorder_objects_by_source_order(doc: Drawing, source_handles: Sequence[str]) -> None:
+    mapping = _raw_object_handle_mapping(doc)
+    target_by_handle = {obj.dxf.handle: obj for obj in doc.objects if obj.dxf.handle}
+    ordered = []
+    seen: set[str] = set()
+    for source_handle in source_handles:
+        target_handle = mapping.get(str(source_handle), str(source_handle))
+        entity = target_by_handle.get(target_handle)
+        if entity is None or target_handle in seen:
+            continue
+        ordered.append(entity)
+        seen.add(target_handle)
+    for entity in list(doc.objects):
+        handle = entity.dxf.handle
+        if handle and handle not in seen:
+            ordered.append(entity)
+            seen.add(handle)
+    doc.objects._entity_space.entities = ordered
+
+
+def remap_header_resource_handles(source_doc: Drawing, target_doc: Drawing) -> None:
+    source_material_handle = source_doc.header.get("$CMATERIAL", None)
+    if source_material_handle:
+        source_material = source_doc.entitydb.get(source_material_handle)
+        if source_material is not None and source_material.dxftype() == "MATERIAL":
+            target_material = target_doc.materials.get(source_material.dxf.name)
+            if target_material is not None:
+                target_doc.header["$CMATERIAL"] = target_material.dxf.handle
+
+
+def snapshot_dictionary_key_order(dictionary: Dictionary) -> tuple[str, ...]:
+    return tuple(str(key) for key in dictionary.keys())
+
+
+def restore_dictionary_key_order(
+    dictionary: Dictionary, keys: Sequence[str]
+) -> None:
+    current = list(dictionary.items())
+    lookup = {str(key): value for key, value in current}
+    reordered: dict[str, Any] = {}
+    seen: set[str] = set()
+    for key in keys:
+        key = str(key)
+        if key in lookup:
+            reordered[key] = lookup[key]
+            seen.add(key)
+    for key, value in current:
+        key = str(key)
+        if key not in seen:
+            reordered[key] = value
+    dictionary._data = reordered
+
+
 def snapshot_raw_rootdict_entries(
     doc: Drawing, keys: Sequence[str]
 ) -> tuple[
@@ -5792,26 +5868,32 @@ def restore_raw_rootdict_entries(
     from ezdxf.lldxf.extendedtags import ExtendedTags
 
     rootdict = doc.rootdict
+    global_mapping = _raw_object_handle_mapping(doc)
     for key, raw_tags, owned in snapshot:
         dxftype = _dxftype_from_raw_tags(raw_tags)
         if not dxftype:
             continue
+        source_handle = _handle_from_raw_tags(raw_tags)
         existing = rootdict.get(key)
         if isinstance(existing, Dictionary) and dxftype == "DICTIONARY":
             entity = existing
-            source_handle = _handle_from_raw_tags(raw_tags)
+            if source_handle:
+                global_mapping[source_handle] = entity.dxf.handle
             handle_mapping = {source_handle: entity.dxf.handle} if source_handle else {}
             _restore_raw_object_graph(doc, entity, (raw_tags, *owned), handle_mapping)
             continue
         if existing is not None:
+            if source_handle and hasattr(existing, "dxf"):
+                global_mapping[source_handle] = existing.dxf.handle
             continue
         if dxftype == "DICTIONARY":
             entity = doc.objects.add_dictionary(owner=rootdict.dxf.handle, hard_owned=False)
         else:
             entity = _new_empty_object(doc, dxftype)
             entity.dxf.owner = rootdict.dxf.handle
-        source_handle = _handle_from_raw_tags(raw_tags)
         handle_mapping = {source_handle: entity.dxf.handle} if source_handle else {}
+        if source_handle:
+            global_mapping[source_handle] = entity.dxf.handle
         remapped_tags = _remap_raw_tags(raw_tags, handle_mapping)
         xtags = ExtendedTags(_make_raw_tag(code, value) for code, value in remapped_tags)
         entity.load_tags(xtags, dxfversion=doc.dxfversion)
@@ -5848,6 +5930,24 @@ def restore_raw_extension_subtree(
     _restore_raw_object_graph(doc, root, snapshot, handle_mapping)
 
 
+def map_extension_subtree_handles(
+    owner: DXFEntity,
+    snapshot: Sequence[tuple[tuple[int, Any], ...]],
+) -> None:
+    doc = owner.doc
+    if doc is None or not snapshot or not owner.has_extension_dict:
+        return
+
+    global_mapping = _raw_object_handle_mapping(doc)
+    target_root = owner.get_extension_dict().dictionary
+    target_entries = list(_iter_owned_object_graph(target_root))
+    for source_tags, target_entity in zip(snapshot, target_entries):
+        source_handle = _handle_from_raw_tags(source_tags)
+        target_handle = target_entity.dxf.handle
+        if source_handle and target_handle:
+            global_mapping[source_handle] = target_handle
+
+
 def restore_raw_entity_export(
     entity: DXFEntity,
     snapshot: tuple[str, tuple[tuple[tuple[int, Any], ...], ...]],
@@ -5866,6 +5966,7 @@ def restore_raw_entity_export(
     target_handle = entity.dxf.get("handle")
     if source_handle and target_handle:
         handle_mapping[source_handle] = target_handle
+        _raw_object_handle_mapping(doc)[source_handle] = target_handle
     source_owner_handle = _owner_from_raw_tags(tuple((tag.code, tag.value) for tag in source_xtags))
     target_owner = entity.dxf.get("owner")
     if source_owner_handle and target_owner:

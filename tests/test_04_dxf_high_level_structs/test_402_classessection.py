@@ -3,9 +3,10 @@
 import pytest
 from io import StringIO
 import ezdxf
+from ezdxf.lldxf import const
 from ezdxf.lldxf.tags import internal_tag_compiler
 from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.sections.classes import ClassesSection
+from ezdxf.sections.classes import ClassesSection, snapshot_raw_classes, restore_raw_classes
 from ezdxf.lldxf.tagwriter import TagWriter
 from ezdxf.tools.test import load_section
 from ezdxf.entities import factory
@@ -66,6 +67,65 @@ def test_count_class_instances():
     assert instance_count("IMAGEDEF") == 1
     assert instance_count("IMAGEDEF_REACTOR") == 1
     assert instance_count("RASTERVARIABLES") == 1
+
+
+def test_add_required_classes_registers_multileader_class_if_used():
+    from ezdxf.render.mleader import ConnectionSide
+    from ezdxf.math import Vec2
+
+    doc = ezdxf.new("R2010")
+    builder = doc.modelspace().add_multileader_mtext()
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(0, 0), Vec2(1, 0)])
+    builder.build(insert=Vec2(0, 0))
+
+    doc.classes.add_required_classes(doc.dxfversion)
+
+    multileader_class = doc.classes.get("MULTILEADER")
+    assert multileader_class.dxf.cpp_class_name == "AcDbMLeader"
+    assert multileader_class.dxf.flags == 1025
+
+
+def test_add_required_classes_does_not_force_layout_or_placeholder_classes():
+    doc = ezdxf.new("R2000")
+
+    doc.classes.add_required_classes(doc.dxfversion)
+
+    with pytest.raises(const.DXFKeyError):
+        doc.classes.get("LAYOUT")
+    with pytest.raises(const.DXFKeyError):
+        doc.classes.get("ACDBPLACEHOLDER")
+
+
+def test_add_class_wipeout_uses_full_oracle_metadata():
+    doc = ezdxf.new("R2000")
+
+    doc.classes.add_class("WIPEOUT")
+
+    wipeout_class = doc.classes.get("WIPEOUT")
+    assert wipeout_class.dxf.cpp_class_name == "AcDbWipeout"
+    assert wipeout_class.dxf.app_name == (
+        "WipeOut|Product Desc: Object Enabler for WipeOut entity | "
+        "Company: Autodesk, Inc. | WEB Address: www.autodesk.com"
+    )
+    assert wipeout_class.dxf.flags == 2175
+
+
+def test_snapshot_and_restore_raw_classes_preserves_oracle_text():
+    source_doc = ezdxf.new("R2010")
+    source_doc.classes.add_class("WIPEOUT")
+    source_doc.classes.add_class("MULTILEADER")
+    snapshot = snapshot_raw_classes(source_doc.classes)
+
+    target_doc = ezdxf.new("R2010")
+    restore_raw_classes(target_doc.classes, snapshot)
+
+    stream = StringIO()
+    target_doc.classes.export_dxf(TagWriter(stream))
+
+    assert stream.getvalue() == (
+        "  0\nSECTION\n  2\nCLASSES\n" + "".join(snapshot) + "  0\nENDSEC\n"
+    )
 
 
 EMPTYSEC = """  0

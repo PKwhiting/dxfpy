@@ -77,6 +77,28 @@ def test_reset_modelspace_extents(doc):
     assert msp.dxf.extmax == (-1e20, -1e20, -1e20)
 
 
+def test_update_extents_preserves_existing_header_extents_if_layout_extents_invalid(doc):
+    doc.header["$EXTMIN"] = (-1, -2, -3)
+    doc.header["$EXTMAX"] = (4, 5, 6)
+    doc.header["$PEXTMIN"] = (-7, -8, -9)
+    doc.header["$PEXTMAX"] = (10, 11, 12)
+
+    doc.update_extents()
+
+    assert doc.header["$EXTMIN"] == (-1, -2, -3)
+    assert doc.header["$EXTMAX"] == (4, 5, 6)
+    assert doc.header["$PEXTMIN"] == (-7, -8, -9)
+    assert doc.header["$PEXTMAX"] == (10, 11, 12)
+
+
+def test_update_header_vars_preserves_existing_acad_maint_ver(doc):
+    doc.header["$ACADMAINTVER"] = 50
+
+    doc._update_header_vars()
+
+    assert doc.header["$ACADMAINTVER"] == 50
+
+
 def test_reset_modelspace_limits(doc):
     limmin = (-10, -10)
     limmax = (300, 50)

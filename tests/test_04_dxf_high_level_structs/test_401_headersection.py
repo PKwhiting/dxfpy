@@ -2,9 +2,11 @@
 # License: MIT License
 import pytest
 import ezdxf
+from io import StringIO
 from ezdxf.lldxf.const import DXF12, DXF2000, DXF2018, DXF2013, DXF2007, DXF2010
 from ezdxf.lldxf.tags import Tags
-from ezdxf.sections.header import HeaderSection
+from ezdxf.lldxf.tagwriter import TagWriter
+from ezdxf.sections.header import HeaderSection, restore_raw_header_vars
 from ezdxf.lldxf.validator import header_validator
 from ezdxf.sections.headervars import version_specific_group_code
 
@@ -207,6 +209,19 @@ def test_replace_custom_property(header_custom):
 def test_replace_not_existing_property(header_custom):
     with pytest.raises(ValueError):
         header_custom.custom_vars.replace("Does not Exist", "new value")
+
+
+def test_export_uses_raw_header_var_override(header):
+    restore_raw_header_vars(
+        header,
+        (("$EXTMIN", " 10\n1.000000000000000E+020\n 20\n1.000000000000000E+020\n 30\n1.000000000000000E+020\n"),),
+    )
+
+    result = StringIO()
+    header.export_dxf(TagWriter(result))
+    text = result.getvalue()
+
+    assert "$EXTMIN\n 10\n1.000000000000000E+020\n 20\n1.000000000000000E+020\n 30\n1.000000000000000E+020\n" in text
 
 
 @pytest.mark.parametrize(

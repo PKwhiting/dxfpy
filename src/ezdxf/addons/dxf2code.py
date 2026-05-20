@@ -564,6 +564,23 @@ class _SourceCodeGenerator:
             f"restore_raw_extension_subtree({var_name}, {self._format_python_value(snapshot)})"
         )
 
+    def _emit_extension_subtree_handle_map(
+        self, entity: DXFEntity, var_name: str = "e"
+    ) -> None:
+        if not entity.has_extension_dict:
+            return
+        from ezdxf.dynblkhelper import snapshot_raw_extension_subtree
+
+        snapshot = snapshot_raw_extension_subtree(entity)
+        if not snapshot:
+            return
+        self.add_import_statement(
+            "from ezdxf.dynblkhelper import map_extension_subtree_handles"
+        )
+        self.add_deferred_source_code_line(
+            f"map_extension_subtree_handles({var_name}, {self._format_python_value(snapshot)})"
+        )
+
     @staticmethod
     def _raw_handle_refs_from_text(text: str) -> list[str]:
         from ezdxf.lldxf.extendedtags import ExtendedTags
@@ -2152,6 +2169,7 @@ class _SourceCodeGenerator:
                 self.add_source_code_line(
                     "if _scales is None: _scales = _ctx.add_new_dict('ACDB_ANNOTATIONSCALES')"
                 )
+            self._emit_extension_subtree_handle_map(entity, var_name="e")
         if len(entity.attribs):
             for attrib in entity.attribs:
                 dxfattribs = _purge_handles(attrib.dxfattribs())

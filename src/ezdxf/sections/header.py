@@ -12,6 +12,7 @@ from typing import (
     Union,
 )
 import logging
+import io
 from collections import OrderedDict
 
 from ezdxf.lldxf import const
@@ -156,6 +157,7 @@ class HeaderSection:
     def __init__(self) -> None:
         self.hdrvars: dict[str, HeaderVar] = OrderedDict()
         self.custom_vars = CustomVars()
+        self._raw_var_text_overrides: dict[str, str] = {}
 
     @classmethod
     def load(cls, tags: Optional[Iterable[DXFTag]] = None) -> HeaderSection:
@@ -263,7 +265,11 @@ class HeaderSection:
         for name, value in header_vars_by_priority(self.hdrvars, dxfversion):
             if not write_handles and name == "$HANDSEED":
                 continue  # skip $HANDSEED
-            _write(name, value)
+            if name in self._raw_var_text_overrides:
+                tagwriter.write_tag2(9, name)
+                tagwriter.write_str(self._raw_var_text_overrides[name])
+            else:
+                _write(name, value)
             if name == "$LASTSAVEDBY":  # ugly hack, but necessary for AutoCAD
                 self.custom_vars.write(tagwriter)
         self["$ACADVER"] = save
@@ -278,7 +284,6 @@ class HeaderSection:
             return self.__getitem__(key)
         else:
             return default
-
     def __getitem__(self, key: str) -> Any:
         """Get header variable `key` by index operator like:
         :code:`drawing.header['$ACADVER']`
@@ -325,6 +330,48 @@ class HeaderSection:
         self["$UCSORGRIGHT"] = (0, 0, 0)
         self["$UCSORGFRONT"] = (0, 0, 0)
         self["$UCSORGBACK"] = (0, 0, 0)
+
+
+def snapshot_raw_header_vars(
+    filename: str, names: Sequence[str]
+) -> tuple[tuple[str, str], ...]:
+    wanted = set(names)
+    captured: list[tuple[str, str]] = []
+    with io.open(filename, mode="rt", encoding="ascii", errors="ignore") as stream:
+        lines = [line.rstrip("\r\n") for line in stream]
+    in_header = False
+    index = 0
+    while index + 1 < len(lines):
+        code = lines[index].strip()
+        value = lines[index + 1]
+        if code == "0" and value.strip() == "SECTION" and index + 3 < len(lines) and lines[index + 2].strip() == "2":
+            in_header = lines[index + 3].strip() == "HEADER"
+            index += 4
+            continue
+        if in_header and code == "0" and value.strip() == "ENDSEC":
+            break
+        if in_header and code == "9" and value.strip() in wanted:
+            name = value.strip()
+            body: list[str] = []
+            index += 2
+            while index + 1 < len(lines):
+                next_code = lines[index].strip()
+                next_value = lines[index + 1]
+                if next_code == "9" or (next_code == "0" and next_value.strip() == "ENDSEC"):
+                    break
+                body.append(lines[index])
+                body.append(lines[index + 1])
+                index += 2
+            captured.append((name, "\n".join(body) + ("\n" if body else "")))
+            continue
+        index += 2
+    return tuple(captured)
+
+
+def restore_raw_header_vars(
+    section: HeaderSection, snapshot: Sequence[tuple[str, str]]
+) -> None:
+    section._raw_var_text_overrides = {name: text for name, text in snapshot}
 
 
 def header_vars_by_priority(

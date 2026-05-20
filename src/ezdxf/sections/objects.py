@@ -82,8 +82,31 @@ class ObjectsSection:
     def export_dxf(self, tagwriter: AbstractTagWriter) -> None:
         """Export DXF entity by `tagwriter`. (internal API)"""
         tagwriter.write_str("  0\nSECTION\n  2\nOBJECTS\n")
-        self._entity_space.export_dxf(tagwriter)
+        for entity in self._ordered_objects_for_export():
+            entity.export_dxf(tagwriter)
         tagwriter.write_tag2(0, "ENDSEC")
+
+    def _ordered_objects_for_export(self) -> Iterator[DXFObject]:
+        entities = list(self._entity_space)
+        visited: set[str] = set()
+
+        def emit(entity: DXFObject) -> Iterator[DXFObject]:
+            handle = entity.dxf.handle
+            if handle is None or handle in visited:
+                return
+            visited.add(handle)
+            yield entity
+
+        yield from emit(self.rootdict)
+        for entity in entities:
+            if entity is self.rootdict:
+                continue
+            owner = entity.dxf.get("owner")
+            owner_entity = self.entitydb.get(owner) if owner not in (None, "0") else None
+            if owner and owner != "0" and owner_entity is not None and not is_dxf_object(owner_entity):
+                yield from emit(entity)
+        for entity in entities:
+            yield from emit(entity)
 
     def new_entity(self, _type: str, dxfattribs: dict) -> DXFObject:
         """Create new DXF object, add it to the entity database and to the

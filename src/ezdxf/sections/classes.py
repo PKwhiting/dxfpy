@@ -1,13 +1,17 @@
 # Copyright (c) 2011-2022, Manfred Moitzi
 # License: MIT License
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterator, Iterable, Union, cast, Optional
+from typing import TYPE_CHECKING, Iterator, Iterable, Union, cast, Optional, Sequence
 from collections import Counter, OrderedDict
+from io import StringIO
 import logging
 
 from ezdxf.lldxf.const import DXFStructureError, DXF2004, DXF2000, DXFKeyError
+from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.entities.dxfclass import DXFClass
 from ezdxf.entities.dxfentity import DXFEntity, DXFTagStorage
+from ezdxf.entities import factory
+from ezdxf.lldxf.tagwriter import TagWriter
 
 if TYPE_CHECKING:
     from ezdxf.document import Drawing
@@ -42,6 +46,7 @@ CLASS_DEFINITIONS = {
     "SCALE": ["AcDbScale", "ObjectDBX Classes", 1153, 0, 0],
     "MLEADERSTYLE": ["AcDbMLeaderStyle", "ACDB_MLEADERSTYLE_CLASS", 4095, 0, 0],
     "MLEADER": ["AcDbMLeader", "ACDB_MLEADER_CLASS", 3071, 0, 1],
+    "MULTILEADER": ["AcDbMLeader", "ACDB_MLEADER_CLASS", 1025, 0, 1],
     "MPOLYGON": ["AcDbMPolygon", "AcMPolygonObj15", 1025, 0, 1],
     "CELLSTYLEMAP": ["AcDbCellStyleMap", "ObjectDBX Classes", 1152, 0, 0],
     "EXACXREFPANELOBJECT": ["ExAcXREFPanelObject", "EXAC_ESW", 1025, 0, 0],
@@ -125,7 +130,13 @@ CLASS_DEFINITIONS = {
         0,
     ],
     "HELIX": ["AcDbHelix", "ObjectDBX Classes", 4095, 0, 1],
-    "WIPEOUT": ["AcDbWipeout", "WipeOut", 127, 0, 1],
+    "WIPEOUT": [
+        "AcDbWipeout",
+        "WipeOut|Product Desc: Object Enabler for WipeOut entity | Company: Autodesk, Inc. | WEB Address: www.autodesk.com",
+        2175,
+        0,
+        1,
+    ],
     "WIPEOUTVARIABLES": ["AcDbWipeoutVariables", "WipeOut", 0, 0, 0],
     "FIELD": ["AcDbField", "ObjectDBX Classes", 1152, 0, 0],
     "FIELDLIST": ["AcDbFieldList", "ObjectDBX Classes", 1152, 0, 0],
@@ -193,8 +204,6 @@ REQ_R2000 = [
     "ACDBDETAILVIEWSTYLE",
     "ACDBSECTIONVIEWSTYLE",
     "RASTERVARIABLES",
-    "ACDBPLACEHOLDER",
-    "LAYOUT",
 ]
 
 REQ_R2004 = [
@@ -230,6 +239,7 @@ class ClassesSection:
         # no handle.
         self.classes: dict[tuple[str, str], DXFClass] = OrderedDict()
         self.doc = doc
+        self._raw_class_texts_override: Optional[tuple[str, ...]] = None
         if entities is not None:
             self.load(iter(entities))
 
@@ -318,6 +328,8 @@ class ClassesSection:
             self.add_class("FIELD")
         if "FIELDLIST" in dxf_types_in_use:
             self.add_class("FIELDLIST")
+        if {"MULTILEADER", "MLEADER"}.intersection(dxf_types_in_use):
+            self.add_class("MULTILEADER")
         dynamic_visibility_types = {
             "ACAD_EVALUATION_GRAPH",
             "BLOCKBASEPOINTPARAMETER",
@@ -385,14 +397,21 @@ class ClassesSection:
             self.add_class("SWEPTSURFACE")
             self.add_class("ACDBASSOCSWEPTSURFACEACTIONBODY")
 
+        skip_implicit = {"LAYOUT", "ACDBPLACEHOLDER"}
         for dxftype in dxf_types_in_use:
+            if dxftype in skip_implicit:
+                continue
             self.add_class(dxftype)
 
     def export_dxf(self, tagwriter: AbstractTagWriter) -> None:
         """Export DXF tags. (internal API)"""
         tagwriter.write_str("  0\nSECTION\n  2\nCLASSES\n")
-        for dxfclass in self.classes.values():
-            dxfclass.export_dxf(tagwriter)
+        if self._raw_class_texts_override is not None:
+            for text in self._raw_class_texts_override:
+                tagwriter.write_str(text)
+        else:
+            for dxfclass in self.classes.values():
+                dxfclass.export_dxf(tagwriter)
         tagwriter.write_str("  0\nENDSEC\n")
 
     def update_instance_counters(self) -> None:
@@ -409,3 +428,23 @@ class ClassesSection:
 
         for dxfclass in self.classes.values():
             dxfclass.dxf.instance_count = counter[dxfclass.dxf.name]
+
+
+def snapshot_raw_classes(section: ClassesSection) -> tuple[str, ...]:
+    texts: list[str] = []
+    dxfversion = section.doc.dxfversion if section.doc is not None else DXF2004
+    for dxfclass in section.classes.values():
+        stream = StringIO()
+        dxfclass.export_dxf(TagWriter(stream, dxfversion=dxfversion))
+        texts.append(stream.getvalue())
+    return tuple(texts)
+
+
+def restore_raw_classes(section: ClassesSection, snapshot: Sequence[str]) -> None:
+    classes: dict[tuple[str, str], DXFClass] = OrderedDict()
+    for text in snapshot:
+        entity = factory.load(ExtendedTags.from_text(text), section.doc)
+        if isinstance(entity, DXFClass):
+            classes[entity.key] = entity
+    section.classes = classes
+    section._raw_class_texts_override = tuple(snapshot)
