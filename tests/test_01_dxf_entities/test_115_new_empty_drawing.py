@@ -31,6 +31,17 @@ def test_section(doc):
     assert "*Paper_Space" in doc.blocks
 
 
+def test_paperspace_block_boundaries_have_paperspace_flag(doc):
+    psp = doc.blocks.get("*Paper_Space")
+
+    assert psp.block is not None
+    assert psp.endblk is not None
+    assert psp.block.dxf.hasattr("paperspace") is True
+    assert psp.block.dxf.paperspace == 1
+    assert psp.endblk.dxf.hasattr("paperspace") is True
+    assert psp.endblk.dxf.paperspace == 1
+
+
 def test_viewports(doc):
     assert len(doc.viewports) == 1
     # viewport table can have multiple entries with same name, therefore returns a list

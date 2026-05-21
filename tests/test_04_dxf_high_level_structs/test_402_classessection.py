@@ -97,6 +97,17 @@ def test_add_required_classes_does_not_force_layout_or_placeholder_classes():
         doc.classes.get("ACDBPLACEHOLDER")
 
 
+def test_add_required_classes_does_not_force_sun_or_render_settings_classes():
+    doc = ezdxf.new("R2007")
+
+    doc.classes.add_required_classes(doc.dxfversion)
+
+    with pytest.raises(const.DXFKeyError):
+        doc.classes.get("SUN")
+    with pytest.raises(const.DXFKeyError):
+        doc.classes.get("MENTALRAYRENDERSETTINGS")
+
+
 def test_add_class_wipeout_uses_full_oracle_metadata():
     doc = ezdxf.new("R2000")
 

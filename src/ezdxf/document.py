@@ -743,7 +743,6 @@ class Drawing:
             self.appids.new(name, {"flags": flags})
 
     def _create_appids(self):
-        self._create_appid_if_not_exist("HATCHBACKGROUNDCOLOR", 0)
         self._create_appid_if_not_exist("EZDXF", 0)
 
     @property

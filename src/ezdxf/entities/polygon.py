@@ -202,6 +202,8 @@ class DXFPolygon(DXFGraphic):
             colors.rgb2int(rgb) | -0b111110000000000000000000000000
         )  # it's magic
 
+        if self.doc is not None and "HATCHBACKGROUNDCOLOR" not in self.doc.appids:
+            self.doc.appids.new("HATCHBACKGROUNDCOLOR")
         self.discard_xdata("HATCHBACKGROUNDCOLOR")
         self.set_xdata("HATCHBACKGROUNDCOLOR", [(1071, color_value)])
 

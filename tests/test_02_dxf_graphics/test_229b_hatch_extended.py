@@ -419,6 +419,16 @@ def test_delete_not_existing_bgcolor(hatch):
     assert hatch.bgcolor is None
 
 
+def test_setting_bgcolor_creates_required_appid(msp):
+    hatch = msp.add_hatch()
+
+    assert "HATCHBACKGROUNDCOLOR" not in msp.doc.appids
+
+    hatch.bgcolor = (10, 20, 30)
+
+    assert "HATCHBACKGROUNDCOLOR" in msp.doc.appids
+
+
 @pytest.fixture(scope="module")
 def msp():
     doc = ezdxf.new()

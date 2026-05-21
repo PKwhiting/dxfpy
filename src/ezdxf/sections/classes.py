@@ -192,7 +192,6 @@ CLASS_DEFINITIONS = {
 
 REQ_R2000 = [
     "ACDBDICTIONARYWDFLT",
-    "SUN",
     "VISUALSTYLE",
     "MATERIAL",
     "SCALE",
@@ -200,7 +199,6 @@ REQ_R2000 = [
     "MLEADERSTYLE",
     "DICTIONARYVAR",
     "CELLSTYLEMAP",
-    "MENTALRAYRENDERSETTINGS",
     "ACDBDETAILVIEWSTYLE",
     "ACDBSECTIONVIEWSTYLE",
     "RASTERVARIABLES",
@@ -208,7 +206,6 @@ REQ_R2000 = [
 
 REQ_R2004 = [
     "ACDBDICTIONARYWDFLT",
-    "SUN",
     "VISUALSTYLE",
     "MATERIAL",
     "SCALE",
@@ -216,7 +213,6 @@ REQ_R2004 = [
     "MLEADERSTYLE",
     "DICTIONARYVAR",
     "CELLSTYLEMAP",
-    "MENTALRAYRENDERSETTINGS",
     "ACDBDETAILVIEWSTYLE",
     "ACDBSECTIONVIEWSTYLE",
     "RASTERVARIABLES",
@@ -320,6 +316,10 @@ class ClassesSection:
             return
 
         dxf_types_in_use = self.doc.entitydb.dxf_types_in_use()
+        if "SUN" in dxf_types_in_use:
+            self.add_class("SUN")
+        if "MENTALRAYRENDERSETTINGS" in dxf_types_in_use:
+            self.add_class("MENTALRAYRENDERSETTINGS")
         if "IMAGE" in dxf_types_in_use:
             self.add_class("IMAGE")
             self.add_class("IMAGEDEF")

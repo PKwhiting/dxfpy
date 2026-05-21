@@ -223,17 +223,22 @@ class BlocksSection:
         """
         for block_record in self.block_records:
             if block_record.block is None:
+                dxfattribs = {
+                    "name": block_record.dxf.name,
+                    "base_point": (0, 0, 0),
+                }
+                endblk_attribs = {}
+                if block_record.is_any_paperspace:
+                    dxfattribs["paperspace"] = 1
+                    endblk_attribs["paperspace"] = 1
                 block = factory.create_db_entry(
                     "BLOCK",
-                    dxfattribs={
-                        "name": block_record.dxf.name,
-                        "base_point": (0, 0, 0),
-                    },
+                    dxfattribs=dxfattribs,
                     doc=self.doc,
                 )
                 endblk = factory.create_db_entry(
                     "ENDBLK",
-                    dxfattribs={},
+                    dxfattribs=endblk_attribs,
                     doc=self.doc,
                 )
                 block_record.set_block(block, endblk)
@@ -317,10 +322,12 @@ class BlocksSection:
         dxfattribs["owner"] = block_record.dxf.handle
         dxfattribs["name"] = name
         dxfattribs["base_point"] = Vec3(base_point)
+        endblk_attribs = {"owner": block_record.dxf.handle}
+        if block_record.is_any_paperspace:
+            dxfattribs["paperspace"] = 1
+            endblk_attribs["paperspace"] = 1
         head = factory.create_db_entry("BLOCK", dxfattribs, self.doc)
-        tail = factory.create_db_entry(
-            "ENDBLK", {"owner": block_record.dxf.handle}, doc=self.doc
-        )
+        tail = factory.create_db_entry("ENDBLK", endblk_attribs, doc=self.doc)
         block_record.set_block(head, tail)  # type: ignore
         return self.add(block_record)
 
