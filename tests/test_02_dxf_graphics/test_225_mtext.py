@@ -38,6 +38,38 @@ AcDbMText
 1
 """
 
+MTEXT_EXPLICIT_OPTIONAL_DEFAULTS = """0
+MTEXT
+5
+0
+330
+0
+100
+AcDbEntity
+8
+0
+100
+AcDbMText
+ 10
+0
+ 20
+0
+ 30
+0
+40
+1.0
+71
+5
+72
+1
+  1
+
+73
+1
+44
+1.0
+"""
+
 
 @pytest.fixture
 def entity():
@@ -147,6 +179,19 @@ def test_write_dxf():
     entity = MText.from_text(MTEXT)
     result = TagCollector.dxftags(entity)
     expected = basic_tags_from_text(MTEXT)
+    assert result == expected
+
+
+def test_write_dxf_preserves_explicit_optional_default_tags():
+    entity = MText.from_text(MTEXT_EXPLICIT_OPTIONAL_DEFAULTS)
+
+    assert entity.dxf.hasattr("flow_direction") is True
+    assert entity.dxf.hasattr("line_spacing_style") is True
+    assert entity.dxf.hasattr("line_spacing_factor") is True
+
+    result = TagCollector.dxftags(entity)
+    expected = basic_tags_from_text(MTEXT_EXPLICIT_OPTIONAL_DEFAULTS)
+
     assert result == expected
 
 

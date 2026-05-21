@@ -1486,6 +1486,7 @@ class LeaderLine:
         # multiple breaks per index possible
         self.index: int = 0  # group code 91
         self.color: int = colors.BY_BLOCK_RAW_VALUE  # group code 92
+        self._has_explicit_color: bool = False
         # R2010+: override properties see ODA DWG pg. 214-215
 
     @classmethod
@@ -1503,6 +1504,7 @@ class LeaderLine:
                 line.index = value
             elif code == 92:
                 line.color = value
+                line._has_explicit_color = True
         if breaks:
             line.breaks = breaks
         return line
@@ -1526,7 +1528,8 @@ class LeaderLine:
                     write_vertex(11 + code, value)
                     code = 1 - code
         write_tag2(91, self.index)
-        write_tag2(92, self.color)
+        if self._has_explicit_color or self.color != colors.BY_BLOCK_RAW_VALUE:
+            write_tag2(92, self.color)
         write_tag2(END_LEADER_LINE, "}")
 
     def transform(self, wcs: WCSTransform) -> None:

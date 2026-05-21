@@ -40,6 +40,7 @@ acdb_entity = DefSubclass(
     {
         # No auto fix for invalid layer names!
         "layer": DXFAttr(8, default="0", validator=validator.is_valid_layer_name),
+        "color": DXFAttr(62, default=256, optional=True, validator=validator.is_valid_aci_color),
         "paperspace": DXFAttr(
             67,
             default=0,
@@ -151,7 +152,7 @@ class Block(DXFEntity):
             tagwriter.write_tag2(SUBCLASS_MARKER, acdb_entity.name)
         if self.dxf.hasattr("paperspace"):
             tagwriter.write_tag2(67, 1)
-        self.dxf.export_dxf_attribs(tagwriter, ["layer", "transparency"])
+        self.dxf.export_dxf_attribs(tagwriter, ["layer", "color", "transparency"])
         if tagwriter.dxfversion > DXF12:
             tagwriter.write_tag2(SUBCLASS_MARKER, acdb_block_begin.name)
 
@@ -244,6 +245,6 @@ class EndBlk(DXFEntity):
             tagwriter.write_tag2(SUBCLASS_MARKER, acdb_entity.name)
         if self.dxf.hasattr("paperspace"):
             tagwriter.write_tag2(67, 1)
-        self.dxf.export_dxf_attribs(tagwriter, ["layer", "transparency"])
+        self.dxf.export_dxf_attribs(tagwriter, ["layer", "color", "transparency"])
         if tagwriter.dxfversion > DXF12:
             tagwriter.write_tag2(SUBCLASS_MARKER, acdb_block_end.name)

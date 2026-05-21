@@ -673,6 +673,7 @@ class MText(DXFGraphic):
         self.text: str = ""
         # Linked MText columns do not have a MTextColumns() object!
         self._columns: Optional[MTextColumns] = None
+        self._force_optional_flow_direction = False
         self._force_optional_line_spacing_style = False
         self._force_optional_line_spacing_factor = False
 
@@ -1264,6 +1265,9 @@ class MText(DXFGraphic):
     def copy_data(self, entity: Self, copy_strategy=default_copy) -> None:
         assert isinstance(entity, MText)
         entity.text = self.text
+        entity._force_optional_flow_direction = self._force_optional_flow_direction
+        entity._force_optional_line_spacing_style = self._force_optional_line_spacing_style
+        entity._force_optional_line_spacing_factor = self._force_optional_line_spacing_factor
         if self.has_columns:
             # copies also the linked MTEXT column entities!
             entity._columns = self._columns.deep_copy()  # type: ignore
@@ -1276,6 +1280,9 @@ class MText(DXFGraphic):
             tags = processor.subclass_by_index(2)
             if tags:
                 tags = Tags(self.load_mtext_content(tags))
+                self._force_optional_flow_direction = any(tag.code == 72 for tag in tags)
+                self._force_optional_line_spacing_style = any(tag.code == 73 for tag in tags)
+                self._force_optional_line_spacing_factor = any(tag.code == 44 for tag in tags)
                 processor.fast_load_dxfattribs(
                     dxf, acdb_mtext_group_codes, subclass=tags, recover=True
                 )
@@ -1356,9 +1363,12 @@ class MText(DXFGraphic):
                 "width",
                 "defined_height",
                 "attachment_point",
-                "flow_direction",
             ],
         )
+        if self._force_optional_flow_direction:
+            tagwriter.write_tag2(72, self.dxf.get("flow_direction", 1))
+        else:
+            self.dxf.export_dxf_attribs(tagwriter, ["flow_direction"])
         export_mtext_content(self.text, tagwriter)
         self.dxf.export_dxf_attribs(
             tagwriter,

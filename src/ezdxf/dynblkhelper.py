@@ -79,6 +79,7 @@ __all__ = [
     "restore_raw_entity_export",
     "restore_raw_extension_subtree",
     "restore_raw_rootdict_entries",
+    "register_source_entity_handle_mapping",
     "reorder_objects_by_source_order",
     "map_extension_subtree_handles",
     "remap_header_resource_handles",
@@ -5259,7 +5260,7 @@ def _raw_entity_tags(entity) -> tuple[tuple[int, Any], ...]:
 
 def _handle_from_raw_tags(tags: Sequence[tuple[int, Any]]) -> str:
     for code, value in tags:
-        if code == 5:
+        if code in (5, 105):
             return str(value)
     return ""
 
@@ -5524,7 +5525,7 @@ def _remap_raw_tags(
 ) -> tuple[tuple[int, Any], ...]:
     remapped: list[tuple[int, Any]] = []
     for code, value in tags:
-        if code == 5:
+        if code in (5, 105):
             remapped.append((code, handle_mapping.get(str(value), str(value))))
         elif is_pointer_code(code):
             remapped.append((code, handle_mapping.get(str(value), str(value))))
@@ -5553,7 +5554,7 @@ def _make_raw_tag(code: int, value: Any):
 
 
 def _remap_raw_tag_value(code: int, value: Any, handle_mapping: dict[str, str]) -> Any:
-    if code == 5 or code == 1005 or is_pointer_code(code):
+    if code in (5, 105, 1005) or is_pointer_code(code):
         return handle_mapping.get(str(value), str(value))
     return value
 
@@ -5577,7 +5578,7 @@ def _remap_raw_entity_text(entity_text: str, handle_mapping: dict[str, str]) -> 
             remapped_lines.append(value_line)
             index += 2
             continue
-        if code == 5 or code == 1005 or is_pointer_code(code):
+        if code in (5, 105, 1005) or is_pointer_code(code):
             mapped = handle_mapping.get(value_line.strip())
             if mapped is not None:
                 value_line = mapped
@@ -5599,6 +5600,8 @@ def _restore_raw_object_graph(
     from ezdxf.lldxf.extendedtags import ExtendedTags
 
     global_mapping = _raw_object_handle_mapping(doc)
+    resolved_mapping = dict(global_mapping)
+    resolved_mapping.update(handle_mapping)
     stale_objects = list(_iter_owned_object_graph(root_dict))[1:]
     root_dict.clear()
     for entity in reversed(stale_objects):
@@ -5616,6 +5619,7 @@ def _restore_raw_object_graph(
     if source_root_handle:
         handle_mapping[source_root_handle] = root_dict.dxf.handle
         global_mapping[source_root_handle] = root_dict.dxf.handle
+        resolved_mapping[source_root_handle] = root_dict.dxf.handle
 
     created = {source_root_handle: root_dict} if source_root_handle else {}
     for raw_tags in objects[1:]:
@@ -5626,6 +5630,7 @@ def _restore_raw_object_graph(
         created[source_handle] = _new_empty_object(doc, dxftype)
         handle_mapping[source_handle] = created[source_handle].dxf.handle
         global_mapping[source_handle] = created[source_handle].dxf.handle
+        resolved_mapping[source_handle] = created[source_handle].dxf.handle
 
     deferred: list[Any] = []
     for raw_tags in objects:
@@ -5633,7 +5638,7 @@ def _restore_raw_object_graph(
         if not source_handle:
             continue
         entity = created[source_handle]
-        remapped_tags = _remap_raw_tags(raw_tags, handle_mapping)
+        remapped_tags = _remap_raw_tags(raw_tags, resolved_mapping)
         remapped_text = "".join(
             _make_raw_tag(code, value).dxfstr() for code, value in remapped_tags
         )
@@ -5778,6 +5783,16 @@ def _raw_object_handle_mapping(doc: Drawing) -> dict[str, str]:
     return mapping
 
 
+def register_source_entity_handle_mapping(source_entity: DXFEntity, target_entity: DXFEntity) -> None:
+    doc = target_entity.doc
+    if doc is None:
+        raise const.DXFStructureError("valid DXF document required")
+    source_handle = source_entity.dxf.get("handle")
+    target_handle = target_entity.dxf.get("handle")
+    if source_handle and target_handle:
+        _raw_object_handle_mapping(doc)[str(source_handle)] = str(target_handle)
+
+
 def snapshot_object_handle_order(doc: Drawing) -> tuple[str, ...]:
     return tuple(obj.dxf.handle for obj in doc.objects if obj.dxf.handle)
 
@@ -5810,6 +5825,19 @@ def remap_header_resource_handles(source_doc: Drawing, target_doc: Drawing) -> N
             target_material = target_doc.materials.get(source_material.dxf.name)
             if target_material is not None:
                 target_doc.header["$CMATERIAL"] = target_material.dxf.handle
+
+    for source_layer in source_doc.layers:
+        source_material_handle = source_layer.dxf.get("material_handle", None)
+        if not source_material_handle:
+            continue
+        source_material = source_doc.entitydb.get(source_material_handle)
+        if source_material is None or source_material.dxftype() != "MATERIAL":
+            continue
+        target_layer = target_doc.layers.get(source_layer.dxf.name)
+        target_material = target_doc.materials.get(source_material.dxf.name)
+        if target_layer is None or target_material is None:
+            continue
+        target_layer.dxf.material_handle = target_material.dxf.handle
 
 
 def snapshot_dictionary_key_order(dictionary: Dictionary) -> tuple[str, ...]:
@@ -5964,6 +5992,14 @@ def restore_raw_entity_export(
     source_xtags = ExtendedTags.from_text(text)
     source_handle = source_xtags.get_handle()
     target_handle = entity.dxf.get("handle")
+    if (
+        source_handle
+        and target_handle
+        and source_handle != target_handle
+        and source_handle not in doc.entitydb
+    ):
+        if doc.entitydb.reset_handle(entity, source_handle):
+            target_handle = source_handle
     if source_handle and target_handle:
         handle_mapping[source_handle] = target_handle
         _raw_object_handle_mapping(doc)[source_handle] = target_handle
