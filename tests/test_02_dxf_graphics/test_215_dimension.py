@@ -129,6 +129,56 @@ AcDbAlignedDimension
 AcDbRotatedDimension
 """
 
+ENTITY_R2000_OMITTED_DEFAULTS = """  0
+DIMENSION
+5
+0
+330
+0
+100
+AcDbEntity
+8
+0
+100
+AcDbDimension
+2
+*D0
+3
+Standard
+10
+0.0
+20
+0.0
+30
+0.0
+11
+0.0
+21
+0.0
+31
+0.0
+70
+32
+42
+0.0
+100
+AcDbAlignedDimension
+ 13
+0.0
+ 23
+0.0
+ 33
+0.0
+ 14
+0.0
+ 24
+0.0
+ 34
+0.0
+100
+AcDbRotatedDimension
+"""
+
 
 @pytest.fixture(params=[ENTITY_R12, ENTITY_R2000])
 def entity(request):
@@ -184,6 +234,19 @@ def test_write_dxf(txt, ver):
     collector2 = TagCollector(dxfversion=ver, optional=False)
     dimension.export_dxf(collector2)
     assert collector.has_all_tags(collector2)
+
+
+def test_write_dxf_preserves_omitted_default_dimension_tags():
+    expected = basic_tags_from_text(ENTITY_R2000_OMITTED_DEFAULTS)
+    dimension = TEST_CLASS.from_text(ENTITY_R2000_OMITTED_DEFAULTS)
+
+    assert dimension.dxf.hasattr("attachment_point") is False
+    assert dimension.dxf.hasattr("angle") is False
+
+    collector = TagCollector(dxfversion=DXF2000, optional=True)
+    dimension.export_dxf(collector)
+
+    assert collector.tags == expected
 
 
 def test_missing_block_geometry_name():

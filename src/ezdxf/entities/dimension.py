@@ -485,6 +485,8 @@ class Dimension(DXFGraphic, OverrideMixin):
         super().__init__()
         # store the content of the geometry block for virtual entities
         self.virtual_block_content: Optional[EntitySpace] = None
+        self._has_explicit_attachment_point = False
+        self._has_explicit_angle = False
 
     def copy(self, copy_strategy=default_copy) -> Dimension:
         virtual_copy: Dimension = super().copy(copy_strategy=copy_strategy)  # type: ignore
@@ -495,6 +497,8 @@ class Dimension(DXFGraphic, OverrideMixin):
 
     def copy_data(self, entity: Self, copy_strategy=default_copy) -> None:
         assert isinstance(entity, Dimension)
+        entity._has_explicit_attachment_point = self._has_explicit_attachment_point
+        entity._has_explicit_angle = self._has_explicit_angle
         if self.virtual_block_content:
             # another copy of a virtual entity:
             virtual_content = EntitySpace(
@@ -532,12 +536,16 @@ class Dimension(DXFGraphic, OverrideMixin):
     ) -> DXFNamespace:
         dxf = super().load_dxf_attribs(processor)
         if processor:
+            tags2 = processor.subclass_by_index(2) or ()
             processor.fast_load_dxfattribs(
                 dxf, acdb_dimension_group_codes, 2, recover=True
             )
+            tags3 = processor.subclass_by_index(3) or ()
             processor.fast_load_dxfattribs(
                 dxf, acdb_dimension_dummy_group_codes, 3, log=False
             )
+            self._has_explicit_attachment_point = any(tag.code == 71 for tag in tags2)
+            self._has_explicit_angle = any(tag.code == 50 for tag in tags3)
             # Ignore possible 5. subclass AcDbRotatedDimension, which has no
             # content.
         return dxf
@@ -582,7 +590,13 @@ class Dimension(DXFGraphic, OverrideMixin):
                 "text_midpoint",
                 "insert",
                 "dimtype",
-                "attachment_point",
+            ],
+        )
+        if self._has_explicit_attachment_point or self.dxf.get("attachment_point", 5) != 5:
+            tagwriter.write_tag2(71, self.dxf.get("attachment_point", 5))
+        self.dxf.export_dxf_attribs(
+            tagwriter,
+            [
                 "line_spacing_style",
                 "line_spacing_factor",
                 "actual_measurement",
@@ -605,12 +619,16 @@ class Dimension(DXFGraphic, OverrideMixin):
 
         if dim_type == 0:  # linear
             tagwriter.write_tag2(SUBCLASS_MARKER, "AcDbAlignedDimension")
-            self.dxf.export_dxf_attribs(tagwriter, ["defpoint2", "defpoint3", "angle"])
+            self.dxf.export_dxf_attribs(tagwriter, ["defpoint2", "defpoint3"])
+            if self._has_explicit_angle or self.dxf.get("angle", 0) != 0:
+                tagwriter.write_tag2(50, self.dxf.get("angle", 0))
             # empty but required subclass
             tagwriter.write_tag2(SUBCLASS_MARKER, "AcDbRotatedDimension")
         elif dim_type == 1:  # aligned
             tagwriter.write_tag2(SUBCLASS_MARKER, "AcDbAlignedDimension")
-            self.dxf.export_dxf_attribs(tagwriter, ["defpoint2", "defpoint3", "angle"])
+            self.dxf.export_dxf_attribs(tagwriter, ["defpoint2", "defpoint3"])
+            if self._has_explicit_angle or self.dxf.get("angle", 0) != 0:
+                tagwriter.write_tag2(50, self.dxf.get("angle", 0))
         elif dim_type == 2:  # angular & angular3p
             tagwriter.write_tag2(SUBCLASS_MARKER, "AcDb2LineAngularDimension")
             self.dxf.export_dxf_attribs(

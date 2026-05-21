@@ -275,6 +275,7 @@ class MTextColumns:
         self.linked_columns: list[MText] = []
         # R2018+: heights of all columns if auto_height is False
         self.heights: list[float] = []
+        self._has_linked_column_xdata: bool = False
 
     def deep_copy(self) -> MTextColumns:
         columns = self.shallow_copy()
@@ -294,6 +295,7 @@ class MTextColumns:
         columns.total_height = self.total_height
         columns.linked_columns = list(self.linked_columns)
         columns.heights = list(self.heights)
+        columns._has_linked_column_xdata = self._has_linked_column_xdata
         return columns
 
     @classmethod
@@ -568,6 +570,14 @@ def load_mtext_linked_column_handles(tags: Tags) -> list[str]:
     return handles
 
 
+def has_mtext_linked_column_xdata(tags: Tags) -> bool:
+    try:
+        find_begin_and_end_of_encoded_xdata_tags("ACAD_MTEXT_COLUMNS", tags)
+        return True
+    except NotFoundException:
+        return False
+
+
 def load_mtext_defined_height(tags: Tags) -> float:
     # The defined height stored in the linked MTEXT entities, is not required:
     #
@@ -615,6 +625,7 @@ def load_columns_from_xdata(dxf: DXFNamespace, xdata: XData) -> Optional[MTextCo
         columns.linked_handles = load_mtext_linked_column_handles(acad)
     except const.DXFStructureError:
         logger.error(f"Invalid ACAD_MTEXT_COLUMNS in {name}")
+    columns._has_linked_column_xdata = has_mtext_linked_column_xdata(acad)
 
     columns.update_total_width()
     if columns.heights:  # dynamic columns, manual heights
@@ -1465,7 +1476,8 @@ class MText(DXFGraphic):
             self.xdata = XData()
         cols = self._columns
         acad = cols.acad_mtext_column_info_xdata()
-        acad.extend(cols.acad_mtext_columns_xdata())
+        if cols._has_linked_column_xdata or cols.linked_handles or cols.linked_columns:
+            acad.extend(cols.acad_mtext_columns_xdata())
         if not cols.has_dynamic_manual_height:
             acad.extend(cols.acad_mtext_defined_height_xdata())
 

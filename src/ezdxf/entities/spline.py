@@ -162,6 +162,10 @@ class Spline(DXFGraphic):
         self.control_points = VertexArray()
         self.knots = []
         self.weights = []
+        self._force_optional_extrusion = False
+        self._force_optional_knot_tolerance = False
+        self._force_optional_control_point_tolerance = False
+        self._force_optional_fit_tolerance = False
 
     def copy_data(self, entity: Self, copy_strategy=default_copy) -> None:
         """Copy data: control_points, fit_points, weights, knot_values."""
@@ -170,6 +174,12 @@ class Spline(DXFGraphic):
         entity._fit_points = copy.deepcopy(self._fit_points)
         entity._knots = copy.deepcopy(self._knots)
         entity._weights = copy.deepcopy(self._weights)
+        entity._force_optional_extrusion = self._force_optional_extrusion
+        entity._force_optional_knot_tolerance = self._force_optional_knot_tolerance
+        entity._force_optional_control_point_tolerance = (
+            self._force_optional_control_point_tolerance
+        )
+        entity._force_optional_fit_tolerance = self._force_optional_fit_tolerance
 
     def load_dxf_attribs(
         self, processor: Optional[SubclassProcessor] = None
@@ -179,6 +189,10 @@ class Spline(DXFGraphic):
             tags = processor.subclass_by_index(2)
             if tags:
                 tags = Tags(self.load_spline_data(tags))
+                self._force_optional_extrusion = any(tag.code == 210 for tag in tags)
+                self._force_optional_knot_tolerance = any(tag.code == 42 for tag in tags)
+                self._force_optional_control_point_tolerance = any(tag.code == 43 for tag in tags)
+                self._force_optional_fit_tolerance = any(tag.code == 44 for tag in tags)
                 processor.fast_load_dxfattribs(
                     dxf, acdb_spline_group_codes, subclass=tags, recover=True
                 )
@@ -222,20 +236,25 @@ class Spline(DXFGraphic):
         """Export entity specific data as DXF tags."""
         super().export_entity(tagwriter)
         tagwriter.write_tag2(SUBCLASS_MARKER, acdb_spline.name)
-        self.dxf.export_dxf_attribs(tagwriter, ["extrusion", "flags", "degree"])
+        if self._force_optional_extrusion or not Z_AXIS.isclose(self.dxf.get("extrusion", Z_AXIS)):
+            tagwriter.write_vertex(210, self.dxf.get("extrusion", Z_AXIS))
+        self.dxf.export_dxf_attribs(tagwriter, ["flags", "degree"])
         tagwriter.write_tag2(72, self.knot_count())
         tagwriter.write_tag2(73, self.control_point_count())
         tagwriter.write_tag2(74, self.fit_point_count())
-        self.dxf.export_dxf_attribs(
-            tagwriter,
-            [
-                "knot_tolerance",
-                "control_point_tolerance",
-                "fit_tolerance",
-                "start_tangent",
-                "end_tangent",
-            ],
-        )
+        if self._force_optional_knot_tolerance:
+            tagwriter.write_tag2(42, self.dxf.get("knot_tolerance", 1e-10))
+        else:
+            self.dxf.export_dxf_attribs(tagwriter, ["knot_tolerance"])
+        if self._force_optional_control_point_tolerance:
+            tagwriter.write_tag2(43, self.dxf.get("control_point_tolerance", 1e-10))
+        else:
+            self.dxf.export_dxf_attribs(tagwriter, ["control_point_tolerance"])
+        if self._force_optional_fit_tolerance:
+            tagwriter.write_tag2(44, self.dxf.get("fit_tolerance", 1e-10))
+        else:
+            self.dxf.export_dxf_attribs(tagwriter, ["fit_tolerance"])
+        self.dxf.export_dxf_attribs(tagwriter, ["start_tangent", "end_tangent"])
 
         self.export_spline_data(tagwriter)
 

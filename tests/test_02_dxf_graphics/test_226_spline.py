@@ -93,6 +93,19 @@ def test_write_dxf():
     assert cmp_tags(result, expected, abs_tol=1e-4) == 0
 
 
+def test_export_preserves_explicit_default_extrusion():
+    entity = Spline.from_text(SPLINE2)
+    collector = TagCollector(optional=False)
+
+    entity.export_dxf(collector)
+
+    tags = collector.tags
+    assert any(tag.code == 210 and tag.value == 0.0 for tag in tags)
+    assert any(tag.code == 220 and tag.value == 0.0 for tag in tags)
+    assert any(tag.code == 230 and tag.value == 1.0 for tag in tags)
+    assert any(tag.code == 43 and tag.value == 1e-10 for tag in tags)
+
+
 def cmp_tags(result, expected, abs_tol=1e-6):
     if len(result) != len(expected):
         return -1

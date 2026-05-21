@@ -226,6 +226,56 @@ AcDbMText
 ACAD
 """
 
+SINGLE_COLUMN_INFO_ONLY = """0
+MTEXT
+5
+9E
+330
+1F
+100
+AcDbEntity
+8
+0
+100
+AcDbMText
+1001
+ACAD
+1000
+ACAD_MTEXT_COLUMN_INFO_BEGIN
+1070
+75
+1070
+2
+1070
+79
+1070
+0
+1070
+76
+1070
+1
+1070
+78
+1070
+0
+1070
+48
+1040
+50.0
+1070
+49
+1040
+12.5
+1070
+50
+1070
+1
+1040
+0.0
+1000
+ACAD_MTEXT_COLUMN_INFO_END
+"""
+
 
 # The dynamic auto height and static types are very similar, the difference is
 # important for CAD applications, but not for the DXF format itself.
@@ -313,6 +363,14 @@ def test_mtext_without_column_info():
     assert cols is None
 
 
+def test_load_single_column_info_without_linked_columns_xdata():
+    xdata = get_xdata(SINGLE_COLUMN_INFO_ONLY)
+    cols = load_columns_from_xdata(MText().dxf, xdata)
+    assert cols is not None
+    assert cols.count == 1
+    assert cols._has_linked_column_xdata is False
+
+
 def make_mtext(txt: str) -> MText:
     mtext = MText()
     xdata = get_xdata(txt)
@@ -331,6 +389,17 @@ def test_set_columns_xdata(txt):
     mtext.set_column_xdata()
     acad = mtext.xdata.get("ACAD")
     expected_xdata = get_xdata(txt)
+    assert acad == expected_xdata.get("ACAD")
+
+
+def test_set_columns_xdata_preserves_single_column_info_shape():
+    mtext = make_mtext(SINGLE_COLUMN_INFO_ONLY)
+    assert mtext.columns is not None
+
+    mtext.set_column_xdata()
+
+    acad = mtext.xdata.get("ACAD")
+    expected_xdata = get_xdata(SINGLE_COLUMN_INFO_ONLY)
     assert acad == expected_xdata.get("ACAD")
 
 
