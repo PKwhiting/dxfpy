@@ -1865,7 +1865,7 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     script_text = script_path.read_text(encoding="utf-8")
 
-    assert "from ezdxf.addons._dxf2code_runtime import DocumentCodegenRuntime" in script_text
+    assert "from ezdxf.addons.dxf2code._runtime import DocumentCodegenRuntime" in script_text
     assert "rt = DocumentCodegenRuntime(doc)" in script_text
     assert "def _add_raw_object(" not in script_text
     assert "def _swap_raw_graphic_entity(" not in script_text
@@ -1885,7 +1885,7 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
 
 
 def test_document_codegen_runtime_remaps_dangling_fieldlist_handles_once():
-    from ezdxf.addons._dxf2code_runtime import DocumentCodegenRuntime
+    from ezdxf.addons.dxf2code._runtime import DocumentCodegenRuntime
 
     runtime_doc = ezdxf.new("R2010")
     line = runtime_doc.modelspace().add_line((0, 0), (1, 0))
@@ -1900,8 +1900,8 @@ def test_document_codegen_runtime_remaps_dangling_fieldlist_handles_once():
 
 
 def test_capture_document_codegen_inputs_returns_typed_specs(tmp_path):
-    from ezdxf.addons._dxf2code_capture import capture_document_codegen_inputs
-    from ezdxf.addons._dxf2code_specs import MLeaderStyleSpec, VisualStyleEntry
+    from ezdxf.addons.dxf2code._capture import capture_document_codegen_inputs
+    from ezdxf.addons.dxf2code._specs import MLeaderStyleSpec, VisualStyleEntry
 
     source_doc = ezdxf.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "TEST_STYLE")

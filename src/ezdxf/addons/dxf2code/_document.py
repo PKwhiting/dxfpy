@@ -5,8 +5,8 @@ from pathlib import Path
 
 import ezdxf
 
-from ._dxf2code_capture import capture_document_codegen_inputs
-from ._dxf2code_emit import render_document_codegen_script
+from ._capture import capture_document_codegen_inputs
+from ._emit import render_document_codegen_script
 
 
 def write_document_code(

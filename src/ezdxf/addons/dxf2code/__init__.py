@@ -164,7 +164,7 @@ def document_to_code_file(
     entity/block-level helpers.
     """
 
-    from ezdxf.addons._dxf2code_document import write_document_code
+    from ._document import write_document_code
 
     write_document_code(source, script_path, output_path)
 

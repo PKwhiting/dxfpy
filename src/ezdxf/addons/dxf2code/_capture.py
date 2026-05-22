@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import ezdxf
-from ezdxf.addons.dxf2code import block_to_code, entities_to_code, table_entries_to_code
 from ezdxf.dynblkhelper import (
     get_dynamic_block_record_handle,
     snapshot_raw_extension_subtree,
@@ -13,8 +12,9 @@ from ezdxf.lldxf.tagwriter import TagCollector
 from ezdxf.sections.classes import snapshot_raw_classes
 from ezdxf.sections.header import snapshot_raw_header_vars
 
-from ._dxf2code_common import _maybe_get, _names, _sort_blocks
-from ._dxf2code_specs import (
+from . import block_to_code, entities_to_code, table_entries_to_code
+from ._common import _maybe_get, _names, _sort_blocks
+from ._specs import (
     DocumentCodegenCapture,
     EntityXRecordFallbackSpec,
     ExtensionSnapshot,

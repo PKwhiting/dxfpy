@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ._dxf2code_specs import OwnedObjectSpec
-from ._dxf2code_specs import DocumentCodegenCapture
+from ._specs import OwnedObjectSpec
+from ._specs import DocumentCodegenCapture
 
 
 def _owned_object_specs_literal(specs: list[OwnedObjectSpec]) -> list[dict[str, object]]:
@@ -61,7 +61,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     raw_entity_swap_calls: list[str] = []
     sortents_calls: list[str] = []
     lines.extend(sorted(imports))
-    lines.append("from ezdxf.addons._dxf2code_runtime import DocumentCodegenRuntime")
+    lines.append("from ezdxf.addons.dxf2code._runtime import DocumentCodegenRuntime")
     lines.append("from ezdxf.sections.classes import restore_raw_classes")
     lines.append("from ezdxf.sections.header import restore_raw_header_vars")
     lines.append("from ezdxf.dynblkhelper import restore_raw_extension_subtree")
