@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Sequence
 
 from ezdxf.dynblkhelper import (
     _delete_graph_stack,
@@ -8,10 +8,16 @@ from ezdxf.dynblkhelper import (
     _new_tag_storage_object,
 )
 from ezdxf.entities import factory
+from ezdxf.entities import DXFEntity
 from ezdxf.entities.dxfentity import DXFTagStorage
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tags import Tags
 from ezdxf.lldxf.types import DXFTag, dxftag
+
+from ._specs import OwnedObjectSpecData
+
+if TYPE_CHECKING:
+    from ezdxf.dynblkhelper import RawEntityExportSnapshot
 
 _RAW_GRAPH_HANDLE_CODES = (330, 331, 332, 333, 340, 360, 1005)
 _RAW_GRAPHIC_RESOURCE_CODES = (
@@ -40,11 +46,11 @@ _BINARY_DATA_CODES = (310, 311, 312, 313, 314, 315, 316, 317, 318, 319)
 class DocumentCodegenRuntime:
     def __init__(self, doc) -> None:
         self.doc = doc
-        self.source_entity_map: dict[str, Any] = {}
-        self.source_object_map: dict[str, Any] = {}
+        self.source_entity_map: dict[str, DXFEntity] = {}
+        self.source_object_map: dict[str, DXFEntity] = {}
         self.dangling_handle_map: dict[str, str] = {}
 
-    def register_entity_map(self, entity_map: dict[str, Any]) -> None:
+    def register_entity_map(self, entity_map: dict[str, DXFEntity]) -> None:
         self.source_entity_map.update(entity_map)
 
     def ensure_dynamic_block_extension_dict(self, block_record):
@@ -63,7 +69,9 @@ class DocumentCodegenRuntime:
         return obj
 
     @staticmethod
-    def _map_raw_graph_value(value, entity_map: dict[str, Any], object_map: dict[str, Any]):
+    def _map_raw_graph_value(
+        value, entity_map: dict[str, DXFEntity], object_map: dict[str, DXFEntity]
+    ):
         if isinstance(value, str):
             if value in object_map:
                 return object_map[value].dxf.handle
@@ -85,8 +93,8 @@ class DocumentCodegenRuntime:
         owner: str,
         subclasses: list[list[tuple[int, object]]],
         xdata: list[list[tuple[int, object]]],
-        entity_map: dict[str, Any],
-        object_map: dict[str, Any],
+        entity_map: dict[str, DXFEntity],
+        object_map: dict[str, DXFEntity],
     ):
         tags = [dxftag(0, obj.dxftype()), dxftag(5, obj.dxf.handle), dxftag(330, owner)]
         for subclass in subclasses:
@@ -115,8 +123,8 @@ class DocumentCodegenRuntime:
         self,
         obj,
         reactors: list[str],
-        entity_map: dict[str, Any],
-        object_map: dict[str, Any],
+        entity_map: dict[str, DXFEntity],
+        object_map: dict[str, DXFEntity],
     ) -> None:
         mapped = [
             self._map_raw_graph_value(handle, entity_map, object_map)
@@ -128,16 +136,21 @@ class DocumentCodegenRuntime:
 
     def refresh_entity_map_from_block(
         self,
-        entity_map: dict[str, Any],
+        entity_map: dict[str, DXFEntity],
         block,
-        entity_snapshots,
+        entity_snapshots: Sequence[RawEntityExportSnapshot],
     ) -> None:
-        for (entity_text, _ext_snapshot), entity in zip(entity_snapshots, block):
+        for entity_snapshot, entity in zip(entity_snapshots, block):
+            entity_text = (
+                entity_snapshot.text
+                if hasattr(entity_snapshot, "text")
+                else entity_snapshot[0]
+            )
             source_handle = ExtendedTags.from_text(entity_text).get_handle()
             if source_handle:
                 entity_map[source_handle] = entity
 
-    def mapped_handle(self, source_handle: str):
+    def mapped_handle(self, source_handle: str) -> str | None:
         if source_handle in self.source_entity_map:
             return self.source_entity_map[source_handle].dxf.handle
         if source_handle in self.source_object_map:
@@ -158,7 +171,7 @@ class DocumentCodegenRuntime:
                 reordered[key] = value
         dictionary._data = reordered
 
-    def _register_field_tree_handles(self, objects: list[Any]) -> None:
+    def _register_field_tree_handles(self, objects: Sequence[DXFEntity]) -> None:
         handles = []
         for obj in objects:
             if obj.dxftype() == "FIELD" and obj.dxf.handle:
@@ -243,8 +256,8 @@ class DocumentCodegenRuntime:
         root_handle: str,
         root_dxftype: str,
         root_subclasses: list[list[tuple[int, object]]],
-        owned_specs: list[dict[str, Any]],
-        entity_map: dict[str, Any],
+        owned_specs: Sequence[OwnedObjectSpecData],
+        entity_map: dict[str, DXFEntity],
     ) -> None:
         xdict = host.get_extension_dict() if host.has_extension_dict else host.new_extension_dict()
         if dict_key in xdict.dictionary:

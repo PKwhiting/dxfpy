@@ -10,17 +10,9 @@ from ezdxf.entities.dxfobj import Field
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tagwriter import TagWriter
 from ezdxf.addons.dxf2code import (
-    document_to_code_file,
     entities_to_code,
     table_entries_to_code,
     block_to_code,
-    _SourceCodeGenerator,
-)
-from ezdxf.addons.dxf2code import (
-    _fmt_mapping,
-    _fmt_list,
-    _fmt_api_call,
-    _fmt_dxf_tags,
 )
 from ezdxf.fidelity import finalize_document_fidelity, prepare_document_fidelity
 from ezdxf.dynblkhelper import (

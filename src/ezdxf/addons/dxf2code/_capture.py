@@ -144,7 +144,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     raw_classes = snapshot_raw_classes(doc.classes)
 
     block_codes = []
-    block_layout_entity_snapshots: dict[str, Any] = {}
+    block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]] = {}
     imports = {"import ezdxf", "from pathlib import Path"}
 
     blocks = _sort_blocks([block for block in doc.blocks if not block.is_any_layout])
@@ -153,9 +153,9 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         block_codes.append(code)
         imports.update(code.imports)
         if "restore_raw_dynamic_block_layout" in str(code):
-            block_layout_entity_snapshots[block.name] = snapshot_raw_dynamic_block_layout(
-                block
-            )[1]
+            block_layout_entity_snapshots[block.name] = (
+                snapshot_raw_dynamic_block_layout(block).entity_snapshots
+            )
 
     msp_code = entities_to_code(doc.modelspace(), layout="msp")
     imports.update(msp_code.imports)

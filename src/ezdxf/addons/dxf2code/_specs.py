@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
+
+if TYPE_CHECKING:
+    from ezdxf.document import Drawing
+    from ezdxf.entities import DXFEntity
+    from ezdxf.layouts import BlockLayout
+
+    from ._code import Code
+    from ezdxf.dynblkhelper import RawEntityExportSnapshot
 
 
 RawTag = tuple[int, object]
@@ -15,6 +23,13 @@ SortentsHandles = list[tuple[str, str]]
 
 @dataclass(slots=True)
 class OwnedObjectSpec:
+    handle: str
+    owner: str
+    dxftype: str
+    subclasses: RawSubclassList
+
+
+class OwnedObjectSpecData(TypedDict):
     handle: str
     owner: str
     dxftype: str
@@ -103,18 +118,18 @@ class SortentsBlockSpec:
 
 
 class DocumentCodegenCapture(TypedDict):
-    doc: Any
+    doc: Drawing
     source: Path
     header_state: dict[str, object]
     header_custom_vars: list[tuple[object, object]]
     raw_header_overrides: tuple[tuple[str, str], ...]
     raw_classes: tuple[str, ...]
-    blocks: list[Any]
-    block_codes: list[Any]
-    block_layout_entity_snapshots: dict[str, Any]
-    msp_code: Any
+    blocks: list[BlockLayout]
+    block_codes: list[Code]
+    block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]]
+    msp_code: Code
     imports: set[str]
-    resource_code: Any
+    resource_code: Code | None
     layers_with_xdict: set[str]
     root_xrecords: dict[str, list[RawTag]]
     deferred_recompose_tags: list[RawTag]
