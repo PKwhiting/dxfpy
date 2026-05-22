@@ -1,19 +1,18 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
-"""
-This module provides helper tools to work with dynamic blocks.
+"""Helper tools for dynamic blocks and raw DXF fidelity restoration.
 
-The current state supports only reading information from dynamic blocks, it does not
-support the creation of new dynamic blocks nor the modification of them.
-
+This module contains both dynamic-block authoring/inspection helpers and the raw
+snapshot/restore helpers used by replay and code-generation fidelity workflows.
 """
 from __future__ import annotations
 from dataclasses import dataclass
 from io import StringIO
 import io
 import uuid
-from typing import TYPE_CHECKING, Any, Iterator, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Optional, Sequence, Union
 from ezdxf.entities import Insert, DXFTagStorage, XRecord, Dictionary, factory
+from ezdxf.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
 from ezdxf.lldxf.tagwriter import TagCollector, TagWriter
 from ezdxf.lldxf.tags import DXFTag
 from ezdxf.lldxf.types import DXFVertex, is_pointer_code, dxftag
@@ -75,6 +74,7 @@ __all__ = [
     "snapshot_raw_rootdict_entries",
     "restore_raw_dynamic_block_definition",
     "restore_raw_dynamic_block_layout",
+    "restore_raw_block_entity_exports",
     "restore_dictionary_key_order",
     "restore_raw_entity_export",
     "restore_raw_extension_subtree",
@@ -107,6 +107,93 @@ AcDbDynamicBlockTrueName = "AcDbDynamicBlockTrueName"
 AcDbDynamicBlockTrueName2 = "AcDbDynamicBlockTrueName2"
 AcDbBlockRepETag = "AcDbBlockRepETag"
 AcadBPTGraphNodeId = "AcadBPTGraphNodeId"
+
+RawTags = tuple[tuple[int, Any], ...]
+RawXDataTags = tuple[tuple[str, RawTags], ...]
+ExtensionSubtreeSnapshot = tuple[RawTags, ...]
+
+
+class RawEntityExportSnapshot(NamedTuple):
+    text: str
+    extension_snapshot: ExtensionSubtreeSnapshot
+
+    def __repr__(self) -> str:
+        return repr(tuple(self))
+
+
+class BlockRecordRuntimeData(NamedTuple):
+    preview_data: bytes
+    units: int
+    explode: int
+    scale: int
+    block_text: str
+    endblk_text: str
+
+    def __repr__(self) -> str:
+        return repr(tuple(self))
+
+
+class RawDynamicBlockDefinitionSnapshot(NamedTuple):
+    block_record_handle: str
+    block_record_data: BlockRecordRuntimeData
+    xdata: RawXDataTags
+    extension_snapshot: ExtensionSubtreeSnapshot
+    entity_snapshots: tuple[RawEntityExportSnapshot, ...]
+
+    def __repr__(self) -> str:
+        return repr(tuple(self))
+
+
+class RawDynamicBlockLayoutSnapshot(NamedTuple):
+    definition_snapshot: RawDynamicBlockDefinitionSnapshot
+    entity_snapshots: tuple[RawEntityExportSnapshot, ...]
+
+    def __repr__(self) -> str:
+        return repr(tuple(self))
+
+
+def _coerce_raw_entity_export_snapshot(snapshot) -> RawEntityExportSnapshot:
+    if isinstance(snapshot, RawEntityExportSnapshot):
+        return snapshot
+    text, extension_snapshot = snapshot
+    return RawEntityExportSnapshot(text, tuple(extension_snapshot))
+
+
+def _coerce_block_record_runtime_data(data) -> BlockRecordRuntimeData:
+    if isinstance(data, BlockRecordRuntimeData):
+        return data
+    return BlockRecordRuntimeData(*data)
+
+
+def _coerce_raw_dynamic_block_definition_snapshot(
+    snapshot,
+) -> RawDynamicBlockDefinitionSnapshot:
+    if isinstance(snapshot, RawDynamicBlockDefinitionSnapshot):
+        return snapshot
+    (
+        block_record_handle,
+        block_record_data,
+        xdata,
+        extension_snapshot,
+        entity_snapshots,
+    ) = snapshot
+    return RawDynamicBlockDefinitionSnapshot(
+        block_record_handle,
+        _coerce_block_record_runtime_data(block_record_data),
+        tuple(xdata),
+        tuple(extension_snapshot),
+        tuple(_coerce_raw_entity_export_snapshot(item) for item in entity_snapshots),
+    )
+
+
+def _coerce_raw_dynamic_block_layout_snapshot(snapshot) -> RawDynamicBlockLayoutSnapshot:
+    if isinstance(snapshot, RawDynamicBlockLayoutSnapshot):
+        return snapshot
+    definition_snapshot, entity_snapshots = snapshot
+    return RawDynamicBlockLayoutSnapshot(
+        _coerce_raw_dynamic_block_definition_snapshot(definition_snapshot),
+        tuple(_coerce_raw_entity_export_snapshot(item) for item in entity_snapshots),
+    )
 
 
 def _ensure_dynamic_block_appids(doc: Drawing) -> None:
@@ -5340,18 +5427,16 @@ def _snapshot_raw_extension_subtree(owner) -> tuple[tuple[tuple[int, Any], ...],
 
 def snapshot_raw_extension_subtree(
     owner: DXFEntity,
-) -> tuple[tuple[tuple[int, Any], ...], ...]:
+) -> ExtensionSubtreeSnapshot:
     return _snapshot_raw_extension_subtree(owner)
 
 
 def snapshot_raw_entity_export(
     entity: DXFEntity,
-) -> tuple[str, tuple[tuple[tuple[int, Any], ...], ...]]:
-    return _raw_entity_text(entity), _snapshot_raw_extension_subtree(entity)
-
-
-def _raw_block_entity_snapshot(entity) -> tuple[str, tuple[tuple[tuple[int, Any], ...], ...]]:
-    return _raw_entity_text(entity), _snapshot_raw_extension_subtree(entity)
+) -> RawEntityExportSnapshot:
+    return RawEntityExportSnapshot(
+        _raw_entity_text(entity), _snapshot_raw_extension_subtree(entity)
+    )
 
 
 def _export_entity_text(entity: DXFEntity) -> str:
@@ -5470,8 +5555,8 @@ def _raw_entity_text(entity: Optional[DXFEntity]) -> str:
 
 def _snapshot_block_record_runtime_data(
     block_record: BlockRecord,
-) -> tuple[bytes, int, int, int, str, str]:
-    return (
+) -> BlockRecordRuntimeData:
+    return BlockRecordRuntimeData(
         block_record.preview_data,
         int(block_record.dxf.get("units", 0)),
         int(block_record.dxf.get("explode", 1)),
@@ -5483,42 +5568,39 @@ def _snapshot_block_record_runtime_data(
 
 def snapshot_raw_dynamic_block_definition(
     block: BlockLayout,
-) -> tuple[
-    str,
-    tuple[bytes, int, int, int, str, str],
-    tuple[tuple[str, tuple[tuple[int, Any], ...]], ...],
-    tuple[tuple[tuple[int, Any], ...], ...],
-    tuple[tuple[str, tuple[tuple[tuple[int, Any], ...], ...]], ...],
-]:
+) -> RawDynamicBlockDefinitionSnapshot:
     block_record = block.block_record
     block_record_data = _snapshot_block_record_runtime_data(block_record)
-    entity_snapshots = tuple(_raw_block_entity_snapshot(entity) for entity in block)
+    entity_snapshots = tuple(snapshot_raw_entity_export(entity) for entity in block)
     xdata = tuple(
         (appid, tuple((tag.code, tag.value) for tag in tags))
         for appid, tags in (block_record.xdata.data.items() if block_record.xdata is not None else [])
     )
     if not block_record.has_extension_dict:
-        return block_record.dxf.handle or "", block_record_data, xdata, (), entity_snapshots
+        return RawDynamicBlockDefinitionSnapshot(
+            block_record.dxf.handle or "",
+            block_record_data,
+            xdata,
+            (),
+            entity_snapshots,
+        )
     root = block_record.get_extension_dict().dictionary
     objects = tuple(_raw_entity_tags(entity) for entity in _iter_owned_object_graph(root))
-    return block_record.dxf.handle or "", block_record_data, xdata, objects, entity_snapshots
+    return RawDynamicBlockDefinitionSnapshot(
+        block_record.dxf.handle or "",
+        block_record_data,
+        xdata,
+        objects,
+        entity_snapshots,
+    )
 
 
 def snapshot_raw_dynamic_block_layout(
     block: BlockLayout,
-) -> tuple[
-    tuple[
-        str,
-        tuple[bytes, int, int, int, str, str],
-        tuple[tuple[str, tuple[tuple[int, Any], ...]], ...],
-        tuple[tuple[tuple[int, Any], ...], ...],
-        tuple[tuple[str, tuple[tuple[tuple[int, Any], ...], ...]], ...],
-    ],
-    tuple[tuple[str, tuple[tuple[tuple[int, Any], ...], ...]], ...],
-]:
-    return (
+) -> RawDynamicBlockLayoutSnapshot:
+    return RawDynamicBlockLayoutSnapshot(
         snapshot_raw_dynamic_block_definition(block),
-        tuple(_raw_block_entity_snapshot(entity) for entity in block),
+        tuple(snapshot_raw_entity_export(entity) for entity in block),
     )
 
 
@@ -5529,15 +5611,21 @@ def _new_empty_object(doc: Drawing, dxftype: str):
     return entity
 
 
+def _is_raw_entity_handle_code(code: int) -> bool:
+    return code in (5, 105) or is_pointer_code(code)
+
+
+def _is_raw_xdata_handle_code(code: int) -> bool:
+    return code == 1005
+
+
 def _remap_raw_tags(
     tags: Sequence[tuple[int, Any]],
     handle_mapping: dict[str, str],
 ) -> tuple[tuple[int, Any], ...]:
     remapped: list[tuple[int, Any]] = []
     for code, value in tags:
-        if code in (5, 105):
-            remapped.append((code, handle_mapping.get(str(value), str(value))))
-        elif is_pointer_code(code):
+        if _is_raw_entity_handle_code(code):
             remapped.append((code, handle_mapping.get(str(value), str(value))))
         else:
             remapped.append((code, value))
@@ -5550,7 +5638,7 @@ def _remap_xdata_tags(
 ) -> tuple[tuple[int, Any], ...]:
     remapped: list[tuple[int, Any]] = []
     for code, value in tags:
-        if code == 1005:
+        if _is_raw_xdata_handle_code(code):
             remapped.append((code, handle_mapping.get(str(value), str(value))))
         else:
             remapped.append((code, value))
@@ -5564,7 +5652,7 @@ def _make_raw_tag(code: int, value: Any):
 
 
 def _remap_raw_tag_value(code: int, value: Any, handle_mapping: dict[str, str]) -> Any:
-    if code in (5, 105, 1005) or is_pointer_code(code):
+    if _is_raw_entity_handle_code(code) or _is_raw_xdata_handle_code(code):
         return handle_mapping.get(str(value), str(value))
     return value
 
@@ -5588,7 +5676,7 @@ def _remap_raw_entity_text(entity_text: str, handle_mapping: dict[str, str]) -> 
             remapped_lines.append(value_line)
             index += 2
             continue
-        if code in (5, 105, 1005) or is_pointer_code(code):
+        if _is_raw_entity_handle_code(code) or _is_raw_xdata_handle_code(code):
             mapped = handle_mapping.get(value_line.strip())
             if mapped is not None:
                 value_line = mapped
@@ -5666,13 +5754,7 @@ def _restore_raw_object_graph(
 
 def restore_raw_dynamic_block_definition(
     block: BlockLayout,
-    snapshot: tuple[
-        str,
-        tuple[bytes, int, int, int, str, str],
-        tuple[tuple[str, tuple[tuple[int, Any], ...]], ...],
-        tuple[tuple[tuple[int, Any], ...], ...],
-        tuple[tuple[str, tuple[tuple[tuple[int, Any], ...], ...]], ...],
-    ],
+    snapshot: RawDynamicBlockDefinitionSnapshot,
     entity_handle_map: Sequence[tuple[str, str]] = (),
     restore_entity_exports: bool = True,
 ) -> None:
@@ -5681,7 +5763,12 @@ def restore_raw_dynamic_block_definition(
     doc = block.doc
     if doc is None:
         raise const.DXFStructureError("valid DXF document required")
-    source_block_record_handle, block_record_data, xdata, objects, entity_snapshots = snapshot
+    snapshot = _coerce_raw_dynamic_block_definition_snapshot(snapshot)
+    source_block_record_handle = snapshot.block_record_handle
+    block_record_data = snapshot.block_record_data
+    xdata = snapshot.xdata
+    objects = snapshot.extension_snapshot
+    entity_snapshots = snapshot.entity_snapshots
     preview_data, units, explode, scale, block_text, endblk_text = block_record_data
     handle_mapping = {str(source): str(target) for source, target in entity_handle_map}
     global_mapping = _raw_object_handle_mapping(doc)
@@ -5717,15 +5804,25 @@ def restore_raw_dynamic_block_definition(
         root_dict = root.dictionary
         _restore_raw_object_graph(doc, root_dict, objects, handle_mapping)
     if restore_entity_exports:
-        _restore_raw_block_entity_exports(block, entity_snapshots, handle_mapping)
+        restore_raw_block_entity_exports(block, entity_snapshots, handle_mapping)
     _purge_orphan_owned_objects(doc)
+
+
+def restore_raw_block_entity_exports(
+    block: BlockLayout,
+    entity_snapshots: Sequence[RawEntityExportSnapshot],
+    handle_mapping: dict[str, str],
+) -> None:
+    _restore_raw_block_entity_exports(
+        block,
+        tuple(_coerce_raw_entity_export_snapshot(item) for item in entity_snapshots),
+        handle_mapping,
+    )
 
 
 def _restore_raw_block_entity_exports(
     block: BlockLayout,
-    entity_snapshots: Sequence[
-        tuple[str, tuple[tuple[tuple[int, Any], ...], ...]]
-    ],
+    entity_snapshots: Sequence[RawEntityExportSnapshot],
     handle_mapping: dict[str, str],
 ) -> None:
     from ezdxf.lldxf.extendedtags import ExtendedTags
@@ -5736,8 +5833,8 @@ def _restore_raw_block_entity_exports(
 
     global_mapping = _raw_object_handle_mapping(doc)
 
-    for entity_text, ext_snapshot in entity_snapshots:
-        source_xtags = ExtendedTags.from_text(entity_text)
+    for entity_snapshot in entity_snapshots:
+        source_xtags = ExtendedTags.from_text(entity_snapshot.text)
         source_handle = source_xtags.get_handle()
         target_handle = handle_mapping.get(source_handle)
         if not target_handle:
@@ -5749,6 +5846,7 @@ def _restore_raw_block_entity_exports(
         ext_root = None
         resolved_mapping = dict(global_mapping)
         resolved_mapping.update(handle_mapping)
+        ext_snapshot = entity_snapshot.extension_snapshot
         if ext_snapshot:
             root_tags = ext_snapshot[0]
             source_root_handle = _handle_from_raw_tags(root_tags)
@@ -5763,7 +5861,11 @@ def _restore_raw_block_entity_exports(
                 global_mapping[source_root_handle] = ext_root.dxf.handle
                 resolved_mapping[source_root_handle] = ext_root.dxf.handle
 
-        setattr(entity, "_raw_tags_override", _remap_raw_entity_text(entity_text, resolved_mapping))
+        setattr(
+            entity,
+            RAW_TAGS_OVERRIDE_ATTRIBUTE,
+            _remap_raw_entity_text(entity_snapshot.text, resolved_mapping),
+        )
 
         if ext_snapshot and ext_root is not None:
             _restore_raw_object_graph(doc, ext_root, ext_snapshot, resolved_mapping)
@@ -5776,7 +5878,11 @@ def _restore_raw_block_boundary_entity(
 ) -> None:
     if entity is None or not entity_text:
         return
-    setattr(entity, "_raw_tags_override", _remap_raw_entity_text(entity_text, handle_mapping))
+    setattr(
+        entity,
+        RAW_TAGS_OVERRIDE_ATTRIBUTE,
+        _remap_raw_entity_text(entity_text, handle_mapping),
+    )
 
 
 def _purge_orphan_owned_objects(doc: Drawing) -> None:
@@ -5996,12 +6102,14 @@ def map_extension_subtree_handles(
 
 def restore_raw_entity_export(
     entity: DXFEntity,
-    snapshot: tuple[str, tuple[tuple[tuple[int, Any], ...], ...]],
+    snapshot: RawEntityExportSnapshot,
     entity_handle_map: Sequence[tuple[str, str]] = (),
 ) -> None:
     from ezdxf.lldxf.extendedtags import ExtendedTags
 
-    text, ext_snapshot = snapshot
+    snapshot = _coerce_raw_entity_export_snapshot(snapshot)
+    text = snapshot.text
+    ext_snapshot = snapshot.extension_snapshot
     doc = entity.doc
     if doc is None:
         raise const.DXFStructureError("valid DXF document required")
@@ -6030,20 +6138,16 @@ def restore_raw_entity_export(
         source_root_handle = _handle_from_raw_tags(ext_snapshot[0])
         if source_root_handle:
             handle_mapping[source_root_handle] = entity.get_extension_dict().dictionary.dxf.handle
-    setattr(entity, "_raw_tags_override", _remap_raw_entity_text(text, handle_mapping))
+    setattr(
+        entity,
+        RAW_TAGS_OVERRIDE_ATTRIBUTE,
+        _remap_raw_entity_text(text, handle_mapping),
+    )
 
 
 def restore_raw_dynamic_block_layout(
     block: BlockLayout,
-    snapshot: tuple[
-        tuple[
-            str,
-            tuple[bytes, int, int, int],
-            tuple[tuple[str, tuple[tuple[int, Any], ...]], ...],
-            tuple[tuple[tuple[int, Any], ...], ...],
-        ],
-        tuple[tuple[str, tuple[tuple[tuple[int, Any], ...], ...]], ...],
-    ],
+    snapshot: RawDynamicBlockLayoutSnapshot,
     entity_handle_map: Sequence[tuple[str, str]] = (),
 ) -> None:
     from ezdxf.lldxf.extendedtags import ExtendedTags
@@ -6052,21 +6156,24 @@ def restore_raw_dynamic_block_layout(
     if doc is None:
         raise const.DXFStructureError("valid DXF document required")
 
-    definition_snapshot, entity_snapshots = snapshot
+    snapshot = _coerce_raw_dynamic_block_layout_snapshot(snapshot)
+    definition_snapshot = snapshot.definition_snapshot
+    entity_snapshots = snapshot.entity_snapshots
     block.delete_all_entities()
 
     handle_mapping = {
-        definition_snapshot[0]: block.block_record_handle,
+        definition_snapshot.block_record_handle: block.block_record_handle,
         **{str(source): str(target) for source, target in entity_handle_map},
     }
 
-    prepared: list[tuple[str, tuple[tuple[tuple[int, Any], ...], ...], str, Optional[str]]] = []
-    for entity_text, ext_snapshot in entity_snapshots:
-        source_xtags = ExtendedTags.from_text(entity_text)
+    prepared: list[tuple[RawEntityExportSnapshot, str, Optional[str]]] = []
+    for entity_snapshot in entity_snapshots:
+        source_xtags = ExtendedTags.from_text(entity_snapshot.text)
         source_handle = source_xtags.get_handle()
         target_handle = doc.entitydb.next_handle()
         handle_mapping[source_handle] = target_handle
         ext_root_handle: Optional[str] = None
+        ext_snapshot = entity_snapshot.extension_snapshot
         if ext_snapshot:
             root_tags = ext_snapshot[0]
             source_root_handle = _handle_from_raw_tags(root_tags)
@@ -6074,12 +6181,12 @@ def restore_raw_dynamic_block_layout(
             ext_root = _hard_owned_dictionary(ext_root, target_handle)
             handle_mapping[source_root_handle] = ext_root.dxf.handle
             ext_root_handle = ext_root.dxf.handle
-        prepared.append((entity_text, ext_snapshot, target_handle, ext_root_handle))
+        prepared.append((entity_snapshot, target_handle, ext_root_handle))
 
     entities_needing_post_load: list[Any] = []
     entity_handle_map: list[tuple[str, str]] = []
-    for entity_text, ext_snapshot, target_handle, ext_root_handle in prepared:
-        source_xtags = ExtendedTags.from_text(entity_text)
+    for entity_snapshot, target_handle, ext_root_handle in prepared:
+        source_xtags = ExtendedTags.from_text(entity_snapshot.text)
         source_handle = source_xtags.get_handle()
         remapped_tags = [
             _make_raw_tag(
@@ -6090,10 +6197,10 @@ def restore_raw_dynamic_block_layout(
             for tag in source_xtags
         ]
         remapped_xtags = ExtendedTags(remapped_tags)
-        raw_export_text = _remap_raw_entity_text(entity_text, handle_mapping)
+        raw_export_text = _remap_raw_entity_text(entity_snapshot.text, handle_mapping)
         entity = factory.load(remapped_xtags, doc)
         entity.dxf.handle = target_handle
-        setattr(entity, "_raw_tags_override", raw_export_text)
+        setattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE, raw_export_text)
         doc.entitydb.add(entity)
         block.add_entity(entity)
         if isinstance(entity, Insert):
@@ -6101,6 +6208,7 @@ def restore_raw_dynamic_block_layout(
         entities_needing_post_load.append(entity)
         entity_handle_map.append((source_handle, target_handle))
 
+        ext_snapshot = entity_snapshot.extension_snapshot
         if ext_snapshot and ext_root_handle is not None:
             ext_root = doc.entitydb.get(ext_root_handle)
             assert isinstance(ext_root, Dictionary)

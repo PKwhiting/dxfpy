@@ -341,7 +341,7 @@ class _SourceCodeGenerator:
         snapshot = snapshot_raw_entity_export(entity)
         own_handles = {entity.dxf.get("handle", ""), entity.dxf.get("owner", "")}
         pairs: list[str] = []
-        for source_handle in self._raw_handle_refs_from_text(snapshot[0]):
+        for source_handle in self._raw_handle_refs_from_text(snapshot.text):
             if source_handle in own_handles:
                 continue
             expr = self._resource_handle_expr_from_source_handle(entity, source_handle)

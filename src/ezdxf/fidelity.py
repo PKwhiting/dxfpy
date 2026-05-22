@@ -10,10 +10,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ezdxf.dynblkhelper import (
-    _restore_raw_block_entity_exports,
     register_source_entity_handle_mapping,
     remap_header_resource_handles,
     reorder_objects_by_source_order,
+    restore_raw_block_entity_exports,
     restore_dictionary_key_order,
     restore_raw_entity_export,
     restore_raw_extension_subtree,
@@ -90,16 +90,14 @@ def finalize_document_fidelity(source_doc: Drawing, target_doc: Drawing) -> None
     _restore_named_object_collection_raw_exports(
         source_doc.mleader_styles, target_doc.mleader_styles, source_doc, target_doc
     )
-    for name in _names(source_doc.dimstyles):
-        source_dimstyle = _maybe_get(source_doc.dimstyles, name)
-        target_dimstyle = _maybe_get(target_doc.dimstyles, name)
-        if source_dimstyle is None or target_dimstyle is None:
-            continue
-        snapshot = snapshot_raw_entity_export(source_dimstyle)
-        restore_raw_entity_export(
+    for source_dimstyle, target_dimstyle in _iter_named_table_entry_pairs(
+        source_doc.dimstyles, target_doc.dimstyles
+    ):
+        _restore_raw_export_with_resource_mapping(
+            source_dimstyle,
             target_dimstyle,
-            snapshot,
-            _resource_handle_mapping_for_raw_text(source_doc, target_doc, snapshot[0]),
+            source_doc,
+            target_doc,
         )
     _copy_header_state(source_doc, target_doc)
     remap_header_resource_handles(source_doc, target_doc)
@@ -138,52 +136,75 @@ def _object_dict_names(collection) -> tuple[str, ...]:
     return tuple(str(name) for name in collection.object_dict.keys())
 
 
-def _register_named_table_entry_handle_mappings(source_table, target_table) -> None:
+def _iter_named_table_entry_pairs(source_table, target_table):
     for name in _names(source_table):
         source_entity = _maybe_get(source_table, name)
         target_entity = _maybe_get(target_table, name)
         if source_entity is not None and target_entity is not None:
-            register_source_entity_handle_mapping(source_entity, target_entity)
+            yield source_entity, target_entity
+
+
+def _iter_named_object_collection_pairs(source_collection, target_collection):
+    for name in _object_dict_names(source_collection):
+        source_entity = source_collection.get(name)
+        target_entity = target_collection.get(name)
+        if source_entity is not None and target_entity is not None:
+            yield source_entity, target_entity
+
+
+def _restore_extension_subtree_if_present(source_entity, target_entity) -> None:
+    if source_entity.has_extension_dict:
+        restore_raw_extension_subtree(
+            target_entity, snapshot_raw_extension_subtree(source_entity)
+        )
+
+
+def _restore_raw_export_with_resource_mapping(
+    source_entity,
+    target_entity,
+    source_doc: Drawing,
+    target_doc: Drawing,
+) -> None:
+    snapshot = snapshot_raw_entity_export(source_entity)
+    restore_raw_entity_export(
+        target_entity,
+        snapshot,
+        _resource_handle_mapping_for_raw_text(
+            source_doc, target_doc, snapshot.text
+        ),
+    )
+
+
+def _register_named_table_entry_handle_mappings(source_table, target_table) -> None:
+    for source_entity, target_entity in _iter_named_table_entry_pairs(
+        source_table, target_table
+    ):
+        register_source_entity_handle_mapping(source_entity, target_entity)
 
 
 def _restore_named_table_entry_extension_subtrees(source_table, target_table) -> None:
-    for name in _names(source_table):
-        source_entity = _maybe_get(source_table, name)
-        target_entity = _maybe_get(target_table, name)
-        if (
-            source_entity is not None
-            and target_entity is not None
-            and source_entity.has_extension_dict
-        ):
-            restore_raw_extension_subtree(
-                target_entity, snapshot_raw_extension_subtree(source_entity)
-            )
+    for source_entity, target_entity in _iter_named_table_entry_pairs(
+        source_table, target_table
+    ):
+        _restore_extension_subtree_if_present(source_entity, target_entity)
 
 
 def _register_named_object_collection_handle_mappings(
     source_collection, target_collection
 ) -> None:
-    for name in _object_dict_names(source_collection):
-        source_entity = source_collection.get(name)
-        target_entity = target_collection.get(name)
-        if source_entity is not None and target_entity is not None:
-            register_source_entity_handle_mapping(source_entity, target_entity)
+    for source_entity, target_entity in _iter_named_object_collection_pairs(
+        source_collection, target_collection
+    ):
+        register_source_entity_handle_mapping(source_entity, target_entity)
 
 
 def _restore_named_object_collection_extension_subtrees(
     source_collection, target_collection
 ) -> None:
-    for name in _object_dict_names(source_collection):
-        source_entity = source_collection.get(name)
-        target_entity = target_collection.get(name)
-        if (
-            source_entity is not None
-            and target_entity is not None
-            and source_entity.has_extension_dict
-        ):
-            restore_raw_extension_subtree(
-                target_entity, snapshot_raw_extension_subtree(source_entity)
-            )
+    for source_entity, target_entity in _iter_named_object_collection_pairs(
+        source_collection, target_collection
+    ):
+        _restore_extension_subtree_if_present(source_entity, target_entity)
 
 
 def _resource_handle_mapping_for_raw_text(
@@ -274,22 +295,22 @@ def _restore_late_block_entity_exports(source_doc: Drawing, target_doc: Drawing)
             for source_entity, target_entity in zip(source_block, target_block)
             if source_entity.dxf.handle and target_entity.dxf.handle
         }
-        _restore_raw_block_entity_exports(target_block, snapshot[4], entity_handle_map)
+        restore_raw_block_entity_exports(
+            target_block, snapshot.entity_snapshots, entity_handle_map
+        )
 
 
 def _restore_named_object_collection_raw_exports(
     source_collection, target_collection, source_doc: Drawing, target_doc: Drawing
 ) -> None:
-    for name in _object_dict_names(source_collection):
-        source_entity = source_collection.get(name)
-        target_entity = target_collection.get(name)
-        if source_entity is None or target_entity is None:
-            continue
-        snapshot = snapshot_raw_entity_export(source_entity)
-        restore_raw_entity_export(
+    for source_entity, target_entity in _iter_named_object_collection_pairs(
+        source_collection, target_collection
+    ):
+        _restore_raw_export_with_resource_mapping(
+            source_entity,
             target_entity,
-            snapshot,
-            _resource_handle_mapping_for_raw_text(source_doc, target_doc, snapshot[0]),
+            source_doc,
+            target_doc,
         )
 
 
@@ -305,9 +326,9 @@ def _restore_late_rootdict_entity_exports(
             or source_entity.dxftype() == "DICTIONARY"
         ):
             continue
-        snapshot = snapshot_raw_entity_export(source_entity)
-        restore_raw_entity_export(
+        _restore_raw_export_with_resource_mapping(
+            source_entity,
             target_entity,
-            snapshot,
-            _resource_handle_mapping_for_raw_text(source_doc, target_doc, snapshot[0]),
+            source_doc,
+            target_doc,
         )
