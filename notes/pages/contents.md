@@ -8,5 +8,6 @@
 	- [[TUTORIALS]]
 	- [[REFERENCES]]
 	- [[IDEAS]]
+	- [[Dynamic Block Replay Fidelity]]
 	- [[CONTRIBUTORS]]
 - {{embed [[COLLECTIONS]]}}

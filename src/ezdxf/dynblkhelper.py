@@ -5266,8 +5266,18 @@ def _handle_from_raw_tags(tags: Sequence[tuple[int, Any]]) -> str:
 
 
 def _owner_from_raw_tags(tags: Sequence[tuple[int, Any]]) -> str:
+    in_app_data = False
     for code, value in tags:
+        if code == 102:
+            text = str(value)
+            if text.startswith("{"):
+                in_app_data = True
+            elif text == "}":
+                in_app_data = False
+            continue
         if code == 330:
+            if in_app_data:
+                continue
             return str(value)
     return ""
 
@@ -5674,6 +5684,7 @@ def restore_raw_dynamic_block_definition(
     source_block_record_handle, block_record_data, xdata, objects, entity_snapshots = snapshot
     preview_data, units, explode, scale, block_text, endblk_text = block_record_data
     handle_mapping = {str(source): str(target) for source, target in entity_handle_map}
+    global_mapping = _raw_object_handle_mapping(doc)
     if source_block_record_handle and block.block_record_handle:
         handle_mapping[source_block_record_handle] = block.block_record_handle
     if block.block is not None and block.block.dxf.handle:
@@ -5684,6 +5695,7 @@ def restore_raw_dynamic_block_definition(
         source_endblk_xtags = ExtendedTags.from_text(endblk_text) if endblk_text else None
         if source_endblk_xtags is not None:
             handle_mapping[source_endblk_xtags.get_handle()] = block.endblk.dxf.handle
+    global_mapping.update(handle_mapping)
 
     block.block_record.preview_data = preview_data
     block.block_record.dxf.units = units
@@ -5722,6 +5734,8 @@ def _restore_raw_block_entity_exports(
     if doc is None:
         raise const.DXFStructureError("valid DXF document required")
 
+    global_mapping = _raw_object_handle_mapping(doc)
+
     for entity_text, ext_snapshot in entity_snapshots:
         source_xtags = ExtendedTags.from_text(entity_text)
         source_handle = source_xtags.get_handle()
@@ -5733,6 +5747,8 @@ def _restore_raw_block_entity_exports(
             continue
 
         ext_root = None
+        resolved_mapping = dict(global_mapping)
+        resolved_mapping.update(handle_mapping)
         if ext_snapshot:
             root_tags = ext_snapshot[0]
             source_root_handle = _handle_from_raw_tags(root_tags)
@@ -5744,11 +5760,13 @@ def _restore_raw_block_entity_exports(
             ext_root = _hard_owned_dictionary(ext_root, target_handle)
             if source_root_handle:
                 handle_mapping[source_root_handle] = ext_root.dxf.handle
+                global_mapping[source_root_handle] = ext_root.dxf.handle
+                resolved_mapping[source_root_handle] = ext_root.dxf.handle
 
-        setattr(entity, "_raw_tags_override", _remap_raw_entity_text(entity_text, handle_mapping))
+        setattr(entity, "_raw_tags_override", _remap_raw_entity_text(entity_text, resolved_mapping))
 
         if ext_snapshot and ext_root is not None:
-            _restore_raw_object_graph(doc, ext_root, ext_snapshot, handle_mapping)
+            _restore_raw_object_graph(doc, ext_root, ext_snapshot, resolved_mapping)
 
 
 def _restore_raw_block_boundary_entity(

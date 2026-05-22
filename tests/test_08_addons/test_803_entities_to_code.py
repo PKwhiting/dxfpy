@@ -9,8 +9,6 @@ import ezdxf
 from ezdxf.entities.dxfobj import Field
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.sections.header import restore_raw_header_vars, snapshot_raw_header_vars
-from ezdxf.sections.classes import restore_raw_classes, snapshot_raw_classes
 from ezdxf.addons.dxf2code import (
     entities_to_code,
     table_entries_to_code,
@@ -23,6 +21,7 @@ from ezdxf.addons.dxf2code import (
     _fmt_api_call,
     _fmt_dxf_tags,
 )
+from ezdxf.fidelity import finalize_document_fidelity, prepare_document_fidelity
 from ezdxf.dynblkhelper import (
     DynamicBlockBasePointParameter,
     DynamicBlockLinearParameter,
@@ -49,13 +48,8 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_visibility_entities,
     get_dynamic_block_visibility_state,
     get_dynamic_block_visibility_states,
-    reorder_objects_by_source_order,
-    remap_header_resource_handles,
     register_source_entity_handle_mapping,
-    restore_dictionary_key_order,
     restore_raw_entity_export,
-    restore_raw_extension_subtree,
-    restore_raw_rootdict_entries,
     set_dynamic_block_base_point_parameter,
     set_dynamic_block_linear_parameter,
     set_dynamic_block_lookup_parameter,
@@ -64,11 +58,8 @@ from ezdxf.dynblkhelper import (
     set_dynamic_block_reference,
     set_dynamic_block_visibility_parameter,
     set_dynamic_block_visibility_state,
-    snapshot_dictionary_key_order,
-    snapshot_object_handle_order,
     snapshot_raw_entity_export,
     snapshot_raw_extension_subtree,
-    snapshot_raw_rootdict_entries,
 )
 
 
@@ -85,23 +76,6 @@ NESTED_RICHER_CHILD_ORACLE = Path(__file__).parent / "autocad_nested_richer_chil
 NESTED_TWO_CHILDREN_ORACLE = Path(__file__).parent / "autocad_nested_two_children_candidate_gen2.dxf"
 NESTED_TWO_CHILDREN_MIXED_ORACLE = Path(__file__).parent / "autocad_nested_two_children_mixed_states_gen2_v2.dxf"
 NESTED_THREE_LEVEL_MIXED_ORACLE = Path(__file__).parent / "autocad_nested_three_level_mixed_gen2_v3.dxf"
-HEADER_STATE_SKIP = {
-    "$HANDSEED",
-    "$VERSIONGUID",
-    "$FINGERPRINTGUID",
-    "$TDCREATE",
-    "$TDUPDATE",
-}
-HEADER_RAW_OVERRIDE_KEYS = (
-    "$TDCREATE",
-    "$TDUPDATE",
-    "$PEXTMIN",
-    "$PEXTMAX",
-    "$FINGERPRINTGUID",
-    "$VERSIONGUID",
-)
-
-
 def test_fmt_mapping():
     d = {"a": 1, "b": "str", "c": Vec3(), "d": "xxx \"yyy\" 'zzz'"}
     r = list(_fmt_mapping(d))
@@ -250,6 +224,20 @@ def _resource_entities(doc: ezdxf.document.Drawing) -> list:
         entity = _maybe_get(doc.appids, name)
         if entity is not None:
             entities.append(entity)
+    for name in sorted(
+        set(doc.mleader_styles.object_dict.keys())
+        - set(default_doc.mleader_styles.object_dict.keys())
+    ):
+        entity = doc.mleader_styles.get(name)
+        if entity is not None:
+            entities.append(entity)
+    for name in sorted(
+        set(doc.table_styles.object_dict.keys())
+        - set(default_doc.table_styles.object_dict.keys())
+    ):
+        entity = doc.table_styles.get(name)
+        if entity is not None:
+            entities.append(entity)
     return entities
 
 
@@ -305,133 +293,25 @@ def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.
     resources = _resource_entities(source_doc)
     if resources:
         execute_code_in_namespace(table_entries_to_code(resources, drawing="doc"), namespace)
-    restore_raw_rootdict_entries(
-        target_doc,
-        snapshot_raw_rootdict_entries(source_doc, tuple(source_doc.rootdict.keys())),
-    )
-    target_doc.layouts.setup_from_rootdict()
-    restore_dictionary_key_order(
-        target_doc.rootdict, snapshot_dictionary_key_order(source_doc.rootdict)
-    )
-    for name in _names(source_doc.layers):
-        source_layer = _maybe_get(source_doc.layers, name)
-        target_layer = _maybe_get(target_doc.layers, name)
-        if source_layer is not None and target_layer is not None:
-            register_source_entity_handle_mapping(source_layer, target_layer)
-    for name in _names(source_doc.layers):
-        source_layer = _maybe_get(source_doc.layers, name)
-        target_layer = _maybe_get(target_doc.layers, name)
-        if source_layer is not None and target_layer is not None and source_layer.has_extension_dict:
-            restore_raw_extension_subtree(
-                target_layer, snapshot_raw_extension_subtree(source_layer)
-            )
-    for name, _entry in source_doc.mleader_styles.object_dict.items():
-        source_style = source_doc.mleader_styles.get(name)
-        target_style = target_doc.mleader_styles.get(name)
-        if source_style is not None and target_style is not None:
-            register_source_entity_handle_mapping(source_style, target_style)
-    for name, _entry in source_doc.mleader_styles.object_dict.items():
-        source_style = source_doc.mleader_styles.get(name)
-        target_style = target_doc.mleader_styles.get(name)
-        if source_style is not None and target_style is not None and source_style.has_extension_dict:
-            restore_raw_extension_subtree(
-                target_style, snapshot_raw_extension_subtree(source_style)
-            )
-    for name, _entry in source_doc.table_styles.object_dict.items():
-        source_style = source_doc.table_styles.get(name)
-        target_style = target_doc.table_styles.get(name)
-        if source_style is not None and target_style is not None:
-            register_source_entity_handle_mapping(source_style, target_style)
-    for name, _entry in source_doc.table_styles.object_dict.items():
-        source_style = source_doc.table_styles.get(name)
-        target_style = target_doc.table_styles.get(name)
-        if source_style is not None and target_style is not None and source_style.has_extension_dict:
-            restore_raw_extension_subtree(
-                target_style, snapshot_raw_extension_subtree(source_style)
-            )
-    if source_doc.layers.head.has_extension_dict:
-        restore_raw_extension_subtree(
-            target_doc.layers.head, snapshot_raw_extension_subtree(source_doc.layers.head)
-        )
+    prepare_document_fidelity(source_doc, target_doc)
     blocks = _sort_blocks([block for block in source_doc.blocks if not block.is_any_layout])
     for block in blocks:
+        target_block = target_doc.blocks.get(block.name)
+        if target_block is not None:
+            target_doc.blocks.delete_block(block.name, safe=False)
+            target_block = None
         execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
-    for name in _names(source_doc.dimstyles):
-        source_dimstyle = _maybe_get(source_doc.dimstyles, name)
-        target_dimstyle = _maybe_get(target_doc.dimstyles, name)
-        if source_dimstyle is None or target_dimstyle is None:
+        target_block = target_doc.blocks.get(block.name)
+        if target_block is None:
             continue
-        restore_raw_entity_export(
-            target_dimstyle,
-            snapshot_raw_entity_export(source_dimstyle),
-            _resource_handle_mapping_for_raw_text(
-                source_doc, target_doc, snapshot_raw_entity_export(source_dimstyle)[0]
-            ),
-        )
+        register_source_entity_handle_mapping(block.block_record, target_block.block_record)
+        if block.block is not None and target_block.block is not None:
+            register_source_entity_handle_mapping(block.block, target_block.block)
+        if block.endblk is not None and target_block.endblk is not None:
+            register_source_entity_handle_mapping(block.endblk, target_block.endblk)
     execute_code_in_namespace(entities_to_code(source_doc.modelspace(), layout="msp"), namespace)
-    _copy_header_state(source_doc, target_doc)
-    remap_header_resource_handles(source_doc, target_doc)
-    if source_doc.filename:
-        restore_raw_header_vars(
-            target_doc.header,
-            snapshot_raw_header_vars(source_doc.filename, HEADER_RAW_OVERRIDE_KEYS),
-        )
-    restore_raw_classes(target_doc.classes, snapshot_raw_classes(source_doc.classes))
-    reorder_objects_by_source_order(
-        target_doc, snapshot_object_handle_order(source_doc)
-    )
+    finalize_document_fidelity(source_doc, target_doc)
     return target_doc
-
-
-def _copy_header_state(
-    source_doc: ezdxf.document.Drawing, target_doc: ezdxf.document.Drawing
-) -> None:
-    target_doc.encoding = source_doc.encoding
-    for name in source_doc.header.varnames():
-        if name in HEADER_STATE_SKIP:
-            continue
-        target_doc.header[name] = source_doc.header.get(name)
-    target_doc.header.custom_vars.clear()
-    for tag, value in source_doc.header.custom_vars:
-        target_doc.header.custom_vars.append(tag, value)
-
-
-def _resource_handle_mapping_for_raw_text(
-    source_doc: ezdxf.document.Drawing,
-    target_doc: ezdxf.document.Drawing,
-    text: str,
-) -> list[tuple[str, str]]:
-    mapping: list[tuple[str, str]] = []
-    seen: set[str] = set()
-    for tag in ExtendedTags.from_text(text):
-        if tag.code == 5 or tag.code == 1005 or is_pointer_code(tag.code):
-            handle = str(tag.value)
-            if handle in seen:
-                continue
-            seen.add(handle)
-            source_entity = source_doc.entitydb.get(handle)
-            if source_entity is None:
-                continue
-            target_handle = None
-            dxftype = source_entity.dxftype()
-            if dxftype == "STYLE":
-                target = target_doc.styles.get(source_entity.dxf.name)
-                target_handle = target.dxf.handle if target is not None else None
-            elif dxftype == "LTYPE":
-                target = target_doc.linetypes.get(source_entity.dxf.name)
-                target_handle = target.dxf.handle if target is not None else None
-            elif dxftype == "LAYER":
-                target = target_doc.layers.get(source_entity.dxf.name)
-                target_handle = target.dxf.handle if target is not None else None
-            elif dxftype == "APPID":
-                target = target_doc.appids.get(source_entity.dxf.name)
-                target_handle = target.dxf.handle if target is not None else None
-            elif dxftype == "BLOCK_RECORD":
-                block = target_doc.blocks.get(source_entity.dxf.name)
-                target_handle = block.block_record_handle if block is not None else None
-            if target_handle is not None:
-                mapping.append((handle, target_handle))
-    return mapping
 
 
 def _dynamic_block_by_public_name(doc: ezdxf.document.Drawing, public_name: str):
@@ -1822,6 +1702,22 @@ def test_mleaderstyle_entry_missing_block_handle_is_safe():
     assert new_style.dxf.hasattr("block_record_handle") is False
 
 
+def test_mleaderstyle_entry_uses_object_dict_key_when_entity_name_diverges():
+    source_doc = ezdxf.new("R2010")
+    style = source_doc.mleader_styles.duplicate_entry("Standard", "TEST_STYLE")
+    style.dxf.name = "Standard"
+    style.dxf.default_text_content = "STYLE_TEXT"
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc}
+    code = table_entries_to_code([style], drawing="doc")
+    execute_code_in_namespace(code, namespace)
+    new_style = target_doc.mleader_styles.get("TEST_STYLE")
+
+    assert new_style is not None
+    assert new_style.dxf.default_text_content == "STYLE_TEXT"
+
+
 def test_dimstyle_replay_preserves_normalized_raw_export():
     source_doc = ezdxf.new("R2010")
     source_doc.styles.new("DIM_TXT", dxfattribs={"font": "txt"})
@@ -2972,6 +2868,49 @@ def test_plain_wrapper_nested_dynamic_replay_preserves_blkref_handles():
         if insert.dxf.name == wrapper_name
     )
     assert list(wrapper.block_record.blkref_handles) == [wrapper_insert.dxf.handle]
+
+
+def test_replay_block_multileader_external_handles_remap_to_target_resources():
+    from ezdxf.render.mleader import ConnectionSide
+    from ezdxf.lldxf.extendedtags import ExtendedTags
+
+    source_doc = ezdxf.new("R2010")
+    source_doc.blocks.new("_ClosedBlank")
+    style = source_doc.mleader_styles.duplicate_entry(
+        "Standard", "RAE SLD Leader (Model Only)"
+    )
+    style.dxf.name = "Standard"
+    style.dxf.block_record_handle = source_doc.blocks.get(
+        "_ClosedBlank"
+    ).block_record_handle
+    block = source_doc.blocks.new("MLEADER_BLOCK_SOURCE")
+    builder = block.add_multileader_mtext("RAE SLD Leader (Model Only)")
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+    source_doc.modelspace().add_blockref(block.name, (0, 0))
+
+    new_doc = replay_doc_to_new_doc(source_doc)
+    new_block = new_doc.blocks.get("MLEADER_BLOCK_SOURCE")
+    assert new_block is not None
+    new_entity = next(entity for entity in new_block if entity.dxftype() == "MULTILEADER")
+    text = _export_text(new_entity, new_doc.dxfversion)
+    refs = []
+    for tag in ExtendedTags.from_text(text):
+        if tag.code not in (340, 342):
+            continue
+        target = new_doc.entitydb.get(str(tag.value))
+        if target is None:
+            continue
+        name = target.dxf.name if target.dxf.hasattr("name") else ""
+        refs.append((tag.code, target.dxftype(), name))
+
+    assert (340, "MLEADERSTYLE", "Standard") in refs
+    new_style = new_doc.mleader_styles.get("RAE SLD Leader (Model Only)")
+    assert new_style is not None
+    assert new_style.dxf.block_record_handle == new_doc.blocks.get(
+        "_ClosedBlank"
+    ).block_record_handle
 
 
 def test_dynamic_block_basepoint_linear_two_generation_replay_preserves_supported_path():

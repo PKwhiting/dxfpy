@@ -2116,9 +2116,14 @@ class _SourceCodeGenerator:
             )
 
     def _mleaderstyle(self, entity: DXFEntity) -> None:
-        self._setup_multileader_style(entity, entity.dxf.name)
+        style_name = self._named_object_resource_name(
+            entity, "mleader_styles", entity.dxf.handle
+        )
+        if style_name is None:
+            style_name = entity.dxf.name
+        self._setup_multileader_style(entity, style_name)
         self.add_source_code_line(
-            f"mlstyle = {self.doc}.mleader_styles.get({json.dumps(entity.dxf.name)})"
+            f"mlstyle = {self.doc}.mleader_styles.get({json.dumps(style_name)})"
         )
         self._emit_raw_resource_entry_restore(entity, var_name="mlstyle")
 

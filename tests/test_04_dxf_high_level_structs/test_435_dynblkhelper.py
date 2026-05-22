@@ -9,6 +9,7 @@ from ezdxf.dynblkhelper import (
     _clone_non_attdef_entities,
     _clone_property_attdef,
     _new_tag_storage_object,
+    _owner_from_raw_tags,
     DynamicBlockBasePointParameter,
     DynamicBlockPropertiesTable,
     DynamicBlockPropertyColumn,
@@ -36,6 +37,7 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_property_representation_families,
     get_dynamic_block_property_representations,
     get_dynamic_block_property_rows,
+    register_source_entity_handle_mapping,
     snapshot_raw_dynamic_block_definition,
     snapshot_raw_dynamic_block_layout,
     restore_raw_dynamic_block_definition,
@@ -1224,6 +1226,62 @@ def test_raw_dynamic_block_definition_restore_preserves_multileader_proxy_payloa
 
     assert getattr(restored, "_raw_tags_override") is not None
     assert "\n 92\n4\n310\n01020304\n" in text
+
+
+def test_raw_dynamic_block_definition_restore_remaps_external_multileader_style_handles():
+    from ezdxf.render.mleader import ConnectionSide
+
+    source_doc = ezdxf.new("R2010")
+    target_doc = ezdxf.new("R2010")
+    target_style = target_doc.mleader_styles.get("Standard")
+    assert target_style is not None
+    assert target_doc.entitydb.reset_handle(target_style, "F1") is True
+
+    source = source_doc.blocks.new("RAW_DEF_MLEADER_EXT_SOURCE")
+    builder = source.add_multileader_mtext()
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+
+    clone = target_doc.blocks.new("RAW_DEF_MLEADER_EXT_CLONE")
+    builder = clone.add_multileader_mtext()
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+
+    source_style = source_doc.mleader_styles.get("Standard")
+    assert source_style is not None
+    register_source_entity_handle_mapping(source_style, target_style)
+
+    snapshot = snapshot_raw_dynamic_block_definition(source)
+    entity_handle_map = [(s.dxf.handle, t.dxf.handle) for s, t in zip(source, clone)]
+    restore_raw_dynamic_block_definition(clone, snapshot, entity_handle_map)
+
+    restored = next(entity for entity in clone if entity.dxftype() == "MULTILEADER")
+    stream = StringIO()
+    restored.export_dxf(TagWriter(stream, dxfversion=target_doc.dxfversion))
+    refs: list[tuple[str, str]] = []
+    for tag in ExtendedTags.from_text(stream.getvalue()):
+        if tag.code != 340:
+            continue
+        target = target_doc.entitydb.get(str(tag.value))
+        refs.append((str(tag.value), target.dxftype() if target is not None else ""))
+
+    assert (target_style.dxf.handle, "MLEADERSTYLE") in refs
+    assert all(value != source_style.dxf.handle for value, _ in refs)
+
+
+def test_owner_from_raw_tags_skips_reactor_handles():
+    tags = (
+        (0, "MLEADERSTYLE"),
+        (5, "18A7"),
+        (102, "{ACAD_REACTORS"),
+        (330, "19D"),
+        (102, "}"),
+        (330, "F"),
+    )
+
+    assert _owner_from_raw_tags(tags) == "F"
 
 
 def test_raw_dynamic_block_layout_snapshot_uses_authored_file_text_when_available(
