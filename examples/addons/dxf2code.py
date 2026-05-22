@@ -33,7 +33,7 @@ def main():
         f.write("\n\n")
 
         f.write("doc = ezdxf.new()\n")
-        f.write("msp = ezdxf.modelspace()\n\n")
+        f.write("msp = doc.modelspace()\n\n")
         f.write(source.code_str())
         f.write("\n")
 

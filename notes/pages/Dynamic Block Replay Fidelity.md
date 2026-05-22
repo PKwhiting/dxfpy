@@ -52,7 +52,7 @@ alias:: dynamic block replay, proxy insert replay, reverse handle remap
     - late rootdict object restore
     - layout/modelspace handle registration
     - late named-object raw restore
-  - `src/ezdxf/addons/dxf2code.py`
+  - `src/ezdxf/addons/dxf2code/`
     - `MLEADERSTYLE` emission must use the object-dictionary key when name/key diverge
 
 - The practical fix pattern:
@@ -87,7 +87,7 @@ alias:: dynamic block replay, proxy insert replay, reverse handle remap
   - Public file-based addon entry point:
     - `ezdxf.addons.dxf2code.document_to_code_file()`
   - Internal implementation:
-    - `src/ezdxf/addons/_dxf2code_document.py`
+    - `src/ezdxf/addons/dxf2code/_document.py`
   - Exploration wrapper:
     - `exploration/generate_dxf2code_replay.py`
   - This is the promoted version of the helper logic that was used to get larger pure-dxf2code cases working.
@@ -95,7 +95,11 @@ alias:: dynamic block replay, proxy insert replay, reverse handle remap
 - Tests added/updated:
   - `tests/test_04_dxf_high_level_structs/test_435_dynblkhelper.py`
   - `tests/test_04_dxf_high_level_structs/test_436_fidelity.py`
-  - `tests/test_08_addons/test_803_entities_to_code.py`
+  - `tests/test_08_addons/test_803a_dxf2code_formatting.py`
+  - `tests/test_08_addons/test_803b_dxf2code_entities.py`
+  - `tests/test_08_addons/test_803c_dxf2code_fields_multileader_table.py`
+  - `tests/test_08_addons/test_803d_dxf2code_document_codegen.py`
+  - `tests/test_08_addons/test_803e_dxf2code_dynamic_blocks.py`
 
 - Key takeaway:
   - For low-level DXF fidelity, the real oracle is the AutoCAD-opened result.

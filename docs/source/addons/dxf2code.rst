@@ -7,6 +7,12 @@ dxf2code
 
 Translate DXF entities and structures into Python source code.
 
+`entities_to_code`, `block_to_code` and `table_entries_to_code` translate
+snippet-sized DXF content into Python source code. For larger roundtrip and
+fidelity workflows, `document_to_code_file()` generates a full-document replay
+script that recreates the source drawing and writes a target DXF when the
+generated Python file is executed.
+
 `dxf2code` recreates the translated entity graph, including simple object-backed
 ``FIELD`` wrappers hosted by ``TEXT``, ``ATTRIB``, ``ATTDEF`` and ``MTEXT``.
 For ``AcObjProp`` fields, the referenced target entity also has to be part of
@@ -48,7 +54,11 @@ Short example:
 .. code-block:: Python
 
     import ezdxf
-    from ezdxf.addons.dxf2code import entities_to_code, block_to_code
+    from ezdxf.addons.dxf2code import (
+        entities_to_code,
+        block_to_code,
+        table_entries_to_code,
+    )
 
     doc = ezdxf.readfile('original.dxf')
     msp = doc.modelspace()
@@ -72,12 +82,30 @@ Short example:
         f.write(source.code_str())
         f.write('\n')
 
+Full-document replay example:
+
+.. code-block:: Python
+
+    from pathlib import Path
+    from ezdxf.addons.dxf2code import document_to_code_file
+
+    source = Path("original.dxf")
+    script = Path("rebuild_original.py")
+    output = Path("rebuild_original.dxf")
+
+    document_to_code_file(str(source), str(script), str(output))
+
+The generated replay script writes ``output`` when ``rebuild_original.py`` is
+executed.
+
 
 .. autofunction:: entities_to_code
 
 .. autofunction:: block_to_code
 
 .. autofunction:: table_entries_to_code
+
+.. autofunction:: document_to_code_file
 
 .. autofunction:: black
 

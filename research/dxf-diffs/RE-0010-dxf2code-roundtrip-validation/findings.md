@@ -55,8 +55,8 @@ already-known cache oscillation:
 
 ## Likely ezdxf Targets
 
-- `src/ezdxf/addons/dxf2code.py`
-- `tests/test_08_addons/test_803_entities_to_code.py`
+- `src/ezdxf/addons/dxf2code/`
+- `tests/test_08_addons/test_803*.py`
 - `experiments/ezdxf-generated-fields/generate_dxf2code_roundtrip_validation.py`
 
 ## Artifacts
