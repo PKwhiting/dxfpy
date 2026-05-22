@@ -12,7 +12,7 @@ from ezdxf.lldxf.tagwriter import TagCollector
 from ezdxf.sections.classes import snapshot_raw_classes
 from ezdxf.sections.header import snapshot_raw_header_vars
 
-from . import block_to_code, entities_to_code, table_entries_to_code
+from ._api import block_to_code, entities_to_code, table_entries_to_code
 from ._common import _maybe_get, _names, _sort_blocks
 from ._specs import (
     DocumentCodegenCapture,
