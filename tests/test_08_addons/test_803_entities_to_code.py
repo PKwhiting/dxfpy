@@ -10,6 +10,7 @@ from ezdxf.entities.dxfobj import Field
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tagwriter import TagWriter
 from ezdxf.addons.dxf2code import (
+    document_to_code_file,
     entities_to_code,
     table_entries_to_code,
     block_to_code,
@@ -1844,6 +1845,36 @@ def test_text_acexpr_field_to_code():
     assert len(children) == 2
     assert children[0].object_handles == [new_line.dxf.handle]
     assert children[1].object_handles == [new_circle.dxf.handle]
+
+
+def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
+    source_doc = ezdxf.new("R2010")
+    line = source_doc.modelspace().add_line((0, 0), (1, 0))
+    source_doc.header["$LASTSAVEDBY"] = "tester"
+    source_doc.header.custom_vars.append("CustomTag", "CustomValue")
+    xrecord = source_doc.objects.add_xrecord(owner=source_doc.rootdict.dxf.handle)
+    xrecord.set_reactors([source_doc.rootdict.dxf.handle])
+    xrecord.tags.extend([(90, 1), (330, line.dxf.handle)])
+    source_doc.rootdict.add("ACDB_RECOMPOSE_DATA", xrecord)
+
+    source_path = tmp_path / "source_doc.dxf"
+    script_path = tmp_path / "generated_doc.py"
+    output_path = tmp_path / "generated_doc.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_line = out_doc.modelspace()[0]
+    restored = out_doc.rootdict.get("ACDB_RECOMPOSE_DATA")
+
+    assert script_path.exists()
+    assert output_path.exists()
+    assert out_doc.header["$LASTSAVEDBY"] == "tester"
+    assert list(out_doc.header.custom_vars) == [("CustomTag", "CustomValue")]
+    assert restored is not None
+    assert f"330\n{out_line.dxf.handle}\n" in _export_text(restored, out_doc.dxfversion)
 
 
 def test_mtext_acexpr_field_to_code():

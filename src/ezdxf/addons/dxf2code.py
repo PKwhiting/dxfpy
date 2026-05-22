@@ -38,6 +38,7 @@ __all__ = [
     "entities_to_code",
     "block_to_code",
     "table_entries_to_code",
+    "document_to_code_file",
     "black",
 ]
 
@@ -149,6 +150,23 @@ def table_entries_to_code(
     code = _SourceCodeGenerator(doc=drawing)
     code.translate_entities(entities)
     return code.code
+
+
+def document_to_code_file(
+    source: str,
+    script_path: str,
+    output_path: str,
+) -> None:
+    """Generate a full-document dxf2code replay script.
+
+    This is a file-based API for document-level code generation that preserves
+    additional rootdict/object/header/class fidelity not covered by the
+    entity/block-level helpers.
+    """
+
+    from ezdxf.addons._dxf2code_document import write_document_code
+
+    write_document_code(source, script_path, output_path)
 
 
 class Code:
@@ -797,9 +815,13 @@ class _SourceCodeGenerator:
 
     def _format_field_tag_value(self, code: int, value: Any) -> Optional[str]:
         if code in (330, 331):
-            if not isinstance(value, str) or value not in self._translated_handles:
+            if not isinstance(value, str):
                 return None
-            return f'_entity_map[{json.dumps(value)}].dxf.handle'
+            if value in self._translated_handles:
+                return f'_entity_map[{json.dumps(value)}].dxf.handle'
+            # Some real-world FIELD objects preserve dangling handle references
+            # that are not part of the translated entity set.
+            return json.dumps(value)
         if isinstance(value, str):
             return json.dumps(value)
         return str(value)
@@ -2638,7 +2660,7 @@ class _SourceCodeGenerator:
 
     def _dimension(self, entity: Dimension):
         self.add_import_statement(
-            "from ezdxf.dimstyleoverride import DimStyleOverride"
+            "from ezdxf.entities.dimstyleoverride import DimStyleOverride"
         )
         self.add_source_code_line(
             "# Dimension style attribute overriding is not supported!"

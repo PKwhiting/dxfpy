@@ -83,6 +83,15 @@ alias:: dynamic block replay, proxy insert replay, reverse handle remap
   - `autocad_complex_replay_target_v1_edited_replayed_phase2_review_v19.dxf`
   - Both opened correctly in AutoCAD and `AUDIT` was clean.
 
+- Tracked full-document dxf2code workflow:
+  - Public file-based addon entry point:
+    - `ezdxf.addons.dxf2code.document_to_code_file()`
+  - Internal implementation:
+    - `src/ezdxf/addons/_dxf2code_document.py`
+  - Exploration wrapper:
+    - `exploration/generate_dxf2code_replay.py`
+  - This is the promoted version of the helper logic that was used to get larger pure-dxf2code cases working.
+
 - Tests added/updated:
   - `tests/test_04_dxf_high_level_structs/test_435_dynblkhelper.py`
   - `tests/test_04_dxf_high_level_structs/test_436_fidelity.py`
