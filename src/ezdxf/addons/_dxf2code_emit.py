@@ -1,10 +1,24 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+
+from ._dxf2code_specs import OwnedObjectSpec
+from ._dxf2code_specs import DocumentCodegenCapture
 
 
-def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
+def _owned_object_specs_literal(specs: list[OwnedObjectSpec]) -> list[dict[str, object]]:
+    return [
+        {
+            "handle": spec.handle,
+            "owner": spec.owner,
+            "dxftype": spec.dxftype,
+            "subclasses": spec.subclasses,
+        }
+        for spec in specs
+    ]
+
+
+def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path) -> str:
     doc = data["doc"]
     blocks = data["blocks"]
     block_codes = data["block_codes"]
@@ -352,17 +366,17 @@ def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
             lines.append(f'    doc.rootdict.add({key!r}, _xr)')
         if variable_dict_entries:
             lines.append('_var_dict = doc.rootdict.get_required_dict("AcDbVariableDictionary")')
-            for key, value in variable_dict_entries:
-                lines.append(f'if {key!r} not in _var_dict:')
-                lines.append(f'    _var_dict.add_dict_var({key!r}, {value!r})')
+            for entry in variable_dict_entries:
+                lines.append(f'if {entry.key!r} not in _var_dict:')
+                lines.append(f'    _var_dict.add_dict_var({entry.key!r}, {entry.value!r})')
         if visualstyle_entries:
             lines.append('_vs_dict = doc.rootdict.get_required_dict("ACAD_VISUALSTYLE")')
-            for key, dxfattribs in visualstyle_entries:
-                lines.append(f'if {key!r} not in _vs_dict:')
+            for entry in visualstyle_entries:
+                lines.append(f'if {entry.key!r} not in _vs_dict:')
                 lines.append('    _vs_attribs = dict(owner=_vs_dict.dxf.handle)')
-                lines.append(f'    _vs_attribs.update({dxfattribs!r})')
+                lines.append(f'    _vs_attribs.update({entry.dxfattribs!r})')
                 lines.append('    _vs = doc.objects.new_entity("VISUALSTYLE", dxfattribs=_vs_attribs)')
-                lines.append(f'    _vs_dict.add({key!r}, _vs)')
+                lines.append(f'    _vs_dict.add({entry.key!r}, _vs)')
             for key, snapshot in visualstyle_extensions:
                 lines.append(f'_vs = _vs_dict.get({key!r})')
                 lines.append(
@@ -376,10 +390,10 @@ def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
             )
         if detail_view_styles:
             lines.append('_detail_dict = doc.rootdict.get_required_dict("ACAD_DETAILVIEWSTYLE")')
-            for key, tags in detail_view_styles:
-                lines.append(f'if {key!r} not in _detail_dict:')
+            for entry in detail_view_styles:
+                lines.append(f'if {entry.key!r} not in _detail_dict:')
                 lines.append(
-                    f'    _add_raw_object(_detail_dict, {key!r}, "ACDBDETAILVIEWSTYLE", {tags!r})'
+                    f'    _add_raw_object(_detail_dict, {entry.key!r}, "ACDBDETAILVIEWSTYLE", {entry.tags!r})'
                 )
             for key, snapshot in detail_view_style_extensions:
                 lines.append(f'_detail = _detail_dict.get({key!r})')
@@ -388,10 +402,10 @@ def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
                 )
         if section_view_styles:
             lines.append('_section_dict = doc.rootdict.get_required_dict("ACAD_SECTIONVIEWSTYLE")')
-            for key, tags in section_view_styles:
-                lines.append(f'if {key!r} not in _section_dict:')
+            for entry in section_view_styles:
+                lines.append(f'if {entry.key!r} not in _section_dict:')
                 lines.append(
-                    f'    _add_raw_object(_section_dict, {key!r}, "ACDBSECTIONVIEWSTYLE", {tags!r})'
+                    f'    _add_raw_object(_section_dict, {entry.key!r}, "ACDBSECTIONVIEWSTYLE", {entry.tags!r})'
                 )
             for key, snapshot in section_view_style_extensions:
                 lines.append(f'_section = _section_dict.get({key!r})')
@@ -405,10 +419,10 @@ def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
             lines.append(
                 '    _xd = _std.get_extension_dict() if _std.has_extension_dict else _std.new_extension_dict()'
             )
-            for key, tags in table_style_cellstylemap:
-                lines.append(f'    if {key!r} not in _xd.dictionary:')
+            for entry in table_style_cellstylemap:
+                lines.append(f'    if {entry.key!r} not in _xd.dictionary:')
                 lines.append(
-                    f'        _add_raw_object(_xd.dictionary, {key!r}, "CELLSTYLEMAP", {tags!r})'
+                    f'        _add_raw_object(_xd.dictionary, {entry.key!r}, "CELLSTYLEMAP", {entry.tags!r})'
                 )
         lines.append("")
 
@@ -428,54 +442,54 @@ def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
             lines.append(
                 f'_graph = _new_raw_graph_object("ACAD_EVALUATION_GRAPH", _xd.dxf.handle)'
             )
-            lines.append(f'_graph_map[{fallback["graph_handle"]!r}] = _graph')
-            for spec in fallback["owned_specs"]:
+            lines.append(f'_graph_map[{fallback.graph_handle!r}] = _graph')
+            for spec in fallback.owned_specs:
                 lines.append(
-                    f'_graph_map[{spec["handle"]!r}] = _new_raw_graph_object({spec["dxftype"]!r}, _graph.dxf.handle)'
+                    f'_graph_map[{spec.handle!r}] = _new_raw_graph_object({spec.dxftype!r}, _graph.dxf.handle)'
                 )
             lines.append(
-                f'_load_raw_graph_object(_graph, _xd.dxf.handle, {fallback["graph_subclasses"]!r}, [], _entity_map, _graph_map)'
+                f'_load_raw_graph_object(_graph, _xd.dxf.handle, {fallback.graph_subclasses!r}, [], _entity_map, _graph_map)'
             )
             lines.append("_graph.set_reactors([_xd.dxf.handle])")
             lines.append('_xd.add("ACAD_ENHANCEDBLOCK", _graph)')
-            if fallback["graph_xdata"]:
+            if fallback.graph_xdata:
                 lines.append(
-                    f'_graph.set_xdata("AcadBPTGraphNodeId", {fallback["graph_xdata"]!r})'
+                    f'_graph.set_xdata("AcadBPTGraphNodeId", {fallback.graph_xdata!r})'
                 )
-            if fallback["purge_subclasses"]:
+            if fallback.purge_subclasses:
                 lines.append(
                     '_purge = _new_raw_graph_object("ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION", _xd.dxf.handle)'
                 )
                 lines.append(
-                    f'_load_raw_graph_object(_purge, _xd.dxf.handle, {fallback["purge_subclasses"]!r}, [], _entity_map, _graph_map)'
+                    f'_load_raw_graph_object(_purge, _xd.dxf.handle, {fallback.purge_subclasses!r}, [], _entity_map, _graph_map)'
                 )
                 lines.append("_purge.set_reactors([_xd.dxf.handle])")
                 lines.append('_xd.add("AcDbDynamicBlockRoundTripPurgePreventer", _purge)')
-            for spec in fallback["owned_specs"]:
+            for spec in fallback.owned_specs:
                 lines.append(
-                    f'_load_raw_graph_object(_graph_map[{spec["handle"]!r}], _graph.dxf.handle, {spec["subclasses"]!r}, {spec["xdata"]!r}, _entity_map, _graph_map)'
+                    f'_load_raw_graph_object(_graph_map[{spec.handle!r}], _graph.dxf.handle, {spec.subclasses!r}, {spec.xdata!r}, _entity_map, _graph_map)'
                 )
-            for spec in fallback["owned_specs"]:
-                if spec["reactors"]:
+            for spec in fallback.owned_specs:
+                if spec.reactors:
                     lines.append(
-                        f'_set_raw_graph_reactors(_graph_map[{spec["handle"]!r}], {spec["reactors"]!r}, _entity_map, _graph_map)'
+                        f'_set_raw_graph_reactors(_graph_map[{spec.handle!r}], {spec.reactors!r}, _entity_map, _graph_map)'
                     )
         xrecord_specs = entity_xrecord_fallbacks.get(block.name, [])
         for spec in xrecord_specs:
             lines.append(
-                f'_rebuild_entity_xrecord_tree(_entity_map[{spec["entity_handle"]!r}], {spec["dict_key"]!r}, {spec["dict_order"]!r}, {spec["root_handle"]!r}, {spec["root_dxftype"]!r}, {spec["root_subclasses"]!r}, {spec["owned_specs"]!r}, _entity_map)'
+                f'_rebuild_entity_xrecord_tree(_entity_map[{spec.entity_handle!r}], {spec.dict_key!r}, {spec.dict_order!r}, {spec.root_handle!r}, {spec.root_dxftype!r}, {spec.root_subclasses!r}, {_owned_object_specs_literal(spec.owned_specs)!r}, _entity_map)'
             )
         lines.append("_source_entity_map.update(_entity_map)")
         raw_specs = raw_entity_swap_fallbacks.get(block.name, [])
         for spec in raw_specs:
             raw_entity_swap_calls.append(
-                f'_swap_raw_graphic_entity(doc.blocks.get({block.name!r}), {spec["source_handle"]!r}, {spec["source_owner"]!r}, {spec["source_xdict_handle"]!r}, {spec["source_resource_handles"]!r}, {spec["raw_tags"]!r})'
+                f'_swap_raw_graphic_entity(doc.blocks.get({block.name!r}), {spec.source_handle!r}, {spec.source_owner!r}, {spec.source_xdict_handle!r}, {[(ref.source_handle, ref.attrib_name) for ref in spec.source_resource_handles]!r}, {spec.raw_tags!r})'
             )
         lines.append("")
 
     if sortents_by_block:
-        for block_name, tags in sortents_by_block:
-            sortents_calls.append(f'_sort_block = doc.blocks.get({block_name!r})')
+        for spec in sortents_by_block:
+            sortents_calls.append(f'_sort_block = doc.blocks.get({spec.block_name!r})')
             sortents_calls.append('if _sort_block is not None:')
             sortents_calls.append(
                 '    _xd = _sort_block.block_record.get_extension_dict() if _sort_block.block_record.has_extension_dict else _sort_block.block_record.new_extension_dict()'
@@ -485,7 +499,7 @@ def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
                 '        _sort = doc.objects.new_entity("SORTENTSTABLE", dxfattribs={"owner": _xd.dictionary.dxf.handle, "block_record_handle": _sort_block.block_record.dxf.handle})'
             )
             sortents_calls.append(
-                f'        _sort.set_handles(_remap_sortents_handles({tags!r}))'
+                f'        _sort.set_handles(_remap_sortents_handles({spec.tags!r}))'
             )
             sortents_calls.append('        _xd.dictionary.add("ACAD_SORTENTS", _sort)')
 
@@ -521,7 +535,7 @@ def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
         lines.append("# restore MLEADERSTYLE metadata")
         for spec in mleader_style_specs:
             lines.append(
-                f"_restore_mleader_style({spec['name']!r}, {spec['xdata_tags']!r}, {spec['reactors']!r})"
+                f"_restore_mleader_style({spec.name!r}, {spec.xdata_tags!r}, {spec.reactors!r})"
             )
         for key, snapshot in mleader_style_extension_snapshots:
             lines.append(f'_mlstyle = doc.mleader_styles.get({key!r})')
@@ -555,9 +569,9 @@ def render_document_codegen_script(data: dict[str, Any], out_path: Path) -> str:
         lines.append(f'_mat = doc.materials.get({material_name!r})')
         lines.append('if _mat is not None:')
         lines.append('    doc.header["$CMATERIAL"] = _mat.dxf.handle')
-    for var_name, source_handle in interfere_handles:
-        lines.append(f'_mapped = _mapped_handle({source_handle!r})')
-        lines.append(f'if _mapped is not None: doc.header[{var_name!r}] = _mapped')
+    for ref in interfere_handles:
+        lines.append(f'_mapped = _mapped_handle({ref.handle!r})')
+        lines.append(f'if _mapped is not None: doc.header[{ref.name!r}] = _mapped')
     if raw_header_overrides:
         lines.append(f"restore_raw_header_vars(doc.header, {raw_header_overrides!r})")
     lines.append(f"restore_raw_classes(doc.classes, {raw_classes!r})")

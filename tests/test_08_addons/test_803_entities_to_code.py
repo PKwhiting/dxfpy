@@ -1877,6 +1877,26 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
     assert f"330\n{out_line.dxf.handle}\n" in _export_text(restored, out_doc.dxfversion)
 
 
+def test_capture_document_codegen_inputs_returns_typed_specs(tmp_path):
+    from ezdxf.addons._dxf2code_capture import capture_document_codegen_inputs
+    from ezdxf.addons._dxf2code_specs import MLeaderStyleSpec, VisualStyleEntry
+
+    source_doc = ezdxf.new("R2010")
+    style = source_doc.mleader_styles.duplicate_entry("Standard", "TEST_STYLE")
+    style.set_xdata("ACAD_MLEADERVER", [(1070, 2)])
+    source_doc.rootdict.get_required_dict("ACAD_VISUALSTYLE")
+
+    source_path = tmp_path / "capture_source.dxf"
+    source_doc.saveas(source_path)
+    loaded = ezdxf.readfile(source_path)
+
+    captured = capture_document_codegen_inputs(loaded, source_path)
+
+    assert "mleader_style_specs" in captured
+    assert all(isinstance(spec, MLeaderStyleSpec) for spec in captured["mleader_style_specs"])
+    assert all(isinstance(entry, VisualStyleEntry) for entry in captured["visualstyle_entries"])
+
+
 def test_mtext_acexpr_field_to_code():
     source_doc = ezdxf.new("R2010")
     source_msp = source_doc.modelspace()

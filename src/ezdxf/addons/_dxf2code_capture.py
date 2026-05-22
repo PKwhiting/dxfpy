@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import ezdxf
 from ezdxf.addons.dxf2code import block_to_code, entities_to_code, table_entries_to_code
@@ -15,13 +14,32 @@ from ezdxf.sections.classes import snapshot_raw_classes
 from ezdxf.sections.header import snapshot_raw_header_vars
 
 from ._dxf2code_common import _maybe_get, _names, _sort_blocks
+from ._dxf2code_specs import (
+    DocumentCodegenCapture,
+    EntityXRecordFallbackSpec,
+    ExtensionSnapshot,
+    HeaderHandleRef,
+    MLeaderStyleSpec,
+    OwnedObjectSpec,
+    RawEntitySwapFallbackSpec,
+    RawGraphFallbackSpec,
+    RawGraphOwnedObjectSpec,
+    RawObjectDictEntry,
+    RawSubclassList,
+    RawTag,
+    RawXDataTags,
+    ResourceHandleRef,
+    SortentsBlockSpec,
+    VariableDictEntry,
+    VisualStyleEntry,
+)
 
 
-def _xrecord_tags(xrecord) -> list[tuple[int, object]]:
+def _xrecord_tags(xrecord) -> list[RawTag]:
     return [(tag.code, tag.value) for tag in xrecord.tags]
 
 
-def _raw_object_tags(entity) -> list[tuple[int, object]]:
+def _raw_object_tags(entity) -> list[RawTag]:
     if hasattr(entity, "xtags"):
         return [
             (tag.code, tag.value)
@@ -31,7 +49,7 @@ def _raw_object_tags(entity) -> list[tuple[int, object]]:
     return []
 
 
-def _raw_object_subclasses(entity) -> list[list[tuple[int, object]]]:
+def _raw_object_subclasses(entity) -> RawSubclassList:
     if entity.dxftype() == "XRECORD" and hasattr(entity, "tags"):
         return [[(100, "AcDbXrecord"), *[(tag.code, tag.value) for tag in entity.tags]]]
     if entity.dxftype() == "FIELD" and hasattr(entity, "tags"):
@@ -54,7 +72,7 @@ def _normalize(value):
     return value
 
 
-def _entity_export_tags(entity) -> list[tuple[int, object]]:
+def _entity_export_tags(entity) -> list[RawTag]:
     def normalize(value):
         if type(value).__name__ == "float64":
             return float(value)
@@ -69,30 +87,30 @@ def _entity_export_tags(entity) -> list[tuple[int, object]]:
     return [(tag.code, normalize(tag.value)) for tag in collector.tags]
 
 
-def _raw_xdata(entity) -> list[list[tuple[int, object]]]:
+def _raw_xdata(entity) -> RawXDataTags:
     if not getattr(entity, "xdata", None):
         return []
     return [[(tag.code, tag.value) for tag in tags] for tags in entity.xdata.data.values()]
 
 
-def _owned_object_specs(doc, owner_handle: str) -> list[dict[str, object]]:
-    specs: list[dict[str, object]] = []
+def _owned_object_specs(doc, owner_handle: str) -> list[OwnedObjectSpec]:
+    specs: list[OwnedObjectSpec] = []
     for obj in doc.objects:
         if obj.dxf.owner != owner_handle:
             continue
         specs.append(
-            {
-                "handle": obj.dxf.handle,
-                "owner": owner_handle,
-                "dxftype": obj.dxftype(),
-                "subclasses": _raw_object_subclasses(obj),
-            }
+            OwnedObjectSpec(
+                handle=obj.dxf.handle,
+                owner=owner_handle,
+                dxftype=obj.dxftype(),
+                subclasses=_raw_object_subclasses(obj),
+            )
         )
         specs.extend(_owned_object_specs(doc, obj.dxf.handle))
     return specs
 
 
-def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
+def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture:
     default_doc = ezdxf.new("R2018")
     header_state_skip = {
         "$HANDSEED",
@@ -214,7 +232,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
 
     root = doc.rootdict
     root_xrecords = {}
-    deferred_recompose_tags: list[tuple[int, object]] = []
+    deferred_recompose_tags: list[RawTag] = []
     source_fieldlist_handles: list[str] = []
     source_fieldlist_dangling: list[str] = []
     for key in (
@@ -239,23 +257,23 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
             if doc.entitydb.get(str(handle)) is None
         ]
 
-    variable_dict_entries: list[tuple[str, str]] = []
+    variable_dict_entries: list[VariableDictEntry] = []
     variable_dict = root.get("AcDbVariableDictionary")
     if hasattr(variable_dict, "items"):
         for key, value in variable_dict.items():
-            variable_dict_entries.append((key, value.dxf.get("value", "")))
+            variable_dict_entries.append(
+                VariableDictEntry(key=key, value=value.dxf.get("value", ""))
+            )
 
-    visualstyle_entries: list[tuple[str, dict]] = []
-    visualstyle_extensions: list[
-        tuple[str, tuple[tuple[tuple[int, object], ...], ...]]
-    ] = []
+    visualstyle_entries: list[VisualStyleEntry] = []
+    visualstyle_extensions: list[tuple[str, ExtensionSnapshot]] = []
     visualstyle_dict = root.get("ACAD_VISUALSTYLE")
     if hasattr(visualstyle_dict, "items"):
         for key, value in visualstyle_dict.items():
             dxfattribs = dict(value.dxfattribs())
             dxfattribs.pop("handle", None)
             dxfattribs.pop("owner", None)
-            visualstyle_entries.append((key, dxfattribs))
+            visualstyle_entries.append(VisualStyleEntry(key=key, dxfattribs=dxfattribs))
             if getattr(value, "has_extension_dict", False):
                 visualstyle_extensions.append(
                     (str(key), snapshot_raw_extension_subtree(value))
@@ -268,15 +286,15 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
         if material is not None and material.dxftype() == "MATERIAL":
             material_name = material.dxf.name
 
-    interfere_handles: list[tuple[str, str]] = []
+    interfere_handles: list[HeaderHandleRef] = []
     for var_name in ("$INTERFEREOBJVS", "$INTERFEREVPVS"):
         handle = doc.header.get(var_name, None)
         if isinstance(handle, str) and handle:
-            interfere_handles.append((var_name, handle))
+            interfere_handles.append(HeaderHandleRef(name=var_name, handle=handle))
 
-    mleader_style_specs: list[dict[str, object]] = []
+    mleader_style_specs: list[MLeaderStyleSpec] = []
     for _, style in doc.mleader_styles:
-        xdata_tags: list[tuple[int, object]] = []
+        xdata_tags: list[RawTag] = []
         if style.xdata and "ACAD_MLEADERVER" in style.xdata.data:
             xdata_tags = [
                 (tag.code, tag.value)
@@ -286,11 +304,11 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
         reactors = [str(handle) for handle in style.get_reactors() if handle]
         if xdata_tags or len(reactors) > 1:
             mleader_style_specs.append(
-                {
-                    "name": style.dxf.name,
-                    "xdata_tags": xdata_tags,
-                    "reactors": reactors,
-                }
+                MLeaderStyleSpec(
+                    name=style.dxf.name,
+                    xdata_tags=xdata_tags,
+                    reactors=reactors,
+                )
             )
 
     required_root_dicts = [
@@ -311,58 +329,50 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
         lx = layerstates_present.get_extension_dict().dictionary
         has_acad_layerstates = "ACAD_LAYERSTATES" in lx
 
-    assoc_network_tags: list[tuple[int, object]] = []
+    assoc_network_tags: list[RawTag] = []
     assoc_root = root.get("ACAD_ASSOCNETWORK")
     if hasattr(assoc_root, "get"):
         inner = assoc_root.get("ACAD_ASSOCNETWORK")
         if inner is not None:
             assoc_network_tags = _raw_object_tags(inner)
 
-    detail_view_styles: list[tuple[str, list[tuple[int, object]]]] = []
-    detail_view_style_extensions: list[
-        tuple[str, tuple[tuple[tuple[int, object], ...], ...]]
-    ] = []
+    detail_view_styles: list[RawObjectDictEntry] = []
+    detail_view_style_extensions: list[tuple[str, ExtensionSnapshot]] = []
     detail_root = root.get("ACAD_DETAILVIEWSTYLE")
     if hasattr(detail_root, "items"):
         for key, value in detail_root.items():
-            detail_view_styles.append((key, _raw_object_tags(value)))
+            detail_view_styles.append(RawObjectDictEntry(key=key, tags=_raw_object_tags(value)))
             if getattr(value, "has_extension_dict", False):
                 detail_view_style_extensions.append(
                     (str(key), snapshot_raw_extension_subtree(value))
                 )
 
-    section_view_styles: list[tuple[str, list[tuple[int, object]]]] = []
-    section_view_style_extensions: list[
-        tuple[str, tuple[tuple[tuple[int, object], ...], ...]]
-    ] = []
+    section_view_styles: list[RawObjectDictEntry] = []
+    section_view_style_extensions: list[tuple[str, ExtensionSnapshot]] = []
     section_root = root.get("ACAD_SECTIONVIEWSTYLE")
     if hasattr(section_root, "items"):
         for key, value in section_root.items():
-            section_view_styles.append((key, _raw_object_tags(value)))
+            section_view_styles.append(RawObjectDictEntry(key=key, tags=_raw_object_tags(value)))
             if getattr(value, "has_extension_dict", False):
                 section_view_style_extensions.append(
                     (str(key), snapshot_raw_extension_subtree(value))
                 )
 
-    layer_extension_snapshots: list[
-        tuple[str, tuple[tuple[tuple[int, object], ...], ...]]
-    ] = []
+    layer_extension_snapshots: list[tuple[str, ExtensionSnapshot]] = []
     for layer in doc.layers:
         if layer.has_extension_dict:
             layer_extension_snapshots.append(
                 (layer.dxf.name, snapshot_raw_extension_subtree(layer))
             )
 
-    mleader_style_extension_snapshots: list[
-        tuple[str, tuple[tuple[tuple[int, object], ...], ...]]
-    ] = []
+    mleader_style_extension_snapshots: list[tuple[str, ExtensionSnapshot]] = []
     for key, style in doc.mleader_styles.object_dict.items():
         if getattr(style, "has_extension_dict", False):
             mleader_style_extension_snapshots.append(
                 (str(key), snapshot_raw_extension_subtree(style))
             )
 
-    table_style_cellstylemap: list[tuple[str, list[tuple[int, object]]]] = []
+    table_style_cellstylemap: list[RawObjectDictEntry] = []
     table_style_root = root.get("ACAD_TABLESTYLE")
     if hasattr(table_style_root, "items"):
         standard = table_style_root.get("Standard")
@@ -370,9 +380,11 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
             xdict = standard.get_extension_dict().dictionary
             for key, value in xdict.items():
                 if value.dxftype() == "CELLSTYLEMAP":
-                    table_style_cellstylemap.append((key, _raw_object_tags(value)))
+                    table_style_cellstylemap.append(
+                        RawObjectDictEntry(key=key, tags=_raw_object_tags(value))
+                    )
 
-    sortents_by_block: list[tuple[str, list[tuple[str, str]]]] = []
+    sortents_by_block: list[SortentsBlockSpec] = []
     block_xdict_orders: dict[str, list[str]] = {}
     for block in blocks:
         xdict = (
@@ -386,11 +398,13 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
             continue
         sortents = xdict.get("ACAD_SORTENTS")
         if sortents is not None:
-            sortents_by_block.append((block.name, list(sortents.table.items())))
+            sortents_by_block.append(
+                SortentsBlockSpec(block_name=block.name, tags=list(sortents.table.items()))
+            )
 
-    entity_xrecord_fallbacks: dict[str, list[dict[str, object]]] = {}
+    entity_xrecord_fallbacks: dict[str, list[EntityXRecordFallbackSpec]] = {}
     for block in blocks:
-        specs: list[dict[str, object]] = []
+        specs: list[EntityXRecordFallbackSpec] = []
         for entity in block:
             if not getattr(entity, "has_extension_dict", False):
                 continue
@@ -399,20 +413,20 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
                 if value.dxftype() != "XRECORD":
                     continue
                 specs.append(
-                    {
-                        "entity_handle": entity.dxf.handle,
-                        "dict_key": str(key),
-                        "dict_order": [str(name) for name in xdict.keys()],
-                        "root_handle": value.dxf.handle,
-                        "root_dxftype": value.dxftype(),
-                        "root_subclasses": _raw_object_subclasses(value),
-                        "owned_specs": _owned_object_specs(doc, value.dxf.handle),
-                    }
+                    EntityXRecordFallbackSpec(
+                        entity_handle=entity.dxf.handle,
+                        dict_key=str(key),
+                        dict_order=[str(name) for name in xdict.keys()],
+                        root_handle=value.dxf.handle,
+                        root_dxftype=value.dxftype(),
+                        root_subclasses=_raw_object_subclasses(value),
+                        owned_specs=_owned_object_specs(doc, value.dxf.handle),
+                    )
                 )
         if specs:
             entity_xrecord_fallbacks[block.name] = specs
 
-    raw_graph_fallbacks: dict[str, dict[str, object]] = {}
+    raw_graph_fallbacks: dict[str, RawGraphFallbackSpec] = {}
     for block in blocks:
         xdict = (
             block.block_record.get_extension_dict().dictionary
@@ -423,31 +437,28 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
         if graph is None:
             continue
         purge = xdict.get("AcDbDynamicBlockRoundTripPurgePreventer") if xdict is not None else None
-        owned_specs = []
+        owned_specs: list[RawGraphOwnedObjectSpec] = []
         for obj in doc.objects:
             if obj.dxf.owner != graph.dxf.handle:
                 continue
             owned_specs.append(
-                {
-                    "handle": obj.dxf.handle,
-                    "dxftype": obj.dxftype(),
-                    "subclasses": _raw_object_subclasses(obj),
-                    "xdata": _raw_xdata(obj),
-                    "reactors": list(obj.get_reactors()),
-                }
+                RawGraphOwnedObjectSpec(
+                    handle=obj.dxf.handle,
+                    dxftype=obj.dxftype(),
+                    subclasses=_raw_object_subclasses(obj),
+                    xdata=_raw_xdata(obj),
+                    reactors=list(obj.get_reactors()),
+                )
             )
-        raw_graph_fallbacks[block.name] = {
-            "graph_handle": graph.dxf.handle,
-            "graph_subclasses": _raw_object_subclasses(graph),
-            "graph_xdata": [
-                (tag.code, tag.value)
-                for tag in graph.get_xdata("AcadBPTGraphNodeId")
-            ]
+        raw_graph_fallbacks[block.name] = RawGraphFallbackSpec(
+            graph_handle=graph.dxf.handle,
+            graph_subclasses=_raw_object_subclasses(graph),
+            graph_xdata=[(tag.code, tag.value) for tag in graph.get_xdata("AcadBPTGraphNodeId")]
             if graph.has_xdata("AcadBPTGraphNodeId")
             else [],
-            "purge_subclasses": _raw_object_subclasses(purge) if purge is not None else [],
-            "owned_specs": owned_specs,
-        }
+            purge_subclasses=_raw_object_subclasses(purge) if purge is not None else [],
+            owned_specs=owned_specs,
+        )
 
     raw_entity_swap_blocks = set(raw_graph_fallbacks.keys())
     raw_graph_block_record_handles = {
@@ -460,7 +471,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
         if base_handle and base_handle in raw_graph_block_record_handles:
             raw_entity_swap_blocks.add(block.name)
 
-    raw_entity_swap_fallbacks: dict[str, list[dict[str, object]]] = {}
+    raw_entity_swap_fallbacks: dict[str, list[RawEntitySwapFallbackSpec]] = {}
     handle_codes = {
         320,
         331,
@@ -484,7 +495,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
     for block in blocks:
         if block.name not in raw_entity_swap_blocks:
             continue
-        specs: list[dict[str, object]] = []
+        specs: list[RawEntitySwapFallbackSpec] = []
         for entity in block:
             handle = entity.dxf.handle
             owner = entity.dxf.owner
@@ -496,13 +507,13 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
                 xdict_handle = entity.get_extension_dict().dictionary.dxf.handle
                 allowed_handles.add(xdict_handle)
             source_resource_handles = [
-                (str(value), key)
+                ResourceHandleRef(str(value), key)
                 for key, value in entity.dxfattribs().items()
                 if key.endswith("_handle")
                 and isinstance(value, str)
                 and value not in {"0", handle, owner, xdict_handle}
             ]
-            resource_values = {value for value, _ in source_resource_handles}
+            resource_values = {ref.source_handle for ref in source_resource_handles}
             raw_tags = _entity_export_tags(entity)
             external_handles = {
                 str(value)
@@ -515,13 +526,13 @@ def capture_document_codegen_inputs(doc, source: Path) -> dict[str, Any]:
             if external_handles - resource_values:
                 continue
             specs.append(
-                {
-                    "source_handle": handle,
-                    "source_owner": owner,
-                    "source_xdict_handle": xdict_handle,
-                    "source_resource_handles": source_resource_handles,
-                    "raw_tags": raw_tags,
-                }
+                RawEntitySwapFallbackSpec(
+                    source_handle=handle,
+                    source_owner=owner,
+                    source_xdict_handle=xdict_handle,
+                    source_resource_handles=source_resource_handles,
+                    raw_tags=raw_tags,
+                )
             )
         if specs:
             raw_entity_swap_fallbacks[block.name] = specs

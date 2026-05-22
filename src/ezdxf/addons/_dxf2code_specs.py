@@ -1,0 +1,143 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, TypedDict
+
+
+RawTag = tuple[int, object]
+RawSubclass = list[RawTag]
+RawSubclassList = list[RawSubclass]
+RawXDataTags = list[list[RawTag]]
+ExtensionSnapshot = tuple[tuple[tuple[int, object], ...], ...]
+SortentsHandles = list[tuple[str, str]]
+
+
+@dataclass(slots=True)
+class OwnedObjectSpec:
+    handle: str
+    owner: str
+    dxftype: str
+    subclasses: RawSubclassList
+
+
+@dataclass(slots=True)
+class MLeaderStyleSpec:
+    name: str
+    xdata_tags: list[RawTag]
+    reactors: list[str]
+
+
+@dataclass(slots=True)
+class EntityXRecordFallbackSpec:
+    entity_handle: str
+    dict_key: str
+    dict_order: list[str]
+    root_handle: str
+    root_dxftype: str
+    root_subclasses: RawSubclassList
+    owned_specs: list[OwnedObjectSpec]
+
+
+@dataclass(slots=True)
+class RawGraphOwnedObjectSpec:
+    handle: str
+    dxftype: str
+    subclasses: RawSubclassList
+    xdata: RawXDataTags
+    reactors: list[str]
+
+
+@dataclass(slots=True)
+class RawGraphFallbackSpec:
+    graph_handle: str
+    graph_subclasses: RawSubclassList
+    graph_xdata: list[RawTag]
+    purge_subclasses: RawSubclassList
+    owned_specs: list[RawGraphOwnedObjectSpec]
+
+
+@dataclass(slots=True)
+class ResourceHandleRef:
+    source_handle: str
+    attrib_name: str
+
+
+@dataclass(slots=True)
+class RawEntitySwapFallbackSpec:
+    source_handle: str
+    source_owner: str
+    source_xdict_handle: str
+    source_resource_handles: list[ResourceHandleRef]
+    raw_tags: list[RawTag]
+
+
+@dataclass(slots=True)
+class VariableDictEntry:
+    key: str
+    value: str
+
+
+@dataclass(slots=True)
+class VisualStyleEntry:
+    key: str
+    dxfattribs: dict[str, object]
+
+
+@dataclass(slots=True)
+class RawObjectDictEntry:
+    key: str
+    tags: list[RawTag]
+
+
+@dataclass(slots=True)
+class HeaderHandleRef:
+    name: str
+    handle: str
+
+
+@dataclass(slots=True)
+class SortentsBlockSpec:
+    block_name: str
+    tags: SortentsHandles
+
+
+class DocumentCodegenCapture(TypedDict):
+    doc: Any
+    source: Path
+    header_state: dict[str, object]
+    header_custom_vars: list[tuple[object, object]]
+    raw_header_overrides: tuple[tuple[str, str], ...]
+    raw_classes: tuple[str, ...]
+    blocks: list[Any]
+    block_codes: list[Any]
+    block_layout_entity_snapshots: dict[str, Any]
+    msp_code: Any
+    imports: set[str]
+    resource_code: Any
+    layers_with_xdict: set[str]
+    root_xrecords: dict[str, list[RawTag]]
+    deferred_recompose_tags: list[RawTag]
+    source_fieldlist_handles: list[str]
+    source_fieldlist_dangling: list[str]
+    variable_dict_entries: list[VariableDictEntry]
+    visualstyle_entries: list[VisualStyleEntry]
+    visualstyle_extensions: list[tuple[str, ExtensionSnapshot]]
+    material_name: str | None
+    interfere_handles: list[HeaderHandleRef]
+    mleader_style_specs: list[MLeaderStyleSpec]
+    required_root_dicts: list[str]
+    has_acad_layerstates: bool
+    assoc_network_tags: list[RawTag]
+    detail_view_styles: list[RawObjectDictEntry]
+    detail_view_style_extensions: list[tuple[str, ExtensionSnapshot]]
+    section_view_styles: list[RawObjectDictEntry]
+    section_view_style_extensions: list[tuple[str, ExtensionSnapshot]]
+    layer_extension_snapshots: list[tuple[str, ExtensionSnapshot]]
+    mleader_style_extension_snapshots: list[tuple[str, ExtensionSnapshot]]
+    table_style_cellstylemap: list[RawObjectDictEntry]
+    sortents_by_block: list[SortentsBlockSpec]
+    block_xdict_orders: dict[str, list[str]]
+    entity_xrecord_fallbacks: dict[str, list[EntityXRecordFallbackSpec]]
+    raw_graph_fallbacks: dict[str, RawGraphFallbackSpec]
+    raw_entity_swap_fallbacks: dict[str, list[RawEntitySwapFallbackSpec]]
