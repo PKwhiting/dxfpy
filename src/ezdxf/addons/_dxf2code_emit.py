@@ -61,276 +61,15 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     raw_entity_swap_calls: list[str] = []
     sortents_calls: list[str] = []
     lines.extend(sorted(imports))
+    lines.append("from ezdxf.addons._dxf2code_runtime import DocumentCodegenRuntime")
     lines.append("from ezdxf.sections.classes import restore_raw_classes")
     lines.append("from ezdxf.sections.header import restore_raw_header_vars")
-    lines.append("")
-    lines.append("from ezdxf.entities import factory")
-    lines.append("from ezdxf.entities.dxfentity import DXFTagStorage")
-    lines.append("from ezdxf.lldxf.extendedtags import ExtendedTags")
-    lines.append("from ezdxf.lldxf.tags import Tags")
-    lines.append("from ezdxf.lldxf.types import DXFTag")
-    lines.append("from ezdxf.lldxf.types import dxftag")
-    lines.append(
-        "from ezdxf.dynblkhelper import _delete_graph_stack, _ensure_dynamic_block_extension_dict, _new_tag_storage_object"
-    )
+    lines.append("from ezdxf.dynblkhelper import restore_raw_extension_subtree")
     lines.append("")
     lines.append(f'OUT = Path(r"{out_path.as_posix()}")')
     lines.append(f'doc = ezdxf.new("{doc.dxfversion}")')
     lines.append("msp = doc.modelspace()")
-    lines.append("_source_entity_map = {}")
-    lines.append("_source_object_map = {}")
-    lines.append("_dangling_handle_map = {}")
-    lines.append("")
-    lines.append("def _add_raw_object(_parent, _key, _dxftype, _tags):")
-    lines.append(
-        "    _raw = Tags([dxftag(0, _dxftype), dxftag(330, _parent.dxf.handle)])"
-    )
-    lines.append("    _raw.extend(dxftag(code, value) for code, value in _tags)")
-    lines.append("    _obj = factory.load(ExtendedTags(_raw), doc)")
-    lines.append("    factory.bind(_obj, doc)")
-    lines.append("    doc.objects.add_object(_obj)")
-    lines.append("    _parent.add(_key, _obj)")
-    lines.append("    return _obj")
-    lines.append("")
-    lines.append("def _map_raw_graph_value(_value, _entity_map, _object_map):")
-    lines.append("    if isinstance(_value, str):")
-    lines.append("        if _value in _object_map:")
-    lines.append("            return _object_map[_value].dxf.handle")
-    lines.append("        if _value in _entity_map:")
-    lines.append("            return _entity_map[_value].dxf.handle")
-    lines.append("    return _value")
-    lines.append("")
-    lines.append("def _new_raw_graph_object(_dxftype, _owner):")
-    lines.append("    if _dxftype in ('XRECORD', 'FIELD'):")
-    lines.append("        _obj = factory.new(_dxftype, dxfattribs={'owner': _owner}, doc=doc)")
-    lines.append("        factory.bind(_obj, doc)")
-    lines.append("        doc.objects.add_object(_obj)")
-    lines.append("        return _obj")
-    lines.append("    return _new_tag_storage_object(doc, _dxftype, _owner, [])")
-    lines.append("")
-    lines.append(
-        "def _load_raw_graph_object(_obj, _owner, _subclasses, _xdata, _entity_map, _object_map):"
-    )
-    lines.append(
-        "    _tags = [dxftag(0, _obj.dxftype()), dxftag(5, _obj.dxf.handle), dxftag(330, _owner)]"
-    )
-    lines.append("    for _subclass in _subclasses:")
-    lines.append("        _tags.extend(")
-    lines.append(
-        "            dxftag(code, _map_raw_graph_value(value, _entity_map, _object_map) if code in (330, 331, 332, 333, 340, 360, 1005) else value)"
-    )
-    lines.append("            for code, value in _subclass")
-    lines.append("        )")
-    lines.append("    for _xdata_tags in _xdata:")
-    lines.append("        for code, value in _xdata_tags:")
-    lines.append("            if isinstance(value, (tuple, list)):")
-    lines.append("                _tags.append(dxftag(code, value))")
-    lines.append("            else:")
-    lines.append("                _tags.append(DXFTag(code, value))")
-    lines.append("    _xtags = ExtendedTags(_tags)")
-    lines.append("    _obj.load_tags(_xtags, dxfversion=doc.dxfversion)")
-    lines.append("    if hasattr(_obj, 'store_tags'):")
-    lines.append("        _obj.store_tags(_xtags)")
-    lines.append("    return _obj")
-    lines.append("")
-    lines.append("def _set_raw_graph_reactors(_obj, _reactors, _entity_map, _object_map):")
-    lines.append("    _mapped = [")
-    lines.append("        _map_raw_graph_value(_handle, _entity_map, _object_map)")
-    lines.append("        for _handle in _reactors")
-    lines.append("    ]")
-    lines.append("    _mapped = [str(_handle) for _handle in _mapped if _handle]")
-    lines.append("    if _mapped:")
-    lines.append("        _obj.set_reactors(_mapped)")
-    lines.append("")
-    lines.append("def _refresh_entity_map_from_block(_entity_map, _block, _entity_snapshots):")
-    lines.append(
-        "    for (_entity_text, _ext_snapshot), _entity in zip(_entity_snapshots, _block):"
-    )
-    lines.append("        _source_handle = ExtendedTags.from_text(_entity_text).get_handle()")
-    lines.append("        if _source_handle:")
-    lines.append("            _entity_map[_source_handle] = _entity")
-    lines.append("")
-    lines.append("def _mapped_handle(_source_handle):")
-    lines.append("    if _source_handle in _source_entity_map:")
-    lines.append("        return _source_entity_map[_source_handle].dxf.handle")
-    lines.append("    if _source_handle in _source_object_map:")
-    lines.append("        return _source_object_map[_source_handle].dxf.handle")
-    lines.append("    return None")
-    lines.append("")
-    lines.append("def _reorder_dictionary_entries(_dictionary, _ordered_keys):")
-    lines.append("    _data = _dictionary._data")
-    lines.append("    if not _data:")
-    lines.append("        return")
-    lines.append("    _reordered = {}")
-    lines.append("    for _key in _ordered_keys:")
-    lines.append("        if _key in _data:")
-    lines.append("            _reordered[_key] = _data[_key]")
-    lines.append("    for _key, _value in _data.items():")
-    lines.append("        if _key not in _reordered:")
-    lines.append("            _reordered[_key] = _value")
-    lines.append("    _dictionary._data = _reordered")
-    lines.append("")
-    lines.append("def _register_field_tree_handles(_objects):")
-    lines.append("    _handles = []")
-    lines.append("    for _obj in _objects:")
-    lines.append("        if _obj.dxftype() == 'FIELD' and _obj.dxf.handle:")
-    lines.append("            _handles.append(_obj.dxf.handle)")
-    lines.append("    if not _handles:")
-    lines.append("        return")
-    lines.append("    _field_list = doc.objects.setup_field_list()")
-    lines.append("    _existing = list(_field_list.handles)")
-    lines.append("    for _handle in _handles:")
-    lines.append("        if _handle not in _existing:")
-    lines.append("            _existing.append(_handle)")
-    lines.append("    _field_list.handles = _existing")
-    lines.append("")
-    lines.append("def _remap_root_xrecord_tags(_tags):")
-    lines.append("    _mapped = []")
-    lines.append("    for code, value in _tags:")
-    lines.append("        if code == 330 and isinstance(value, str):")
-    lines.append("            if value in _source_entity_map:")
-    lines.append("                value = _source_entity_map[value].dxf.handle")
-    lines.append("            elif value in _source_object_map:")
-    lines.append("                value = _source_object_map[value].dxf.handle")
-    lines.append("        _mapped.append((code, value))")
-    lines.append("    return _mapped")
-    lines.append("")
-    lines.append("def _remap_fieldlist_handles(_handles, _dangling):")
-    lines.append("    _mapped = []")
-    lines.append("    for _handle in _handles:")
-    lines.append("        if _handle in _source_object_map:")
-    lines.append("            _mapped.append(_source_object_map[_handle].dxf.handle)")
-    lines.append("        elif _handle in _source_entity_map:")
-    lines.append("            _mapped.append(_source_entity_map[_handle].dxf.handle)")
-    lines.append("        elif _handle in _dangling:")
-    lines.append("            if _handle not in _dangling_handle_map:")
-    lines.append("                _new_handle = doc.entitydb.next_handle()")
-    lines.append(
-        "                while _new_handle in doc.entitydb or _new_handle in _dangling_handle_map.values():"
-    )
-    lines.append("                    _new_handle = doc.entitydb.next_handle()")
-    lines.append("                _dangling_handle_map[_handle] = _new_handle")
-    lines.append("            _mapped.append(_dangling_handle_map[_handle])")
-    lines.append("        else:")
-    lines.append("            _mapped.append(_handle)")
-    lines.append("    return _mapped")
-    lines.append("")
-    lines.append("def _remap_sortents_handles(_handles):")
-    lines.append("    _mapped = []")
-    lines.append("    for _handle, _sort_handle in _handles:")
-    lines.append("        if _handle in _source_entity_map:")
-    lines.append("            _handle = _source_entity_map[_handle].dxf.handle")
-    lines.append("        if _sort_handle in _source_entity_map:")
-    lines.append("            _sort_handle = _source_entity_map[_sort_handle].dxf.handle")
-    lines.append("        _mapped.append((_handle, _sort_handle))")
-    lines.append("    return _mapped")
-    lines.append("")
-    lines.append("def _restore_mleader_style(_name, _xdata_tags, _source_reactors):")
-    lines.append("    _style = doc.mleader_styles.get(_name)")
-    lines.append("    if _style is None:")
-    lines.append("        return")
-    lines.append("    if _xdata_tags:")
-    lines.append("        _style.set_xdata('ACAD_MLEADERVER', _xdata_tags)")
-    lines.append("    _reactors = []")
-    lines.append("    for _handle in _source_reactors:")
-    lines.append("        if _handle == _style.dxf.owner:")
-    lines.append("            _reactors.append(_style.dxf.owner)")
-    lines.append("        elif _handle in _source_entity_map:")
-    lines.append("            _reactors.append(_source_entity_map[_handle].dxf.handle)")
-    lines.append("    if _reactors:")
-    lines.append("        _style.set_reactors(_reactors)")
-    lines.append("")
-    lines.append(
-        "def _rebuild_entity_xrecord_tree(_host, _dict_key, _dict_order, _root_handle, _root_dxftype, _root_subclasses, _owned_specs, _entity_map):"
-    )
-    lines.append(
-        "    _xdict = _host.get_extension_dict() if _host.has_extension_dict else _host.new_extension_dict()"
-    )
-    lines.append("    if _dict_key in _xdict.dictionary:")
-    lines.append("        _reorder_dictionary_entries(_xdict.dictionary, _dict_order)")
-    lines.append("        return")
-    lines.append("    _object_map = {}")
-    lines.append(
-        "    _root = _new_raw_graph_object(_root_dxftype, _xdict.dictionary.dxf.handle)"
-    )
-    lines.append("    _object_map[_root_handle] = _root")
-    lines.append("    _source_object_map[_root_handle] = _root")
-    lines.append("    for _spec in _owned_specs:")
-    lines.append(
-        "        _mapped_owner = _map_raw_graph_value(_spec['owner'], _entity_map, _object_map)"
-    )
-    lines.append(
-        "        _object_map[_spec['handle']] = _new_raw_graph_object(_spec['dxftype'], _mapped_owner)"
-    )
-    lines.append(
-        "        _source_object_map[_spec['handle']] = _object_map[_spec['handle']]"
-    )
-    lines.append(
-        "    _load_raw_graph_object(_root, _xdict.dictionary.dxf.handle, _root_subclasses, [], _entity_map, _object_map)"
-    )
-    lines.append("    _xdict.dictionary.add(_dict_key, _root)")
-    lines.append("    for _spec in _owned_specs:")
-    lines.append(
-        "        _mapped_owner = _map_raw_graph_value(_spec['owner'], _entity_map, _object_map)"
-    )
-    lines.append(
-        "        _load_raw_graph_object(_object_map[_spec['handle']], _mapped_owner, _spec['subclasses'], [], _entity_map, _object_map)"
-    )
-    lines.append("    _reorder_dictionary_entries(_xdict.dictionary, _dict_order)")
-    lines.append("    _register_field_tree_handles(list(_object_map.values()))")
-    lines.append("")
-    lines.append(
-        "def _swap_raw_graphic_entity(_block, _source_handle, _source_owner, _source_xdict_handle, _source_resource_handles, _raw_tags):"
-    )
-    lines.append("    _old = _source_entity_map[_source_handle]")
-    lines.append("    _xdict_handle = ''")
-    lines.append("    if _source_xdict_handle and _old.has_extension_dict:")
-    lines.append(
-        "        _xdict_handle = _old.get_extension_dict().dictionary.dxf.handle"
-    )
-    lines.append("    _resource_handle_map = {}")
-    lines.append("    for _source_value, _attr_name in _source_resource_handles:")
-    lines.append("        _target_value = _old.dxf.get(_attr_name)")
-    lines.append("        if _target_value:")
-    lines.append("            _resource_handle_map[_source_value] = _target_value")
-    lines.append(
-        "    _mapped = [dxftag(0, _old.dxftype()), dxftag(5, _old.dxf.handle), dxftag(330, _old.dxf.owner)]"
-    )
-    lines.append("    for code, value in _raw_tags:")
-    lines.append(
-        "        if code in (320, 331, 332, 333, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 360, 390, 1005) and isinstance(value, str):"
-    )
-    lines.append("            if value in _resource_handle_map:")
-    lines.append("                value = _resource_handle_map[value]")
-    lines.append("            elif value == _source_handle:")
-    lines.append("                value = _old.dxf.handle")
-    lines.append("            elif value == _source_owner:")
-    lines.append("                value = _old.dxf.owner")
-    lines.append(
-        "            elif _source_xdict_handle and value == _source_xdict_handle and _xdict_handle:"
-    )
-    lines.append("                value = _xdict_handle")
-    lines.append(
-        "        if code in (310, 311, 312, 313, 314, 315, 316, 317, 318, 319) and isinstance(value, str):"
-    )
-    lines.append("            _mapped.append(dxftag(code, bytes.fromhex(value)))")
-    lines.append(
-        "        elif code in (310, 311, 312, 313, 314, 315, 316, 317, 318, 319) or isinstance(value, (tuple, list)):"
-    )
-    lines.append("            _mapped.append(dxftag(code, value))")
-    lines.append("        else:")
-    lines.append("            _mapped.append(DXFTag(code, value))")
-    lines.append("    _new = DXFTagStorage.load(ExtendedTags(Tags(_mapped)), doc)")
-    lines.append("    _new.doc = doc")
-    lines.append("    _new.appdata = _old.appdata")
-    lines.append("    _new.reactors = _old.reactors")
-    lines.append("    _new.xdata = _old.xdata")
-    lines.append("    if _old.has_extension_dict:")
-    lines.append("        _new.extension_dict = _old.extension_dict")
-    lines.append("    _idx = _block.block_record.entity_space.entities.index(_old)")
-    lines.append("    _block.block_record.entity_space.entities[_idx] = _new")
-    lines.append("    doc.entitydb._database[_old.dxf.handle] = _new")
-    lines.append("    _source_entity_map[_source_handle] = _new")
+    lines.append("rt = DocumentCodegenRuntime(doc)")
     lines.append("")
 
     if resource_code is not None and resource_code.code:
@@ -386,14 +125,14 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
             lines.append('_assoc_dict = doc.rootdict.get_required_dict("ACAD_ASSOCNETWORK")')
             lines.append('if "ACAD_ASSOCNETWORK" not in _assoc_dict:')
             lines.append(
-                f'    _add_raw_object(_assoc_dict, "ACAD_ASSOCNETWORK", "ACDBASSOCNETWORK", {assoc_network_tags!r})'
+                f'    rt.add_raw_object(_assoc_dict, "ACAD_ASSOCNETWORK", "ACDBASSOCNETWORK", {assoc_network_tags!r})'
             )
         if detail_view_styles:
             lines.append('_detail_dict = doc.rootdict.get_required_dict("ACAD_DETAILVIEWSTYLE")')
             for entry in detail_view_styles:
                 lines.append(f'if {entry.key!r} not in _detail_dict:')
                 lines.append(
-                    f'    _add_raw_object(_detail_dict, {entry.key!r}, "ACDBDETAILVIEWSTYLE", {entry.tags!r})'
+                    f'    rt.add_raw_object(_detail_dict, {entry.key!r}, "ACDBDETAILVIEWSTYLE", {entry.tags!r})'
                 )
             for key, snapshot in detail_view_style_extensions:
                 lines.append(f'_detail = _detail_dict.get({key!r})')
@@ -405,7 +144,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
             for entry in section_view_styles:
                 lines.append(f'if {entry.key!r} not in _section_dict:')
                 lines.append(
-                    f'    _add_raw_object(_section_dict, {entry.key!r}, "ACDBSECTIONVIEWSTYLE", {entry.tags!r})'
+                    f'    rt.add_raw_object(_section_dict, {entry.key!r}, "ACDBSECTIONVIEWSTYLE", {entry.tags!r})'
                 )
             for key, snapshot in section_view_style_extensions:
                 lines.append(f'_section = _section_dict.get({key!r})')
@@ -422,7 +161,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
             for entry in table_style_cellstylemap:
                 lines.append(f'    if {entry.key!r} not in _xd.dictionary:')
                 lines.append(
-                    f'        _add_raw_object(_xd.dictionary, {entry.key!r}, "CELLSTYLEMAP", {entry.tags!r})'
+                    f'        rt.add_raw_object(_xd.dictionary, {entry.key!r}, "CELLSTYLEMAP", {entry.tags!r})'
                 )
         lines.append("")
 
@@ -431,24 +170,24 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.extend(code.code)
         if block.name in block_layout_entity_snapshots:
             lines.append(
-                f"_refresh_entity_map_from_block(_entity_map, b, {block_layout_entity_snapshots[block.name]!r})"
+                f"rt.refresh_entity_map_from_block(_entity_map, b, {block_layout_entity_snapshots[block.name]!r})"
             )
         fallback = raw_graph_fallbacks.get(block.name)
         if fallback is not None:
             lines.append(f"# raw graph fallback for {block.name}")
-            lines.append("_xd = _ensure_dynamic_block_extension_dict(b.block_record)")
-            lines.append("_delete_graph_stack(b.block_record)")
+            lines.append("_xd = rt.ensure_dynamic_block_extension_dict(b.block_record)")
+            lines.append("rt.delete_graph_stack(b.block_record)")
             lines.append("_graph_map = {}")
             lines.append(
-                f'_graph = _new_raw_graph_object("ACAD_EVALUATION_GRAPH", _xd.dxf.handle)'
+                f'_graph = rt.new_raw_graph_object("ACAD_EVALUATION_GRAPH", _xd.dxf.handle)'
             )
             lines.append(f'_graph_map[{fallback.graph_handle!r}] = _graph')
             for spec in fallback.owned_specs:
                 lines.append(
-                    f'_graph_map[{spec.handle!r}] = _new_raw_graph_object({spec.dxftype!r}, _graph.dxf.handle)'
+                    f'_graph_map[{spec.handle!r}] = rt.new_raw_graph_object({spec.dxftype!r}, _graph.dxf.handle)'
                 )
             lines.append(
-                f'_load_raw_graph_object(_graph, _xd.dxf.handle, {fallback.graph_subclasses!r}, [], _entity_map, _graph_map)'
+                f'rt.load_raw_graph_object(_graph, _xd.dxf.handle, {fallback.graph_subclasses!r}, [], _entity_map, _graph_map)'
             )
             lines.append("_graph.set_reactors([_xd.dxf.handle])")
             lines.append('_xd.add("ACAD_ENHANCEDBLOCK", _graph)')
@@ -458,32 +197,32 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
                 )
             if fallback.purge_subclasses:
                 lines.append(
-                    '_purge = _new_raw_graph_object("ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION", _xd.dxf.handle)'
+                    '_purge = rt.new_raw_graph_object("ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION", _xd.dxf.handle)'
                 )
                 lines.append(
-                    f'_load_raw_graph_object(_purge, _xd.dxf.handle, {fallback.purge_subclasses!r}, [], _entity_map, _graph_map)'
+                    f'rt.load_raw_graph_object(_purge, _xd.dxf.handle, {fallback.purge_subclasses!r}, [], _entity_map, _graph_map)'
                 )
                 lines.append("_purge.set_reactors([_xd.dxf.handle])")
                 lines.append('_xd.add("AcDbDynamicBlockRoundTripPurgePreventer", _purge)')
             for spec in fallback.owned_specs:
                 lines.append(
-                    f'_load_raw_graph_object(_graph_map[{spec.handle!r}], _graph.dxf.handle, {spec.subclasses!r}, {spec.xdata!r}, _entity_map, _graph_map)'
+                    f'rt.load_raw_graph_object(_graph_map[{spec.handle!r}], _graph.dxf.handle, {spec.subclasses!r}, {spec.xdata!r}, _entity_map, _graph_map)'
                 )
             for spec in fallback.owned_specs:
                 if spec.reactors:
                     lines.append(
-                        f'_set_raw_graph_reactors(_graph_map[{spec.handle!r}], {spec.reactors!r}, _entity_map, _graph_map)'
+                        f'rt.set_raw_graph_reactors(_graph_map[{spec.handle!r}], {spec.reactors!r}, _entity_map, _graph_map)'
                     )
         xrecord_specs = entity_xrecord_fallbacks.get(block.name, [])
         for spec in xrecord_specs:
             lines.append(
-                f'_rebuild_entity_xrecord_tree(_entity_map[{spec.entity_handle!r}], {spec.dict_key!r}, {spec.dict_order!r}, {spec.root_handle!r}, {spec.root_dxftype!r}, {spec.root_subclasses!r}, {_owned_object_specs_literal(spec.owned_specs)!r}, _entity_map)'
+                f'rt.rebuild_entity_xrecord_tree(_entity_map[{spec.entity_handle!r}], {spec.dict_key!r}, {spec.dict_order!r}, {spec.root_handle!r}, {spec.root_dxftype!r}, {spec.root_subclasses!r}, {_owned_object_specs_literal(spec.owned_specs)!r}, _entity_map)'
             )
-        lines.append("_source_entity_map.update(_entity_map)")
+        lines.append("rt.register_entity_map(_entity_map)")
         raw_specs = raw_entity_swap_fallbacks.get(block.name, [])
         for spec in raw_specs:
             raw_entity_swap_calls.append(
-                f'_swap_raw_graphic_entity(doc.blocks.get({block.name!r}), {spec.source_handle!r}, {spec.source_owner!r}, {spec.source_xdict_handle!r}, {[(ref.source_handle, ref.attrib_name) for ref in spec.source_resource_handles]!r}, {spec.raw_tags!r})'
+                f'rt.swap_raw_graphic_entity(doc.blocks.get({block.name!r}), {spec.source_handle!r}, {spec.source_owner!r}, {spec.source_xdict_handle!r}, {[(ref.source_handle, ref.attrib_name) for ref in spec.source_resource_handles]!r}, {spec.raw_tags!r})'
             )
         lines.append("")
 
@@ -499,7 +238,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
                 '        _sort = doc.objects.new_entity("SORTENTSTABLE", dxfattribs={"owner": _xd.dictionary.dxf.handle, "block_record_handle": _sort_block.block_record.dxf.handle})'
             )
             sortents_calls.append(
-                f'        _sort.set_handles(_remap_sortents_handles({spec.tags!r}))'
+                f'        _sort.set_handles(rt.remap_sortents_handles({spec.tags!r}))'
             )
             sortents_calls.append('        _xd.dictionary.add("ACAD_SORTENTS", _sort)')
 
@@ -511,19 +250,19 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
                 'if _block is not None and _block.block_record.has_extension_dict:'
             )
             lines.append(
-                f'    _reorder_dictionary_entries(_block.block_record.get_extension_dict().dictionary, {ordered_keys!r})'
+                f'    rt.reorder_dictionary_entries(_block.block_record.get_extension_dict().dictionary, {ordered_keys!r})'
             )
         lines.append("")
 
     lines.append("# modelspace entities")
     lines.extend(msp_code.code)
-    lines.append("_source_entity_map.update(_entity_map)")
+    lines.append("rt.register_entity_map(_entity_map)")
     lines.append("")
     if source_fieldlist_handles:
         lines.append("# restore FIELDLIST")
         lines.append("_field_list = doc.objects.setup_field_list()")
         lines.append(
-            f"_field_list.handles = _remap_fieldlist_handles({source_fieldlist_handles!r}, {set(source_fieldlist_dangling)!r})"
+            f"_field_list.handles = rt.remap_fieldlist_handles({source_fieldlist_handles!r}, {set(source_fieldlist_dangling)!r})"
         )
         lines.append("_field_list.set_reactors([doc.rootdict.dxf.handle])")
         lines.append("")
@@ -535,7 +274,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.append("# restore MLEADERSTYLE metadata")
         for spec in mleader_style_specs:
             lines.append(
-                f"_restore_mleader_style({spec.name!r}, {spec.xdata_tags!r}, {spec.reactors!r})"
+                f"rt.restore_mleader_style({spec.name!r}, {spec.xdata_tags!r}, {spec.reactors!r})"
             )
         for key, snapshot in mleader_style_extension_snapshots:
             lines.append(f'_mlstyle = doc.mleader_styles.get({key!r})')
@@ -549,7 +288,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.append("    _xr = doc.objects.add_xrecord(owner=doc.rootdict.dxf.handle)")
         lines.append("    _xr.set_reactors([doc.rootdict.dxf.handle])")
         lines.append(
-            f"    _xr.reset(_remap_root_xrecord_tags({deferred_recompose_tags!r}))"
+            f"    _xr.reset(rt.remap_root_xrecord_tags({deferred_recompose_tags!r}))"
         )
         lines.append("    doc.rootdict.add('ACDB_RECOMPOSE_DATA', _xr)")
         lines.append("")
@@ -570,7 +309,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.append('if _mat is not None:')
         lines.append('    doc.header["$CMATERIAL"] = _mat.dxf.handle')
     for ref in interfere_handles:
-        lines.append(f'_mapped = _mapped_handle({ref.handle!r})')
+        lines.append(f'_mapped = rt.mapped_handle({ref.handle!r})')
         lines.append(f'if _mapped is not None: doc.header[{ref.name!r}] = _mapped')
     if raw_header_overrides:
         lines.append(f"restore_raw_header_vars(doc.header, {raw_header_overrides!r})")

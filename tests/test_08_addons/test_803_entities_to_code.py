@@ -1863,7 +1863,14 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
     source_doc.saveas(source_path)
 
     document_to_code_file(str(source_path), str(script_path), str(output_path))
-    exec(script_path.read_text(encoding="utf-8"), {})
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert "from ezdxf.addons._dxf2code_runtime import DocumentCodegenRuntime" in script_text
+    assert "rt = DocumentCodegenRuntime(doc)" in script_text
+    assert "def _add_raw_object(" not in script_text
+    assert "def _swap_raw_graphic_entity(" not in script_text
+
+    exec(script_text, {})
 
     out_doc = ezdxf.readfile(output_path)
     out_line = out_doc.modelspace()[0]
@@ -1875,6 +1882,21 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
     assert list(out_doc.header.custom_vars) == [("CustomTag", "CustomValue")]
     assert restored is not None
     assert f"330\n{out_line.dxf.handle}\n" in _export_text(restored, out_doc.dxfversion)
+
+
+def test_document_codegen_runtime_remaps_dangling_fieldlist_handles_once():
+    from ezdxf.addons._dxf2code_runtime import DocumentCodegenRuntime
+
+    runtime_doc = ezdxf.new("R2010")
+    line = runtime_doc.modelspace().add_line((0, 0), (1, 0))
+    rt = DocumentCodegenRuntime(runtime_doc)
+    rt.source_entity_map["LINE_SRC"] = line
+
+    mapped = rt.remap_fieldlist_handles(["LINE_SRC", "DANGLE", "DANGLE"], {"DANGLE"})
+
+    assert mapped[0] == line.dxf.handle
+    assert mapped[1] == mapped[2]
+    assert mapped[1] != "DANGLE"
 
 
 def test_capture_document_codegen_inputs_returns_typed_specs(tmp_path):
