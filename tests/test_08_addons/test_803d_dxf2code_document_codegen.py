@@ -274,6 +274,29 @@ def test_document_to_code_file_renders_missing_dimension_geometry_block(tmp_path
     assert out_dim.get_geometry_block() is not None
 
 
+def test_document_to_code_file_replays_existing_dimension_geometry_block(tmp_path):
+    source_doc = ezdxf.new("R2010")
+    block = source_doc.blocks.new("DIM_BLOCK_WITH_GEOMETRY")
+    dim = block.add_linear_dim(base=(5, 2), p1=(0, 0), p2=(10, 0)).dimension
+    dim.render()
+    assert dim.get_geometry_block() is not None
+    source_doc.modelspace().add_blockref(block.name, (0, 0))
+
+    source_path = tmp_path / "source_existing_dim_geometry.dxf"
+    script_path = tmp_path / "generated_existing_dim_geometry.py"
+    output_path = tmp_path / "generated_existing_dim_geometry.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_block = out_doc.blocks.get("DIM_BLOCK_WITH_GEOMETRY")
+    assert out_block is not None
+    out_dim = list(out_block.query("DIMENSION"))[0]
+    assert out_dim.get_geometry_block() is not None
+
+
 def test_document_to_code_file_recreates_paperspace_viewports(tmp_path):
     source_doc = ezdxf.new("R2010")
     psp = source_doc.layout("Layout1")

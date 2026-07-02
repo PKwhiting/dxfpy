@@ -2576,14 +2576,7 @@ class _SourceCodeGenerator:
         if entity.get_geometry_block() is None:
             self.add_source_code_line("e.render()")
             self.add_source_code_line("")
-            return
-        self.add_source_code_lines(
-            [
-                "if e.get_geometry_block() is None:",
-                "    e.render()",
-                "",
-            ]
-        )
+        return
 
     def _image(self, entity: Image):
         self.add_source_code_line(
