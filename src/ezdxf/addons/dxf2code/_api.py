@@ -25,12 +25,13 @@ def block_to_code(
     block: BlockLayout,
     drawing: str = "doc",
     ignore: Optional[Iterable[str]] = None,
+    full_document_mode: bool = False,
 ) -> Code:
     assert block.block is not None
     dxfattribs = _purge_handles(block.block.dxfattribs())
     block_name = dxfattribs.pop("name")
     base_point = dxfattribs.pop("base_point")
-    code = _SourceCodeGenerator(layout="b")
+    code = _SourceCodeGenerator(layout="b", full_document_mode=full_document_mode)
     prolog = (
         f'b = {drawing}.blocks.new("{block_name}", base_point={base_point}, '
         "dxfattribs={"
@@ -55,9 +56,13 @@ def block_to_code(
         code.add_source_code_line(
             f"b.block_record.preview_data = {block.block_record.preview_data!r}"
         )
-    code.translate_entities(block, ignore=ignore)
+    if not code._needs_raw_dynamic_block_layout_fallback(block):
+        code.translate_entities(block, ignore=ignore)
     code._register_block_handle(block)
     code._emit_dynamic_block_metadata(block)
+    if code._post_block_deferred_code:
+        code.add_source_code_line("# post block raw restores")
+        code.add_source_code_lines(code._post_block_deferred_code)
     return code.code
 
 

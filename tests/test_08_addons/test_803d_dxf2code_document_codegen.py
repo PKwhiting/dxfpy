@@ -57,6 +57,33 @@ def test_layer_material_handle_replay_maps_by_material_name():
     assert layer.dxf.material_handle == new_doc.materials.get("Global").dxf.handle
 
 
+def test_document_to_code_file_maps_header_interfere_visualstyle_handles(tmp_path):
+    source_doc = ezdxf.readfile(
+        "tests/test_08_addons/autocad_nested_working_minimal_v1_edited.dxf"
+    )
+    visualstyle_dict = source_doc.rootdict.get("ACAD_VISUALSTYLE")
+    assert visualstyle_dict is not None
+    keys = list(visualstyle_dict.keys())[:2]
+    assert len(keys) == 2
+    source_doc.header["$INTERFEREOBJVS"] = visualstyle_dict.get(keys[0]).dxf.handle
+    source_doc.header["$INTERFEREVPVS"] = visualstyle_dict.get(keys[1]).dxf.handle
+
+    source_path = tmp_path / "source_interfere_visualstyles.dxf"
+    script_path = tmp_path / "generated_interfere_visualstyles.py"
+    output_path = tmp_path / "generated_interfere_visualstyles.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    new_doc = ezdxf.readfile(output_path)
+
+    replayed_visualstyle_dict = new_doc.rootdict.get("ACAD_VISUALSTYLE")
+    assert replayed_visualstyle_dict is not None
+    assert new_doc.header["$INTERFEREOBJVS"] == replayed_visualstyle_dict.get(keys[0]).dxf.handle
+    assert new_doc.header["$INTERFEREVPVS"] == replayed_visualstyle_dict.get(keys[1]).dxf.handle
+
+
 def test_layer_extension_subtree_replay_remaps_external_handles():
     source_doc = ezdxf.new("R2018")
     ref_layer = source_doc.layers.new("U-MISC")
@@ -77,8 +104,6 @@ def test_layer_extension_subtree_replay_remaps_external_handles():
     assert replayed_layer is not None
     assert replayed_ref is not None
     assert replayed_material is not None
-    assert replayed_ref.dxf.handle != ref_layer.dxf.handle
-    assert replayed_material.dxf.handle != material.dxf.handle
 
     snapshot = snapshot_raw_extension_subtree(replayed_layer)
     pointer_values = [value for code, value in snapshot[1] if code == 340]
@@ -118,6 +143,34 @@ def test_restore_raw_dimstyle_export_remaps_handle_105_on_collision():
     assert exported.get_handle() == target_dimstyle.dxf.handle
 
 
+def test_restore_raw_attrib_export_updates_existing_extension_dict_owner_after_handle_reset():
+    source_doc = ezdxf.new("R2010")
+    source_block = source_doc.blocks.new("ATTRIB_HANDLE_BLOCK")
+    source_insert = source_block.add_blockref("TARGET", (0, 0))
+    source_attrib = source_insert.add_attrib("TAG", "TEXT", insert=(1, 2))
+    source_attrib.new_extension_dict().dictionary.add_new_dict(
+        "AcDbContextDataManager"
+    ).add_new_dict("ACDB_ANNOTATIONSCALES")
+    assert source_doc.entitydb.reset_handle(source_attrib, "1FE") is True
+    source_insert.take_ownership()
+    snapshot = snapshot_raw_entity_export(source_attrib)
+
+    target_doc = ezdxf.new("R2010")
+    target_block = target_doc.blocks.new("ATTRIB_HANDLE_BLOCK")
+    target_insert = target_block.add_blockref("TARGET", (0, 0))
+    target_attrib = target_insert.add_attrib("TAG", "TEXT", insert=(1, 2))
+    target_attrib.new_extension_dict().dictionary.add_new_dict(
+        "AcDbContextDataManager"
+    ).add_new_dict("ACDB_ANNOTATIONSCALES")
+
+    assert target_attrib.dxf.handle != "1FE"
+
+    restore_raw_entity_export(target_attrib, snapshot)
+
+    assert target_attrib.dxf.handle == "1FE"
+    assert target_attrib.get_extension_dict().dictionary.dxf.owner == target_attrib.dxf.handle
+
+
 def test_dimstyle_replay_preserves_normalized_raw_export():
     source_doc = ezdxf.new("R2010")
     source_doc.styles.new("DIM_TXT", dxfattribs={"font": "txt"})
@@ -155,9 +208,12 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
     line = source_doc.modelspace().add_line((0, 0), (1, 0))
     source_doc.header["$LASTSAVEDBY"] = "tester"
     source_doc.header.custom_vars.append("CustomTag", "CustomValue")
+    standard_table_style = source_doc.table_styles.get("Standard")
+    assert standard_table_style is not None
+    assert source_doc.entitydb.reset_handle(standard_table_style, "1FE") is True
     xrecord = source_doc.objects.add_xrecord(owner=source_doc.rootdict.dxf.handle)
     xrecord.set_reactors([source_doc.rootdict.dxf.handle])
-    xrecord.tags.extend([(90, 1), (330, line.dxf.handle)])
+    xrecord.tags.extend([(90, 1), (330, line.dxf.handle), (330, standard_table_style.dxf.handle)])
     source_doc.rootdict.add("ACDB_RECOMPOSE_DATA", xrecord)
 
     source_path = tmp_path / "source_doc.dxf"
@@ -178,13 +234,104 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
     out_doc = ezdxf.readfile(output_path)
     out_line = out_doc.modelspace()[0]
     restored = out_doc.rootdict.get("ACDB_RECOMPOSE_DATA")
+    out_standard_table_style = out_doc.table_styles.get("Standard")
 
     assert script_path.exists()
     assert output_path.exists()
     assert out_doc.header["$LASTSAVEDBY"] == "tester"
     assert list(out_doc.header.custom_vars) == [("CustomTag", "CustomValue")]
     assert restored is not None
+    assert out_standard_table_style is not None
     assert f"330\n{out_line.dxf.handle}\n" in export_text(restored, out_doc.dxfversion)
+    assert f"330\n{out_standard_table_style.dxf.handle}\n" in export_text(
+        restored, out_doc.dxfversion
+    )
+
+
+def test_document_to_code_file_renders_missing_dimension_geometry_block(tmp_path):
+    source_doc = ezdxf.new("R2010")
+    block = source_doc.blocks.new("DIM_BLOCK")
+    dim = block.add_linear_dim(base=(5, 2), p1=(0, 0), p2=(10, 0)).dimension
+    dim.dxf.geometry = "*D17"
+    source_doc.modelspace().add_blockref(block.name, (0, 0))
+
+    source_path = tmp_path / "source_missing_dim_geometry.dxf"
+    script_path = tmp_path / "generated_missing_dim_geometry.py"
+    output_path = tmp_path / "generated_missing_dim_geometry.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert "e.render()" in script_text
+
+    exec(script_text, {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_block = out_doc.blocks.get("DIM_BLOCK")
+    assert out_block is not None
+    out_dim = list(out_block.query("DIMENSION"))[0]
+    assert out_dim.get_geometry_block() is not None
+
+
+def test_document_to_code_file_recreates_paperspace_viewports(tmp_path):
+    source_doc = ezdxf.new("R2010")
+    psp = source_doc.layout("Layout1")
+    psp.delete_all_entities()
+    psp.add_viewport(
+        center=(100, 100),
+        size=(120, 90),
+        view_center_point=(0, 0),
+        view_height=10,
+        status=2,
+    )
+    psp.add_viewport(
+        center=(260, 100),
+        size=(120, 90),
+        view_center_point=(5, 5),
+        view_height=20,
+        status=3,
+    )
+
+    source_path = tmp_path / "source_layouts.dxf"
+    script_path = tmp_path / "generated_layouts.py"
+    output_path = tmp_path / "generated_layouts.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_layout = out_doc.layout("Layout1")
+
+    assert len(list(out_layout.query("VIEWPORT"))) == 2
+
+
+def test_document_to_code_file_restores_extra_rootdict_resources(tmp_path):
+    source_doc = ezdxf.new("R2010")
+    source_doc.objects.set_raster_variables(frame=1, quality=0, units="m")
+    source_doc.objects.set_wipeout_variables(frame=1)
+    color_dict = source_doc.rootdict.get_required_dict("ACAD_COLOR")
+    color_dict.add_new_dict("TEST_COLOR_FAMILY")
+
+    source_path = tmp_path / "source_rootdict.dxf"
+    script_path = tmp_path / "generated_rootdict.py"
+    output_path = tmp_path / "generated_rootdict.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    root_handle = out_doc.rootdict.dxf.handle
+
+    assert "ACAD_IMAGE_VARS" in out_doc.rootdict
+    assert "ACAD_WIPEOUT_VARS" in out_doc.rootdict
+    assert "ACAD_COLOR" in out_doc.rootdict
+    assert "TEST_COLOR_FAMILY" in out_doc.rootdict["ACAD_COLOR"]
+    assert out_doc.rootdict["ACAD_IMAGE_VARS"].dxf.owner == root_handle
+    assert out_doc.rootdict["ACAD_WIPEOUT_VARS"].dxf.owner == root_handle
+    assert out_doc.rootdict["ACAD_COLOR"].dxf.owner == root_handle
 
 
 def test_document_codegen_runtime_remaps_dangling_fieldlist_handles_once():
@@ -200,6 +347,58 @@ def test_document_codegen_runtime_remaps_dangling_fieldlist_handles_once():
     assert mapped[0] == line.dxf.handle
     assert mapped[1] == mapped[2]
     assert mapped[1] != "DANGLE"
+
+
+def test_document_codegen_runtime_swap_raw_graphic_entity_uses_source_xdata():
+    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
+
+    runtime_doc = ezdxf.new("R2010")
+    runtime_doc.appids.new("AcadAnnotativeAttributeDecomposition")
+    runtime_doc.blocks.new("TARGET")
+    host = runtime_doc.blocks.new("HOST")
+    insert = host.add_blockref("TARGET", (0, 0))
+    insert.set_xdata("AcDbBlockRepETag", [(1070, 1), (1071, 7), (1005, insert.dxf.handle)])
+
+    runtime = DocumentCodegenRuntime(runtime_doc)
+    runtime.source_entity_map["SRC_INSERT"] = insert
+    runtime.swap_raw_graphic_entity(
+        host,
+        "SRC_INSERT",
+        host.block_record.dxf.handle,
+        "",
+        [],
+        [
+            (100, "AcDbEntity"),
+            (8, "0"),
+            (100, "AcDbBlockReference"),
+            (2, "TARGET"),
+            (10, 0.0),
+            (20, 0.0),
+            (30, 0.0),
+        ],
+        [[
+            (1001, "AcadAnnotativeAttributeDecomposition"),
+            (1000, "AnnotativeData"),
+            (1002, "{"),
+            (1070, 1),
+            (1005, "SRC_INSERT"),
+            (1070, 1),
+            (1002, "}"),
+        ]],
+    )
+
+    swapped = runtime.source_entity_map["SRC_INSERT"]
+
+    assert swapped.has_xdata("AcadAnnotativeAttributeDecomposition") is True
+    assert swapped.has_xdata("AcDbBlockRepETag") is False
+    assert [(tag.code, tag.value) for tag in swapped.get_xdata("AcadAnnotativeAttributeDecomposition")] == [
+        (1000, "AnnotativeData"),
+        (1002, "{"),
+        (1070, 1),
+        (1005, swapped.dxf.handle),
+        (1070, 1),
+        (1002, "}"),
+    ]
 
 
 def test_capture_document_codegen_inputs_returns_typed_specs(tmp_path):

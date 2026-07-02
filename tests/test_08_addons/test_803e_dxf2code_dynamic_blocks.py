@@ -1449,6 +1449,89 @@ def test_plain_wrapper_nested_dynamic_replay_preserves_blkref_handles():
     assert list(wrapper.block_record.blkref_handles) == [wrapper_insert.dxf.handle]
 
 
+def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles():
+    source_doc = ezdxf.new("R2018")
+    child = source_doc.blocks.new("RAW_LAYOUT_CHILD")
+    child.add_line((0, 0), (1, 0))
+    base = source_doc.blocks.new("RAW_LAYOUT_UNSUPPORTED")
+    line = base.add_line((0, 0), (10, 0))
+    attdef = base.add_attdef("PARAM_1", insert=(0, 2), text="A")
+    child_insert = base.add_blockref(child.name, (5, 0))
+    assert source_doc.entitydb.reset_handle(child_insert, "ABCD")
+    child_xdict = child_insert.new_extension_dict().dictionary
+    assert source_doc.entitydb.reset_handle(child_xdict, "ABCE")
+    child_data = child_xdict.add_new_dict("TEST")
+    assert source_doc.entitydb.reset_handle(child_data, "ABCF")
+    child_value = child_data.add_xrecord("VALUE")
+    child_value.tags.extend([dxftag(1, "PAYLOAD")])
+    assert source_doc.entitydb.reset_handle(child_value, "ABD0")
+    set_dynamic_block_visibility_parameter(
+        base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="Visibility1",
+            location=(0.0, 10.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "STATE_A",
+                    (line.dxf.handle, attdef.dxf.handle, child_insert.dxf.handle),
+                ),
+            ),
+        ),
+        guid="{GUID}",
+    )
+    set_dynamic_block_properties_table(
+        base,
+        DynamicBlockPropertiesTable(
+            handle="",
+            label="Block Table",
+            table_name="Block Table1",
+            description="",
+            location=(10.0, 10.0, 0.0),
+            grip_location=(10.0, 10.0, 0.0),
+            columns=(
+                DynamicBlockPropertyColumn("", "ATTDEF", "PARAM_1", "Block Table1"),
+                DynamicBlockPropertyColumn(
+                    "", "BLOCKVISIBILITYPARAMETER", "VisibilityState", "VisibilityState"
+                ),
+            ),
+            rows=(DynamicBlockPropertyRow(0, ("A", "STATE_A")),),
+        ),
+    )
+    set_dynamic_block_base_point_parameter(
+        base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0.0, 0.0, 0.0),
+            base_point=(0.0, 0.0, 0.0),
+            second_point=(0.0, 0.0, 0.0),
+            expr_id=0,
+        ),
+    )
+
+    assert "restore_raw_dynamic_block_layout" in str(block_to_code(base, drawing="doc"))
+
+    new_doc = replay_doc_to_new_doc(source_doc)
+    new_base = new_doc.blocks.get(base.name)
+
+    assert new_base is not None
+    new_child_insert = next(
+        entity for entity in new_base.query("INSERT") if entity.dxf.name == child.name
+    )
+    assert new_child_insert.dxf.handle == child_insert.dxf.handle
+    assert new_child_insert.has_extension_dict is True
+    new_child_xdict = new_child_insert.get_extension_dict().dictionary
+    assert new_child_xdict.dxf.handle == child_xdict.dxf.handle
+    new_child_data = new_child_xdict.get("TEST")
+    assert new_child_data is not None
+    assert new_child_data.dxf.handle == child_data.dxf.handle
+    new_child_value = new_child_data.get("VALUE")
+    assert new_child_value is not None
+    assert new_child_value.dxf.handle == child_value.dxf.handle
+
+
 def test_dynamic_block_basepoint_linear_two_generation_replay_preserves_supported_path():
     source_doc, public_name = build_supported_linear_visibility_replay_doc()
     gen1_doc = replay_doc_to_new_doc(source_doc)
@@ -2004,6 +2087,72 @@ def test_dynamic_block_lookup_parameter_to_code():
     assert {action.label for action in new_lookup_actions} == {"Lookup1", "Lookup3"}
     assert get_dynamic_block_visibility_state(new_inserts[0]) == "STATE_A"
     assert get_dynamic_block_visibility_state(new_inserts[1]) == "STATE_C"
+
+
+def test_reference_block_to_code_preserves_attdef_reactors_per_entity():
+    source_doc = ezdxf.new("R2018")
+    base = source_doc.blocks.new("ATTDEF_REACTOR_BASE")
+    line = base.add_line((0, 0), (1, 0))
+    attdef_a = base.add_attdef("PARAM_A", insert=(0, 0), text="A")
+    attdef_b = base.add_attdef("PARAM_B", insert=(0, -10), text="B")
+    set_dynamic_block_visibility_parameter(
+        base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="Visibility1",
+            location=(0.0, 10.0, 0.0),
+            states=(DynamicBlockVisibilityState("STATE_A", (line.dxf.handle,)),),
+        ),
+        guid="{GUID}",
+    )
+    props = DynamicBlockPropertiesTable(
+        handle="",
+        label="Block Table",
+        table_name="Block Table1",
+        description="",
+        location=(10.0, 10.0, 0.0),
+        grip_location=(10.0, 10.0, 0.0),
+        columns=(
+            DynamicBlockPropertyColumn(attdef_a.dxf.handle, "ATTDEF", "PARAM_A", "Block Table1"),
+            DynamicBlockPropertyColumn(attdef_b.dxf.handle, "ATTDEF", "PARAM_B", "Block Table1"),
+        ),
+        rows=(DynamicBlockPropertyRow(0, ("A", "B")),),
+    )
+    set_dynamic_block_properties_table(base, props)
+    set_dynamic_block_properties_editor_support(base, props)
+
+    ref = source_doc.blocks.new_anonymous_block(type_char="U")
+    ref.add_line((0, 0), (1, 0))
+    set_dynamic_block_reference(ref, base)
+    ref_attdefs = [entity for entity in ref if entity.dxftype() == "ATTDEF"]
+    assert len(ref_attdefs) == 2
+    ref_attdefs[1].set_reactors([])
+
+    target_doc = ezdxf.new("R2018")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(base, drawing="doc"), namespace)
+    execute_code_in_namespace(block_to_code(ref, drawing="doc"), namespace)
+
+    new_ref = target_doc.blocks.get(ref.name)
+    assert new_ref is not None
+    new_ref_attdefs = [entity for entity in new_ref if entity.dxftype() == "ATTDEF"]
+
+    assert len(new_ref_attdefs[0].get_reactors()) == 1
+    assert new_ref_attdefs[1].get_reactors() == []
+
+
+def test_dynamic_insert_extension_subtree_handle_map_uses_stable_entity_map_target():
+    source_doc, _public_name = build_supported_linear_visibility_replay_doc()
+    insert = next(entity for entity in source_doc.modelspace().query("INSERT"))
+
+    code = entities_to_code([insert], layout="msp")
+    text = str(code)
+
+    assert (
+        f'map_extension_subtree_handles(_entity_map["{insert.dxf.handle}"]'
+        in text
+    )
 
 
 if __name__ == "__main__":

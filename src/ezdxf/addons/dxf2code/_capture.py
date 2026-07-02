@@ -7,6 +7,7 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_record_handle,
     snapshot_raw_extension_subtree,
     snapshot_raw_dynamic_block_layout,
+    snapshot_raw_rootdict_entries,
 )
 from ezdxf.lldxf.tagwriter import TagCollector
 from ezdxf.sections.classes import snapshot_raw_classes
@@ -25,6 +26,7 @@ from ._specs import (
     RawGraphFallbackSpec,
     RawGraphOwnedObjectSpec,
     RawObjectDictEntry,
+    RootDictEntryRestoreSnapshot,
     RawSubclassList,
     RawTag,
     RawXDataTags,
@@ -127,8 +129,10 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "$TDUPDATE",
         "$EXTMIN",
         "$EXTMAX",
+        "$LIMMAX",
         "$PEXTMIN",
         "$PEXTMAX",
+        "$PLIMMAX",
         "$FINGERPRINTGUID",
         "$VERSIONGUID",
     )
@@ -145,11 +149,15 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
 
     block_codes = []
     block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]] = {}
+    paper_layout_names = [
+        name for name in doc.layouts.names() if name not in ("Model", "Model_Space")
+    ]
+    paper_layout_codes: list[tuple[str, Any]] = []
     imports = {"import ezdxf", "from pathlib import Path"}
 
     blocks = _sort_blocks([block for block in doc.blocks if not block.is_any_layout])
     for block in blocks:
-        code = block_to_code(block, drawing="doc")
+        code = block_to_code(block, drawing="doc", full_document_mode=True)
         block_codes.append(code)
         imports.update(code.imports)
         if "restore_raw_dynamic_block_layout" in str(code):
@@ -159,6 +167,11 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
 
     msp_code = entities_to_code(doc.modelspace(), layout="msp")
     imports.update(msp_code.imports)
+
+    for layout_name in paper_layout_names:
+        layout_code = entities_to_code(doc.layout(layout_name), layout="psp")
+        paper_layout_codes.append((layout_name, layout_code))
+        imports.update(layout_code.imports)
 
     resource_entities = []
     layers_with_xdict: set[str] = set()
@@ -233,6 +246,8 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     root = doc.rootdict
     root_xrecords = {}
     deferred_recompose_tags: list[RawTag] = []
+    deferred_recompose_source_handle = ""
+    deferred_recompose_table_styles: list[tuple[str, str]] = []
     source_fieldlist_handles: list[str] = []
     source_fieldlist_dangling: list[str] = []
     for key in (
@@ -245,6 +260,19 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
             tags = _xrecord_tags(obj)
             if key == "ACDB_RECOMPOSE_DATA":
                 deferred_recompose_tags = tags
+                deferred_recompose_source_handle = str(obj.dxf.get("handle", ""))
+                seen_table_styles: set[str] = set()
+                for code, value in tags:
+                    if code != 330 or not isinstance(value, str):
+                        continue
+                    entity = doc.entitydb.get(value)
+                    if entity is None or entity.dxftype() != "TABLESTYLE":
+                        continue
+                    name = entity.dxf.get("name", "")
+                    if not name or value in seen_table_styles:
+                        continue
+                    seen_table_styles.add(value)
+                    deferred_recompose_table_styles.append((value, name))
             else:
                 root_xrecords[key] = tags
 
@@ -273,7 +301,13 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
             dxfattribs = dict(value.dxfattribs())
             dxfattribs.pop("handle", None)
             dxfattribs.pop("owner", None)
-            visualstyle_entries.append(VisualStyleEntry(key=key, dxfattribs=dxfattribs))
+            visualstyle_entries.append(
+                VisualStyleEntry(
+                    handle=value.dxf.handle,
+                    key=key,
+                    dxfattribs=dxfattribs,
+                )
+            )
             if getattr(value, "has_extension_dict", False):
                 visualstyle_extensions.append(
                     (str(key), snapshot_raw_extension_subtree(value))
@@ -383,6 +417,28 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
                     table_style_cellstylemap.append(
                         RawObjectDictEntry(key=key, tags=_raw_object_tags(value))
                     )
+
+    late_rootdict_keys = tuple(
+        key
+        for key in (
+            "ACAD_ASSOCPERSSUBENTMANAGER",
+            "ACAD_COLOR",
+            "ACAD_IMAGE_DICT",
+            "ACAD_IMAGE_VARS",
+            "ACAD_MLEADERSTYLE",
+            "ACAD_PDFDEFINITIONS",
+            "ACAD_PLOTSETTINGS",
+            "ACAD_SCALELIST",
+            "ACAD_WIPEOUT_VARS",
+            "AcDsDecomposeData",
+        )
+        if root.get(key) is not None
+    )
+    late_rootdict_entries: tuple[RootDictEntryRestoreSnapshot, ...] = (
+        snapshot_raw_rootdict_entries(doc, late_rootdict_keys)
+        if late_rootdict_keys
+        else ()
+    )
 
     sortents_by_block: list[SortentsBlockSpec] = []
     block_xdict_orders: dict[str, list[str]] = {}
@@ -497,6 +553,8 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
             continue
         specs: list[RawEntitySwapFallbackSpec] = []
         for entity in block:
+            if entity.dxftype() in {"INSERT", "DIMENSION"}:
+                continue
             handle = entity.dxf.handle
             owner = entity.dxf.owner
             if not handle or not owner:
@@ -532,6 +590,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
                     source_xdict_handle=xdict_handle,
                     source_resource_handles=source_resource_handles,
                     raw_tags=raw_tags,
+                    xdata=_raw_xdata(entity),
                 )
             )
         if specs:
@@ -547,12 +606,16 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "blocks": blocks,
         "block_codes": block_codes,
         "block_layout_entity_snapshots": block_layout_entity_snapshots,
+        "paper_layout_names": paper_layout_names,
+        "paper_layout_codes": paper_layout_codes,
         "msp_code": msp_code,
         "imports": imports,
         "resource_code": resource_code,
         "layers_with_xdict": layers_with_xdict,
         "root_xrecords": root_xrecords,
         "deferred_recompose_tags": deferred_recompose_tags,
+        "deferred_recompose_source_handle": deferred_recompose_source_handle,
+        "deferred_recompose_table_styles": deferred_recompose_table_styles,
         "source_fieldlist_handles": source_fieldlist_handles,
         "source_fieldlist_dangling": source_fieldlist_dangling,
         "variable_dict_entries": variable_dict_entries,
@@ -571,6 +634,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "layer_extension_snapshots": layer_extension_snapshots,
         "mleader_style_extension_snapshots": mleader_style_extension_snapshots,
         "table_style_cellstylemap": table_style_cellstylemap,
+        "late_rootdict_entries": late_rootdict_entries,
         "sortents_by_block": sortents_by_block,
         "block_xdict_orders": block_xdict_orders,
         "entity_xrecord_fallbacks": entity_xrecord_fallbacks,

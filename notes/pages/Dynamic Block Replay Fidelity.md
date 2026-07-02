@@ -104,3 +104,8 @@ alias:: dynamic block replay, proxy insert replay, reverse handle remap
 - Key takeaway:
   - For low-level DXF fidelity, the real oracle is the AutoCAD-opened result.
   - If the file proxies with clean `AUDIT`, keep looking for late semantic handle drift in `OBJECTS`, rootdict-owned objects, and named object collections.
+
+- Current larger-case note:
+  - Focused acceptance case `incoming_complex_case_v4_focus_live_inserts_v1.dxf` now opens in AutoCAD after dxf2code replay.
+  - The previous blocker was `AcDbRotatedDimension` with `Invalid dimension block name`.
+  - The fix is to render missing DIMENSION geometry blocks during replay and prevent raw dynamic-block fallbacks from restoring stale missing `*D...` geometry names.

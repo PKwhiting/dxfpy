@@ -155,6 +155,10 @@ class DocumentCodegenRuntime:
             return self.source_entity_map[source_handle].dxf.handle
         if source_handle in self.source_object_map:
             return self.source_object_map[source_handle].dxf.handle
+        global_mapping = getattr(self.doc, "_raw_object_handle_mapping", {})
+        mapped = global_mapping.get(source_handle)
+        if isinstance(mapped, str):
+            return mapped
         return None
 
     @staticmethod
@@ -195,6 +199,25 @@ class DocumentCodegenRuntime:
                     value = self.source_object_map[value].dxf.handle
             mapped.append((code, value))
         return mapped
+
+    def register_recompose_table_styles(
+        self, table_styles: list[tuple[str, str]]
+    ) -> None:
+        for source_handle, name in table_styles:
+            style = self.doc.table_styles.get(name)
+            if style is not None:
+                self.source_entity_map[source_handle] = style
+
+    def register_visualstyle_handles(
+        self, visual_styles: list[tuple[str, str]]
+    ) -> None:
+        visualstyle_dict = self.doc.rootdict.get("ACAD_VISUALSTYLE")
+        if visualstyle_dict is None:
+            return
+        for source_handle, key in visual_styles:
+            style = visualstyle_dict.get(key)
+            if style is not None:
+                self.source_entity_map[source_handle] = style
 
     def remap_fieldlist_handles(
         self, handles: list[str], dangling: set[str]
@@ -303,6 +326,7 @@ class DocumentCodegenRuntime:
         source_xdict_handle: str,
         source_resource_handles: list[tuple[str, str]],
         raw_tags: list[tuple[int, object]],
+        source_xdata: list[list[tuple[int, object]]],
     ) -> None:
         old = self.source_entity_map[source_handle]
         xdict_handle = ""
@@ -334,7 +358,21 @@ class DocumentCodegenRuntime:
         new.doc = self.doc
         new.appdata = old.appdata
         new.reactors = old.reactors
-        new.xdata = old.xdata
+        new.xdata = None
+        for xdata_tags in source_xdata:
+            appid = next((value for code, value in xdata_tags if code == 1001), None)
+            if not isinstance(appid, str):
+                continue
+            payload = []
+            for code, value in xdata_tags:
+                if code == 1001:
+                    continue
+                if code == 1005 and isinstance(value, str):
+                    mapped_value = self.mapped_handle(value)
+                    if mapped_value is not None:
+                        value = mapped_value
+                payload.append((code, value))
+            new.set_xdata(appid, payload)
         if old.has_extension_dict:
             new.extension_dict = old.extension_dict
         index = block.block_record.entity_space.entities.index(old)

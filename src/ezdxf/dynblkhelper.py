@@ -116,6 +116,7 @@ ExtensionSubtreeSnapshot = tuple[RawTags, ...]
 class RawEntityExportSnapshot(NamedTuple):
     text: str
     extension_snapshot: ExtensionSubtreeSnapshot
+    attached_entity_snapshots: tuple["RawEntityExportSnapshot", ...] = ()
 
     def __repr__(self) -> str:
         return repr(tuple(self))
@@ -155,8 +156,19 @@ class RawDynamicBlockLayoutSnapshot(NamedTuple):
 def _coerce_raw_entity_export_snapshot(snapshot) -> RawEntityExportSnapshot:
     if isinstance(snapshot, RawEntityExportSnapshot):
         return snapshot
-    text, extension_snapshot = snapshot
-    return RawEntityExportSnapshot(text, tuple(extension_snapshot))
+    if len(snapshot) == 2:
+        text, extension_snapshot = snapshot
+        attached_entity_snapshots = ()
+    else:
+        text, extension_snapshot, attached_entity_snapshots = snapshot
+    return RawEntityExportSnapshot(
+        text,
+        tuple(extension_snapshot),
+        tuple(
+            _coerce_raw_entity_export_snapshot(item)
+            for item in attached_entity_snapshots
+        ),
+    )
 
 
 def _coerce_block_record_runtime_data(data) -> BlockRecordRuntimeData:
@@ -5322,12 +5334,33 @@ def _hard_owned_dictionary(dictionary: Dictionary, owner_handle: str) -> Diction
     return dictionary
 
 
-def _dictionary_tree(dictionary: Dictionary) -> tuple[tuple[str, str, Any], ...]:
-    entries: list[tuple[str, str, Any]] = []
+def _dictionary_tree(dictionary: Dictionary) -> tuple[tuple[Any, ...], ...]:
+    entries: list[tuple[Any, ...]] = []
     for key, value in dictionary.items():
         key_str = str(key)
         if isinstance(value, Dictionary):
-            entries.append(("dict", key_str, _dictionary_tree(value)))
+            reactors = (
+                tuple(value.get_reactors())
+                if key_str in {"AcDbBlockRepresentation", "AppDataCache"}
+                else ()
+            )
+            hard_owned = (
+                int(value.dxf.hard_owned)
+                if value.dxf.hasattr("hard_owned")
+                else None
+            )
+            cloning = int(value.dxf.get("cloning", 1))
+            entries.append(
+                (
+                    "dict",
+                    key_str,
+                    value.dxf.handle,
+                    reactors,
+                    hard_owned,
+                    cloning,
+                    _dictionary_tree(value),
+                )
+            )
         elif isinstance(value, XRecord):
             entries.append(("xrecord", key_str, tuple((tag.code, tag.value) for tag in value.tags)))
     return tuple(entries)
@@ -5369,9 +5402,36 @@ def _owner_from_raw_tags(tags: Sequence[tuple[int, Any]]) -> str:
     return ""
 
 
+def _reactor_handles_from_raw_tags(tags: Sequence[tuple[int, Any]]) -> tuple[str, ...]:
+    in_reactors = False
+    reactors: list[str] = []
+    for code, value in tags:
+        if code == 102:
+            text = str(value)
+            if text == "{ACAD_REACTORS":
+                in_reactors = True
+            elif in_reactors and text == "}":
+                in_reactors = False
+            continue
+        if in_reactors and code == 330:
+            reactors.append(str(value))
+    return tuple(reactors)
+
+
 def _dxftype_from_raw_tags(tags: Sequence[tuple[int, Any]]) -> str:
     for code, value in tags:
         if code == 0:
+            return str(value)
+    return ""
+
+
+def _dimension_geometry_from_raw_tags(tags: Sequence[tuple[int, Any]]) -> str:
+    in_dimension_subclass = False
+    for code, value in tags:
+        if code == 100:
+            in_dimension_subclass = str(value) == "AcDbDimension"
+            continue
+        if in_dimension_subclass and code == 2:
             return str(value)
     return ""
 
@@ -5434,12 +5494,22 @@ def snapshot_raw_extension_subtree(
 def snapshot_raw_entity_export(
     entity: DXFEntity,
 ) -> RawEntityExportSnapshot:
+    attached_entity_snapshots: tuple[RawEntityExportSnapshot, ...] = ()
+    if isinstance(entity, Insert) and entity.attribs:
+        attached = [snapshot_raw_entity_export(attrib) for attrib in entity.attribs]
+        if entity.seqend is not None:
+            attached.append(snapshot_raw_entity_export(entity.seqend))
+        attached_entity_snapshots = tuple(attached)
     return RawEntityExportSnapshot(
-        _raw_entity_text(entity), _snapshot_raw_extension_subtree(entity)
+        _raw_entity_text(entity),
+        _snapshot_raw_extension_subtree(entity),
+        attached_entity_snapshots,
     )
 
 
 def _export_entity_text(entity: DXFEntity) -> str:
+    from ezdxf.entities.dxfentity import DXFEntity as BaseDXFEntity
+
     stream = StringIO()
     saved_columns = None
     saved_force_line_spacing_style = None
@@ -5466,14 +5536,19 @@ def _export_entity_text(entity: DXFEntity) -> str:
             entity.dxf.hasattr("line_spacing_factor"),
         )
     try:
-        entity.export_dxf(
-            TagWriter(
-                stream,
-                dxfversion=entity.doc.dxfversion
-                if entity.doc
-                else const.LATEST_DXF_VERSION,
-            )
+        tagwriter = TagWriter(
+            stream,
+            dxfversion=entity.doc.dxfversion
+            if entity.doc
+            else const.LATEST_DXF_VERSION,
         )
+        # Snapshot parent INSERT tags without inline ATTRIB/SEQEND payloads;
+        # attached linked entities are captured separately in
+        # RawEntityExportSnapshot.attached_entity_snapshots.
+        if isinstance(entity, Insert):
+            BaseDXFEntity.export_dxf(entity, tagwriter)
+        else:
+            entity.export_dxf(tagwriter)
     finally:
         if entity.dxftype() == "MTEXT":
             setattr(entity, "_columns", saved_columns)
@@ -5611,6 +5686,28 @@ def _new_empty_object(doc: Drawing, dxftype: str):
     return entity
 
 
+def _preserve_source_object_handle(
+    doc: Drawing,
+    entity: DXFEntity,
+    source_handle: str,
+) -> str:
+    if not source_handle:
+        return str(entity.dxf.handle)
+    target_handle = str(entity.dxf.handle)
+    existing_source_entity = doc.entitydb.get(source_handle)
+    if (
+        source_handle != target_handle
+        and (
+            existing_source_entity is None
+            or existing_source_entity is entity
+            or not existing_source_entity.is_alive
+        )
+    ):
+        if doc.entitydb.reset_handle(entity, source_handle):
+            target_handle = source_handle
+    return target_handle
+
+
 def _is_raw_entity_handle_code(code: int) -> bool:
     return code in (5, 105) or is_pointer_code(code)
 
@@ -5715,6 +5812,8 @@ def _restore_raw_object_graph(
     root_tags = objects[0]
     source_root_handle = _handle_from_raw_tags(root_tags)
     if source_root_handle:
+        _preserve_source_object_handle(doc, root_dict, source_root_handle)
+    if source_root_handle:
         handle_mapping[source_root_handle] = root_dict.dxf.handle
         global_mapping[source_root_handle] = root_dict.dxf.handle
         resolved_mapping[source_root_handle] = root_dict.dxf.handle
@@ -5726,6 +5825,7 @@ def _restore_raw_object_graph(
         if not source_handle or not dxftype:
             continue
         created[source_handle] = _new_empty_object(doc, dxftype)
+        _preserve_source_object_handle(doc, created[source_handle], source_handle)
         handle_mapping[source_handle] = created[source_handle].dxf.handle
         global_mapping[source_handle] = created[source_handle].dxf.handle
         resolved_mapping[source_handle] = created[source_handle].dxf.handle
@@ -5844,6 +5944,12 @@ def _restore_raw_block_entity_exports(
             continue
 
         ext_root = None
+        attached_plans: list[tuple[RawEntityExportSnapshot, Optional[DXFEntity], str]] = []
+        stale_attribs: list[DXFEntity] = []
+        if isinstance(entity, Insert) and entity_snapshot.attached_entity_snapshots:
+            attached_plans, stale_attribs = _prepare_insert_attached_entity_restore(
+                entity, entity_snapshot.attached_entity_snapshots, handle_mapping
+            )
         resolved_mapping = dict(global_mapping)
         resolved_mapping.update(handle_mapping)
         ext_snapshot = entity_snapshot.extension_snapshot
@@ -5857,18 +5963,33 @@ def _restore_raw_block_entity_exports(
             )
             ext_root = _hard_owned_dictionary(ext_root, target_handle)
             if source_root_handle:
+                _preserve_source_object_handle(doc, ext_root, source_root_handle)
+            if source_root_handle:
                 handle_mapping[source_root_handle] = ext_root.dxf.handle
                 global_mapping[source_root_handle] = ext_root.dxf.handle
                 resolved_mapping[source_root_handle] = ext_root.dxf.handle
 
-        setattr(
-            entity,
-            RAW_TAGS_OVERRIDE_ATTRIBUTE,
-            _remap_raw_entity_text(entity_snapshot.text, resolved_mapping),
-        )
-
         if ext_snapshot and ext_root is not None:
             _restore_raw_object_graph(doc, ext_root, ext_snapshot, resolved_mapping)
+
+        source_geometry = ""
+        target_geometry = ""
+        if entity.dxftype() == "DIMENSION":
+            source_geometry = _dimension_geometry_from_raw_tags(
+                tuple((tag.code, tag.value) for tag in source_xtags)
+            )
+            target_geometry = str(entity.dxf.get("geometry", ""))
+        if not source_geometry or target_geometry == source_geometry:
+            setattr(
+                entity,
+                RAW_TAGS_OVERRIDE_ATTRIBUTE,
+                _remap_raw_entity_text(entity_snapshot.text, resolved_mapping),
+            )
+
+        if attached_plans:
+            _restore_insert_attached_entity_exports(
+                entity, attached_plans, handle_mapping, stale_attribs
+            )
 
 
 def _restore_raw_block_boundary_entity(
@@ -6026,12 +6147,15 @@ def restore_raw_rootdict_entries(
         if not dxftype:
             continue
         source_handle = _handle_from_raw_tags(raw_tags)
+        source_owner_handle = _owner_from_raw_tags(raw_tags)
         existing = rootdict.get(key)
         if isinstance(existing, Dictionary) and dxftype == "DICTIONARY":
             entity = existing
             if source_handle:
                 global_mapping[source_handle] = entity.dxf.handle
             handle_mapping = {source_handle: entity.dxf.handle} if source_handle else {}
+            if source_owner_handle:
+                handle_mapping[source_owner_handle] = rootdict.dxf.handle
             _restore_raw_object_graph(doc, entity, (raw_tags, *owned), handle_mapping)
             continue
         if existing is not None:
@@ -6043,9 +6167,13 @@ def restore_raw_rootdict_entries(
         else:
             entity = _new_empty_object(doc, dxftype)
             entity.dxf.owner = rootdict.dxf.handle
+        if source_handle:
+            _preserve_source_object_handle(doc, entity, source_handle)
         handle_mapping = {source_handle: entity.dxf.handle} if source_handle else {}
         if source_handle:
             global_mapping[source_handle] = entity.dxf.handle
+        if source_owner_handle:
+            handle_mapping[source_owner_handle] = rootdict.dxf.handle
         remapped_tags = _remap_raw_tags(raw_tags, handle_mapping)
         xtags = ExtendedTags(_make_raw_tag(code, value) for code, value in remapped_tags)
         entity.load_tags(xtags, dxfversion=doc.dxfversion)
@@ -6060,6 +6188,7 @@ def restore_raw_rootdict_entries(
 def restore_raw_extension_subtree(
     owner: DXFEntity,
     snapshot: Sequence[tuple[tuple[int, Any], ...]],
+    handle_mapping: Optional[dict[str, str]] = None,
 ) -> None:
     doc = owner.doc
     if doc is None:
@@ -6071,8 +6200,10 @@ def restore_raw_extension_subtree(
         if owner.has_extension_dict
         else owner.new_extension_dict().dictionary
     )
-    handle_mapping: dict[str, str] = {}
+    handle_mapping = {} if handle_mapping is None else handle_mapping
     source_root_handle = _handle_from_raw_tags(snapshot[0])
+    if source_root_handle:
+        _preserve_source_object_handle(doc, root, source_root_handle)
     if source_root_handle:
         handle_mapping[source_root_handle] = root.dxf.handle
     source_owner_handle = _owner_from_raw_tags(snapshot[0])
@@ -6098,6 +6229,175 @@ def map_extension_subtree_handles(
         target_handle = target_entity.dxf.handle
         if source_handle and target_handle:
             global_mapping[source_handle] = target_handle
+        if hasattr(target_entity, "set_reactors"):
+            mapped_reactors = [
+                global_mapping.get(source_reactor, source_reactor)
+                for source_reactor in _reactor_handles_from_raw_tags(source_tags)
+            ]
+            mapped_reactors = [
+                reactor_handle
+                for reactor_handle in mapped_reactors
+                if doc.entitydb.get(reactor_handle) is not None
+            ]
+            if mapped_reactors or getattr(target_entity, "get_reactors", lambda: [])():
+                target_entity.set_reactors(mapped_reactors)
+
+
+def _prepare_insert_attached_entity_restore(
+    insert: Insert,
+    snapshots: Sequence[RawEntityExportSnapshot],
+    handle_mapping: dict[str, str],
+) -> tuple[
+    list[tuple[RawEntityExportSnapshot, Optional[DXFEntity], str]],
+    list[DXFEntity],
+]:
+    from ezdxf.lldxf.extendedtags import ExtendedTags
+
+    doc = insert.doc
+    if doc is None:
+        raise const.DXFStructureError("valid DXF document required")
+
+    global_mapping = _raw_object_handle_mapping(doc)
+    existing_attribs = list(insert.attribs)
+    existing_seqend = insert.seqend
+    attribs_by_tag: dict[str, list[DXFEntity]] = {}
+    for attrib in existing_attribs:
+        tag = str(attrib.dxf.get("tag", ""))
+        attribs_by_tag.setdefault(tag, []).append(attrib)
+    used_attrib_handles: set[str] = set()
+    plans: list[tuple[RawEntityExportSnapshot, Optional[DXFEntity], str]] = []
+    for snapshot in snapshots:
+        source_xtags = ExtendedTags.from_text(snapshot.text)
+        dxftype = source_xtags.dxftype()
+        if dxftype == "ATTRIB":
+            source_tag = str(next((tag.value for tag in source_xtags if tag.code == 2), ""))
+            target_entity = None
+            for candidate in attribs_by_tag.get(source_tag, []):
+                handle = candidate.dxf.get("handle")
+                if handle and handle in used_attrib_handles:
+                    continue
+                target_entity = candidate
+                if handle:
+                    used_attrib_handles.add(handle)
+                break
+            target_handle = (
+                target_entity.dxf.handle
+                if target_entity is not None
+                else doc.entitydb.next_handle()
+            )
+        elif dxftype == "SEQEND":
+            target_entity = existing_seqend
+            target_handle = (
+                target_entity.dxf.handle
+                if target_entity is not None
+                else doc.entitydb.next_handle()
+            )
+        else:
+            continue
+        source_handle = source_xtags.get_handle()
+        if source_handle and target_handle:
+            handle_mapping[source_handle] = target_handle
+            global_mapping[source_handle] = target_handle
+        plans.append((snapshot, target_entity, target_handle))
+    stale_attribs = []
+    for attrib in existing_attribs:
+        handle = attrib.dxf.get("handle")
+        if handle and handle not in used_attrib_handles:
+            stale_attribs.append(attrib)
+    return plans, stale_attribs
+
+
+def _restore_insert_attached_entity_exports(
+    insert: Insert,
+    plans: Sequence[tuple[RawEntityExportSnapshot, Optional[DXFEntity], str]],
+    handle_mapping: dict[str, str],
+    stale_attribs: Sequence[DXFEntity] = (),
+) -> None:
+    from ezdxf.lldxf.extendedtags import ExtendedTags
+    from ezdxf.entities.xdict import ExtensionDict
+
+    doc = insert.doc
+    if doc is None:
+        raise const.DXFStructureError("valid DXF document required")
+
+    global_mapping = _raw_object_handle_mapping(doc)
+    for stale in stale_attribs:
+        if stale in insert.attribs:
+            insert.attribs.remove(stale)
+        if stale.is_alive:
+            try:
+                doc.entitydb.delete_entity(stale)
+            except Exception:
+                if stale.is_alive:
+                    stale.destroy()
+    for snapshot, target_entity, target_handle in plans:
+        source_xtags = ExtendedTags.from_text(snapshot.text)
+        dxftype = source_xtags.dxftype()
+        ext_snapshot = snapshot.extension_snapshot
+        precreated_ext_root = None
+        if target_entity is None and ext_snapshot:
+            root_tags = ext_snapshot[0]
+            source_root_handle = _handle_from_raw_tags(root_tags)
+            precreated_ext_root = doc.objects.add_dictionary(
+                owner=target_handle, hard_owned=True
+            )
+            precreated_ext_root = _hard_owned_dictionary(
+                precreated_ext_root, target_handle
+            )
+            if source_root_handle:
+                handle_mapping[source_root_handle] = precreated_ext_root.dxf.handle
+                global_mapping[source_root_handle] = precreated_ext_root.dxf.handle
+        if target_entity is None:
+            remapped_tags = [
+                _make_raw_tag(
+                    tag.code, _remap_raw_tag_value(tag.code, tag.value, handle_mapping)
+                )
+                if not isinstance(tag, DXFVertex)
+                else DXFVertex(tag.code, tuple(tag.value))
+                for tag in source_xtags
+            ]
+            target_entity = factory.load(ExtendedTags(remapped_tags), doc)
+            target_entity.dxf.handle = target_handle
+            if precreated_ext_root is not None:
+                target_entity.extension_dict = ExtensionDict(precreated_ext_root)
+            doc.entitydb.add(target_entity)
+            if dxftype == "SEQEND":
+                insert.link_seqend(target_entity)
+            else:
+                insert.link_entity(target_entity)
+
+        resolved_mapping = dict(global_mapping)
+        resolved_mapping.update(handle_mapping)
+        ext_root = None
+        if ext_snapshot:
+            root_tags = ext_snapshot[0]
+            source_root_handle = _handle_from_raw_tags(root_tags)
+            if precreated_ext_root is not None:
+                ext_root = precreated_ext_root
+            else:
+                ext_root = (
+                    target_entity.get_extension_dict().dictionary
+                    if target_entity.has_extension_dict
+                    else target_entity.new_extension_dict().dictionary
+                )
+            ext_root = _hard_owned_dictionary(ext_root, target_handle)
+            if source_root_handle:
+                _preserve_source_object_handle(doc, ext_root, source_root_handle)
+            if source_root_handle:
+                handle_mapping[source_root_handle] = ext_root.dxf.handle
+                global_mapping[source_root_handle] = ext_root.dxf.handle
+                resolved_mapping[source_root_handle] = ext_root.dxf.handle
+
+        setattr(
+            target_entity,
+            RAW_TAGS_OVERRIDE_ATTRIBUTE,
+            _remap_raw_entity_text(snapshot.text, resolved_mapping),
+        )
+
+        if ext_snapshot and ext_root is not None:
+            _restore_raw_object_graph(doc, ext_root, ext_snapshot, resolved_mapping)
+
+    insert.take_ownership()
 
 
 def restore_raw_entity_export(
@@ -6118,14 +6418,23 @@ def restore_raw_entity_export(
     source_xtags = ExtendedTags.from_text(text)
     source_handle = source_xtags.get_handle()
     target_handle = entity.dxf.get("handle")
+    existing_source_entity = doc.entitydb.get(source_handle) if source_handle else None
     if (
         source_handle
         and target_handle
         and source_handle != target_handle
-        and source_handle not in doc.entitydb
+        and (
+            existing_source_entity is None
+            or existing_source_entity is entity
+            or not existing_source_entity.is_alive
+        )
     ):
         if doc.entitydb.reset_handle(entity, source_handle):
             target_handle = source_handle
+            if entity.has_extension_dict:
+                entity.get_extension_dict().update_owner(target_handle)
+            if isinstance(entity, Insert):
+                entity.take_ownership()
     if source_handle and target_handle:
         handle_mapping[source_handle] = target_handle
         _raw_object_handle_mapping(doc)[source_handle] = target_handle
@@ -6133,8 +6442,14 @@ def restore_raw_entity_export(
     target_owner = entity.dxf.get("owner")
     if source_owner_handle and target_owner:
         handle_mapping[source_owner_handle] = target_owner
+    attached_plans: list[tuple[RawEntityExportSnapshot, Optional[DXFEntity], str]] = []
+    stale_attribs: list[DXFEntity] = []
+    if isinstance(entity, Insert) and snapshot.attached_entity_snapshots:
+        attached_plans, stale_attribs = _prepare_insert_attached_entity_restore(
+            entity, snapshot.attached_entity_snapshots, handle_mapping
+        )
     if ext_snapshot:
-        restore_raw_extension_subtree(entity, ext_snapshot)
+        restore_raw_extension_subtree(entity, ext_snapshot, handle_mapping)
         source_root_handle = _handle_from_raw_tags(ext_snapshot[0])
         if source_root_handle:
             handle_mapping[source_root_handle] = entity.get_extension_dict().dictionary.dxf.handle
@@ -6143,6 +6458,12 @@ def restore_raw_entity_export(
         RAW_TAGS_OVERRIDE_ATTRIBUTE,
         _remap_raw_entity_text(text, handle_mapping),
     )
+    if attached_plans:
+        _restore_insert_attached_entity_exports(
+            entity, attached_plans, handle_mapping, stale_attribs
+        )
+    if isinstance(entity, Insert):
+        _register_restored_block_reference(entity, doc)
 
 
 def restore_raw_dynamic_block_layout(
@@ -6171,6 +6492,11 @@ def restore_raw_dynamic_block_layout(
         source_xtags = ExtendedTags.from_text(entity_snapshot.text)
         source_handle = source_xtags.get_handle()
         target_handle = doc.entitydb.next_handle()
+        existing_source_entity = doc.entitydb.get(source_handle) if source_handle else None
+        if source_handle and (
+            existing_source_entity is None or not existing_source_entity.is_alive
+        ):
+            target_handle = source_handle
         handle_mapping[source_handle] = target_handle
         ext_root_handle: Optional[str] = None
         ext_snapshot = entity_snapshot.extension_snapshot
@@ -6178,6 +6504,13 @@ def restore_raw_dynamic_block_layout(
             root_tags = ext_snapshot[0]
             source_root_handle = _handle_from_raw_tags(root_tags)
             ext_root = doc.objects.add_dictionary(owner=target_handle, hard_owned=True)
+            existing_source_root = (
+                doc.entitydb.get(source_root_handle) if source_root_handle else None
+            )
+            if source_root_handle and (
+                existing_source_root is None or not existing_source_root.is_alive
+            ):
+                doc.entitydb.reset_handle(ext_root, source_root_handle)
             ext_root = _hard_owned_dictionary(ext_root, target_handle)
             handle_mapping[source_root_handle] = ext_root.dxf.handle
             ext_root_handle = ext_root.dxf.handle
@@ -6197,14 +6530,25 @@ def restore_raw_dynamic_block_layout(
             for tag in source_xtags
         ]
         remapped_xtags = ExtendedTags(remapped_tags)
-        raw_export_text = _remap_raw_entity_text(entity_snapshot.text, handle_mapping)
         entity = factory.load(remapped_xtags, doc)
         entity.dxf.handle = target_handle
-        setattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE, raw_export_text)
         doc.entitydb.add(entity)
         block.add_entity(entity)
         if isinstance(entity, Insert):
             _register_restored_block_reference(entity, doc)
+        attached_plans: list[tuple[RawEntityExportSnapshot, Optional[DXFEntity], str]] = []
+        stale_attribs: list[DXFEntity] = []
+        if isinstance(entity, Insert) and entity_snapshot.attached_entity_snapshots:
+            attached_plans, stale_attribs = _prepare_insert_attached_entity_restore(
+                entity, entity_snapshot.attached_entity_snapshots, handle_mapping
+            )
+        resolved_mapping = dict(_raw_object_handle_mapping(doc))
+        resolved_mapping.update(handle_mapping)
+        setattr(
+            entity,
+            RAW_TAGS_OVERRIDE_ATTRIBUTE,
+            _remap_raw_entity_text(entity_snapshot.text, resolved_mapping),
+        )
         entities_needing_post_load.append(entity)
         entity_handle_map.append((source_handle, target_handle))
 
@@ -6212,7 +6556,12 @@ def restore_raw_dynamic_block_layout(
         if ext_snapshot and ext_root_handle is not None:
             ext_root = doc.entitydb.get(ext_root_handle)
             assert isinstance(ext_root, Dictionary)
-            _restore_raw_object_graph(doc, ext_root, ext_snapshot, handle_mapping)
+            _restore_raw_object_graph(doc, ext_root, ext_snapshot, resolved_mapping)
+
+        if attached_plans:
+            _restore_insert_attached_entity_exports(
+                entity, attached_plans, handle_mapping, stale_attribs
+            )
 
     restore_raw_dynamic_block_definition(
         block,
@@ -6233,15 +6582,58 @@ def restore_raw_dynamic_block_layout(
 
 def _restore_dictionary_tree(
     dictionary: Dictionary,
-    tree: Sequence[tuple[str, str, Any]],
+    tree: Sequence[tuple[Any, ...]],
+    handle_mapping: Optional[dict[str, str]] = None,
 ) -> None:
+    handle_mapping = {} if handle_mapping is None else handle_mapping
     dictionary.clear()
-    for kind, key, payload in tree:
+    for entry in tree:
+        kind = entry[0]
+        key = entry[1]
         if kind == "dict":
-            child = dictionary.add_new_dict(key, hard_owned=True)
+            source_handle = ""
+            reactors: Sequence[str]
+            hard_owned: Optional[int]
+            cloning = 1
+            payload: Any
+            if len(entry) == 7:
+                source_handle = str(entry[2])
+                reactors = entry[3]
+                hard_owned = entry[4]
+                cloning = entry[5]
+                payload = entry[6]
+            elif len(entry) == 5:
+                source_handle = str(entry[2])
+                reactors = entry[3]
+                hard_owned = None
+                payload = entry[4]
+            elif len(entry) == 4:
+                reactors = entry[2]
+                hard_owned = None
+                payload = entry[3]
+            else:
+                reactors = ()
+                hard_owned = None
+                payload = entry[2]
+            child = dictionary.add_new_dict(key, hard_owned=bool(hard_owned))
             child = _hard_owned_dictionary(child, dictionary.dxf.handle)
-            _restore_dictionary_tree(child, payload)
+            if hard_owned is None:
+                child.dxf.discard("hard_owned")
+            else:
+                child.dxf.hard_owned = hard_owned
+            child.dxf.cloning = cloning
+            if source_handle:
+                handle_mapping[source_handle] = child.dxf.handle
+            mapped_reactors = [handle_mapping.get(str(handle), str(handle)) for handle in reactors]
+            mapped_reactors = [
+                handle
+                for handle in mapped_reactors
+                if dictionary.doc is not None and dictionary.doc.entitydb.get(handle) is not None
+            ]
+            child.set_reactors(mapped_reactors)
+            _restore_dictionary_tree(child, payload, handle_mapping)
         elif kind == "xrecord":
+            payload = entry[2]
             xrecord = dictionary.add_xrecord(key)
             xrecord.set_reactors([dictionary.dxf.handle])
             xrecord.tags.clear()
@@ -6774,7 +7166,7 @@ def set_dynamic_block_insert_appdata_record(
 
 def set_dynamic_block_insert_app_cache_tree(
     insert: Insert,
-    tree: Sequence[tuple[str, str, Any]],
+    tree: Any,
     dynamic_block: Optional[BlockLayout] = None,
 ) -> None:
     if dynamic_block is None:
@@ -6782,7 +7174,13 @@ def set_dynamic_block_insert_app_cache_tree(
     if dynamic_block is None:
         raise const.DXFStructureError("dynamic block definition not found")
     app_cache = _ensure_dynamic_insert_app_cache_dictionary(insert, dynamic_block)
-    _restore_dictionary_tree(app_cache, tree)
+    source_root_handle = ""
+    payload = tree
+    if isinstance(tree, tuple) and len(tree) == 2 and isinstance(tree[0], str):
+        source_root_handle = tree[0]
+        payload = tree[1]
+    handle_mapping = {source_root_handle: app_cache.dxf.handle} if source_root_handle else {}
+    _restore_dictionary_tree(app_cache, payload, handle_mapping)
 
 
 def _populate_linear_insert_cache_records(

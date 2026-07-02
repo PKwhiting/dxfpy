@@ -19,6 +19,11 @@ RawSubclassList = list[RawSubclass]
 RawXDataTags = list[list[RawTag]]
 ExtensionSnapshot = tuple[tuple[tuple[int, object], ...], ...]
 SortentsHandles = list[tuple[str, str]]
+RootDictEntryRestoreSnapshot = tuple[
+    str,
+    tuple[tuple[int, object], ...],
+    tuple[tuple[tuple[int, object], ...], ...],
+]
 
 
 @dataclass(slots=True)
@@ -85,6 +90,7 @@ class RawEntitySwapFallbackSpec:
     source_xdict_handle: str
     source_resource_handles: list[ResourceHandleRef]
     raw_tags: list[RawTag]
+    xdata: RawXDataTags
 
 
 @dataclass(slots=True)
@@ -95,6 +101,7 @@ class VariableDictEntry:
 
 @dataclass(slots=True)
 class VisualStyleEntry:
+    handle: str
     key: str
     dxfattribs: dict[str, object]
 
@@ -127,12 +134,16 @@ class DocumentCodegenCapture(TypedDict):
     blocks: list[BlockLayout]
     block_codes: list[Code]
     block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]]
+    paper_layout_names: list[str]
+    paper_layout_codes: list[tuple[str, Code]]
     msp_code: Code
     imports: set[str]
     resource_code: Code | None
     layers_with_xdict: set[str]
     root_xrecords: dict[str, list[RawTag]]
     deferred_recompose_tags: list[RawTag]
+    deferred_recompose_source_handle: str
+    deferred_recompose_table_styles: list[tuple[str, str]]
     source_fieldlist_handles: list[str]
     source_fieldlist_dangling: list[str]
     variable_dict_entries: list[VariableDictEntry]
@@ -151,6 +162,7 @@ class DocumentCodegenCapture(TypedDict):
     layer_extension_snapshots: list[tuple[str, ExtensionSnapshot]]
     mleader_style_extension_snapshots: list[tuple[str, ExtensionSnapshot]]
     table_style_cellstylemap: list[RawObjectDictEntry]
+    late_rootdict_entries: tuple[RootDictEntryRestoreSnapshot, ...]
     sortents_by_block: list[SortentsBlockSpec]
     block_xdict_orders: dict[str, list[str]]
     entity_xrecord_fallbacks: dict[str, list[EntityXRecordFallbackSpec]]

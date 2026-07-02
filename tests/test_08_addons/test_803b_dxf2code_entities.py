@@ -5,6 +5,7 @@ from io import StringIO
 import ezdxf
 from ezdxf.addons.dxf2code import block_to_code, entities_to_code, table_entries_to_code
 from ezdxf.addons.dxf2code._generator import _SourceCodeGenerator
+from ezdxf.dynblkhelper import snapshot_raw_entity_export
 from ezdxf.entities.ltype import LinetypePattern  # required by exec() or eval()
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tags import Tags  # required by exec() or eval()
@@ -15,6 +16,8 @@ from ezdxf.math import Vec3
 from tests.test_08_addons.dxf2code_support import (
     cmp_vertices,
     execute_code_in_namespace,
+    export_text,
+    normalize_handle_refs_in_text,
     translate_entities_to_new_layout,
 )
 
@@ -308,6 +311,178 @@ def test_insert_attrib_to_code_preserves_context_data_subtree():
     assert new_mgr is not None
     assert new_mgr.dxf.owner == new_attrib.get_extension_dict().dictionary.dxf.handle
     assert new_mgr.get("ACDB_ANNOTATIONSCALES") is not None
+
+
+def test_insert_attrib_to_code_preserves_normalized_raw_export():
+    source_doc = ezdxf.new("R2010")
+    for appid in (
+        "AcDbBlockRepETag",
+        "AcadInvisibleAttribDecomposition",
+        "AcadAnnotative",
+    ):
+        if appid not in source_doc.appids:
+            source_doc.appids.new(appid)
+
+    block = source_doc.blocks.new("ATTRIB_RAW_BLOCK")
+    insert = block.add_blockref("TEST_REF", (0, 0))
+    attrib = insert.add_attrib(
+        "TAG",
+        "TEXT",
+        insert=(1, 2),
+        dxfattribs={
+            "layer": "ATTRIB_LAYER",
+            "color": 2,
+            "transparency": 16777216,
+            "invisible": 1,
+            "style": "Standard",
+            "flags": 1,
+            "lock_position": 1,
+        },
+    )
+    attrib.set_xdata("AcDbBlockRepETag", [(1070, 1), (1071, 7), (1005, "0")])
+    attrib.set_xdata(
+        "AcadInvisibleAttribDecomposition",
+        [(1000, "AnnotativeData"), (1002, "{"), (1070, 1), (1070, 1), (1002, "}")],
+    )
+    attrib.set_xdata(
+        "AcadAnnotative",
+        [(1000, "AnnotativeData"), (1002, "{"), (1070, 1), (1070, 0), (1002, "}")],
+    )
+    mgr = attrib.new_extension_dict().dictionary.add_new_dict("AcDbContextDataManager")
+    mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+
+    new_insert = next(
+        entity
+        for entity in namespace["doc"].blocks.get("ATTRIB_RAW_BLOCK")
+        if entity.dxftype() == "INSERT"
+    )
+    new_attrib = new_insert.attribs[0]
+
+    assert normalize_handle_refs_in_text(
+        export_text(new_attrib, namespace["doc"].dxfversion)
+    ) == normalize_handle_refs_in_text(export_text(attrib, source_doc.dxfversion))
+
+
+def test_insert_to_code_preserves_normalized_raw_export_without_extension_dict():
+    source_doc = ezdxf.new("R2010")
+    if "AcadAnnotativeAttributeDecomposition" not in source_doc.appids:
+        source_doc.appids.new("AcadAnnotativeAttributeDecomposition")
+
+    block = source_doc.blocks.new("INSERT_RAW_BLOCK")
+    insert = block.add_blockref("TEST_REF", (0, 0))
+    insert.set_xdata(
+        "AcadAnnotativeAttributeDecomposition",
+        [(1000, "AnnotativeData"), (1002, "{"), (1070, 1), (1070, 1), (1002, "}")],
+    )
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+
+    new_insert = next(
+        entity
+        for entity in namespace["doc"].blocks.get("INSERT_RAW_BLOCK")
+        if entity.dxftype() == "INSERT"
+    )
+
+    assert normalize_handle_refs_in_text(
+        export_text(new_insert, namespace["doc"].dxfversion)
+    ) == normalize_handle_refs_in_text(export_text(insert, source_doc.dxfversion))
+
+
+def test_insert_to_code_preserves_normalized_raw_export_with_extension_dict_and_attribs():
+    source_doc = ezdxf.new("R2010")
+    for appid in (
+        "AcDbBlockRepETag",
+        "AcadInvisibleAttribDecomposition",
+        "AcadAnnotative",
+    ):
+        if appid not in source_doc.appids:
+            source_doc.appids.new(appid)
+
+    block = source_doc.blocks.new("INSERT_RAW_BLOCK_WITH_XDICT")
+    insert = block.add_blockref("TEST_REF", (0, 0), dxfattribs={"transparency": 16777216})
+    insert.new_extension_dict().dictionary.add_new_dict("TEST_DICT")
+    attrib = insert.add_attrib(
+        "TAG",
+        "TEXT",
+        insert=(1, 2),
+        dxfattribs={
+            "layer": "ATTRIB_LAYER",
+            "color": 2,
+            "transparency": 16777216,
+            "invisible": 1,
+            "style": "Standard",
+            "flags": 1,
+            "lock_position": 1,
+        },
+    )
+    mgr = attrib.new_extension_dict().dictionary.add_new_dict("AcDbContextDataManager")
+    mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+
+    new_insert = next(
+        entity
+        for entity in namespace["doc"].blocks.get("INSERT_RAW_BLOCK_WITH_XDICT")
+        if entity.dxftype() == "INSERT"
+    )
+
+    assert normalize_handle_refs_in_text(
+        snapshot_raw_entity_export(new_insert).text
+    ) == normalize_handle_refs_in_text(snapshot_raw_entity_export(insert).text)
+
+
+def test_entities_to_code_with_multiple_extension_inserts_preserves_insert_count():
+    source_doc = ezdxf.new("R2010")
+    block = source_doc.blocks.new("MULTI_INSERT_BLOCK")
+    inserts = []
+    for x in (0, 10):
+        insert = source_doc.modelspace().add_blockref("TEST_REF", (x, 0))
+        insert.new_extension_dict().dictionary.add_new_dict(f"TEST_DICT_{x}")
+        insert.add_attrib("TAG", f"TEXT_{x}", insert=(x + 1, 2))
+        inserts.append(insert)
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    code = entities_to_code(inserts, layout="msp")
+    execute_code_in_namespace(code, namespace)
+
+    new_inserts = list(namespace["msp"].query("INSERT"))
+
+    assert len(new_inserts) == 2
+
+
+def test_insert_to_code_with_hosted_field_does_not_duplicate_field_objects():
+    source_doc = ezdxf.new("R2010")
+    block = source_doc.blocks.new("INSERT_FIELD_BLOCK")
+    target = source_doc.modelspace().add_line((0, 0), (1, 0))
+    insert = block.add_blockref("TEST_REF", (0, 0), dxfattribs={"transparency": 16777216})
+    insert.new_extension_dict().dictionary.add_new_dict("TEST_DICT")
+    insert.add_attrib_acobjprop_field(
+        "TAG",
+        "TEXT",
+        insert=(1, 2),
+        target=target,
+        property_name="Length",
+        dxfattribs={"layer": "ATTRIB_LAYER"},
+    )
+
+    source_field_count = sum(1 for obj in source_doc.objects if obj.dxftype() == "FIELD")
+
+    target_doc = ezdxf.new("R2010")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+
+    target_field_count = sum(1 for obj in namespace["doc"].objects if obj.dxftype() == "FIELD")
+
+    assert target_field_count == source_field_count
 
 
 def test_block_to_code_preserves_block_record_preview_data():

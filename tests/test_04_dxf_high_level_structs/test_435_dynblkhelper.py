@@ -2,6 +2,7 @@ from io import StringIO
 
 import pytest
 import ezdxf
+from ezdxf.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tagwriter import TagWriter
 from ezdxf.math import Vec2
@@ -38,8 +39,10 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_property_representations,
     get_dynamic_block_property_rows,
     register_source_entity_handle_mapping,
+    restore_raw_entity_export,
     snapshot_raw_dynamic_block_definition,
     snapshot_raw_dynamic_block_layout,
+    snapshot_raw_entity_export,
     restore_raw_dynamic_block_definition,
     restore_raw_dynamic_block_layout,
     set_dynamic_block_definition_metadata,
@@ -2667,3 +2670,65 @@ def test_set_dynamic_block_lookup_parameter_patches_graph_and_linear_values():
     assert lookup_grips[0].parameter_expr_id == 71
     assert len(lookup_actions) == 2
     assert {action.label for action in lookup_actions} == {"Lookup1", "Lookup3"}
+
+
+def test_restore_raw_entity_export_replays_insert_attached_attrib_context_data():
+    source_doc = ezdxf.new("R2010")
+    source_block = source_doc.blocks.new("SRC")
+    source_insert = source_block.add_blockref("TARGET", (1, 2))
+    source_attrib = source_insert.add_attrib("TAG", "TEXT", insert=(3, 4))
+    mgr = source_attrib.new_extension_dict().dictionary.add_new_dict(
+        "AcDbContextDataManager"
+    )
+    mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
+    snapshot = snapshot_raw_entity_export(source_insert)
+
+    assert len(snapshot.attached_entity_snapshots) == 2
+
+    target_doc = ezdxf.new("R2010")
+    target_block = target_doc.blocks.new("SRC")
+    target_insert = target_block.add_blockref("TARGET", (1, 2))
+    target_insert.add_attrib("TAG", "TEXT", insert=(3, 4))
+
+    restore_raw_entity_export(target_insert, snapshot)
+
+    target_attrib = target_insert.attribs[0]
+    assert target_attrib.has_extension_dict is True
+    target_mgr = target_attrib.get_extension_dict().dictionary.get("AcDbContextDataManager")
+    assert target_mgr is not None
+    assert target_mgr.get("ACDB_ANNOTATIONSCALES") is not None
+    assert getattr(target_attrib, RAW_TAGS_OVERRIDE_ATTRIBUTE, "").startswith(
+        "  0\nATTRIB\n"
+    )
+    assert getattr(target_insert.seqend, RAW_TAGS_OVERRIDE_ATTRIBUTE, "").startswith(
+        "  0\nSEQEND\n"
+    )
+
+
+def test_restore_raw_dynamic_block_layout_replays_insert_attached_attrib_context_data():
+    source_doc = ezdxf.new("R2010")
+    source_block = source_doc.blocks.new("SRC_LAYOUT")
+    source_insert = source_block.add_blockref("TARGET", (1, 2))
+    source_attrib = source_insert.add_attrib("TAG", "TEXT", insert=(3, 4))
+    mgr = source_attrib.new_extension_dict().dictionary.add_new_dict(
+        "AcDbContextDataManager"
+    )
+    mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
+    snapshot = snapshot_raw_dynamic_block_layout(source_block)
+
+    target_doc = ezdxf.new("R2010")
+    target_block = target_doc.blocks.new("SRC_LAYOUT")
+
+    restore_raw_dynamic_block_layout(target_block, snapshot)
+
+    restored_insert = list(target_block)[0]
+    restored_attrib = restored_insert.attribs[0]
+    assert restored_attrib.has_extension_dict is True
+    restored_mgr = restored_attrib.get_extension_dict().dictionary.get(
+        "AcDbContextDataManager"
+    )
+    assert restored_mgr is not None
+    assert restored_mgr.get("ACDB_ANNOTATIONSCALES") is not None
+    assert getattr(restored_attrib, RAW_TAGS_OVERRIDE_ATTRIBUTE, "").startswith(
+        "  0\nATTRIB\n"
+    )

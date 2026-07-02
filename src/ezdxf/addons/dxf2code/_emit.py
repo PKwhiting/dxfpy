@@ -22,12 +22,16 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     blocks = data["blocks"]
     block_codes = data["block_codes"]
     block_layout_entity_snapshots = data["block_layout_entity_snapshots"]
+    paper_layout_names = data["paper_layout_names"]
+    paper_layout_codes = data["paper_layout_codes"]
     msp_code = data["msp_code"]
     imports = data["imports"]
     resource_code = data["resource_code"]
     layers_with_xdict = data["layers_with_xdict"]
     root_xrecords = data["root_xrecords"]
     deferred_recompose_tags = data["deferred_recompose_tags"]
+    deferred_recompose_source_handle = data["deferred_recompose_source_handle"]
+    deferred_recompose_table_styles = data["deferred_recompose_table_styles"]
     source_fieldlist_handles = data["source_fieldlist_handles"]
     source_fieldlist_dangling = data["source_fieldlist_dangling"]
     variable_dict_entries = data["variable_dict_entries"]
@@ -46,6 +50,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     layer_extension_snapshots = data["layer_extension_snapshots"]
     mleader_style_extension_snapshots = data["mleader_style_extension_snapshots"]
     table_style_cellstylemap = data["table_style_cellstylemap"]
+    late_rootdict_entries = data["late_rootdict_entries"]
     sortents_by_block = data["sortents_by_block"]
     block_xdict_orders = data["block_xdict_orders"]
     entity_xrecord_fallbacks = data["entity_xrecord_fallbacks"]
@@ -63,6 +68,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     lines.append("from ezdxf.addons.dxf2code import DocumentCodegenRuntime")
     lines.append("from ezdxf.sections.classes import restore_raw_classes")
     lines.append("from ezdxf.sections.header import restore_raw_header_vars")
+    lines.append("from ezdxf.dynblkhelper import restore_raw_rootdict_entries")
     lines.append("from ezdxf.dynblkhelper import restore_raw_extension_subtree")
     lines.append("")
     lines.append(f'OUT = Path(r"{out_path.as_posix()}")')
@@ -115,6 +121,9 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
                 lines.append(f'    _vs_attribs.update({entry.dxfattribs!r})')
                 lines.append('    _vs = doc.objects.new_entity("VISUALSTYLE", dxfattribs=_vs_attribs)')
                 lines.append(f'    _vs_dict.add({entry.key!r}, _vs)')
+            lines.append(
+                f"rt.register_visualstyle_handles({[(entry.handle, entry.key) for entry in visualstyle_entries]!r})"
+            )
             for key, snapshot in visualstyle_extensions:
                 lines.append(f'_vs = _vs_dict.get({key!r})')
                 lines.append(
@@ -221,9 +230,24 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         raw_specs = raw_entity_swap_fallbacks.get(block.name, [])
         for spec in raw_specs:
             raw_entity_swap_calls.append(
-                f'rt.swap_raw_graphic_entity(doc.blocks.get({block.name!r}), {spec.source_handle!r}, {spec.source_owner!r}, {spec.source_xdict_handle!r}, {[(ref.source_handle, ref.attrib_name) for ref in spec.source_resource_handles]!r}, {spec.raw_tags!r})'
+                f'rt.swap_raw_graphic_entity(doc.blocks.get({block.name!r}), {spec.source_handle!r}, {spec.source_owner!r}, {spec.source_xdict_handle!r}, {[(ref.source_handle, ref.attrib_name) for ref in spec.source_resource_handles]!r}, {spec.raw_tags!r}, {spec.xdata!r})'
             )
-        lines.append("")
+    lines.append("")
+
+    if paper_layout_names:
+        lines.append("# paperspace layouts")
+        for layout_name in paper_layout_names:
+            lines.append(
+                f'if {layout_name!r} not in doc.layouts: doc.new_layout({layout_name!r})'
+            )
+            lines.append(f'psp = doc.layout({layout_name!r})')
+            lines.append("psp.delete_all_entities()")
+            for name, code in paper_layout_codes:
+                if name != layout_name:
+                    continue
+                lines.extend(code.code)
+                lines.append("rt.register_entity_map(_entity_map)")
+            lines.append("")
 
     if sortents_by_block:
         for spec in sortents_by_block:
@@ -286,10 +310,23 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.append("if 'ACDB_RECOMPOSE_DATA' not in doc.rootdict:")
         lines.append("    _xr = doc.objects.add_xrecord(owner=doc.rootdict.dxf.handle)")
         lines.append("    _xr.set_reactors([doc.rootdict.dxf.handle])")
+        if deferred_recompose_source_handle:
+            lines.append(f"    _source_handle = {deferred_recompose_source_handle!r}")
+            lines.append("    _existing = doc.entitydb.get(_source_handle)")
+            lines.append("    if _existing is None or _existing is _xr or not _existing.is_alive:")
+            lines.append("        doc.entitydb.reset_handle(_xr, _source_handle)")
+        if deferred_recompose_table_styles:
+            lines.append(
+                f"    rt.register_recompose_table_styles({deferred_recompose_table_styles!r})"
+            )
         lines.append(
             f"    _xr.reset(rt.remap_root_xrecord_tags({deferred_recompose_tags!r}))"
         )
         lines.append("    doc.rootdict.add('ACDB_RECOMPOSE_DATA', _xr)")
+        lines.append("")
+    if late_rootdict_entries:
+        lines.append("# late rootdict resources")
+        lines.append(f"restore_raw_rootdict_entries(doc, {late_rootdict_entries!r})")
         lines.append("")
     if raw_entity_swap_calls:
         lines.append("# raw entity swaps")
