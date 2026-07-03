@@ -10,9 +10,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ezdxf.dynblkhelper import (
+    ensure_insert_seqends,
     register_source_entity_handle_mapping,
     remap_header_resource_handles,
+    remove_stale_hatch_associations,
     reorder_objects_by_source_order,
+    sync_handseed,
+    sync_layer_annotation_scale_xrecords,
     restore_raw_block_entity_exports,
     restore_dictionary_key_order,
     restore_raw_entity_export,
@@ -24,6 +28,7 @@ from ezdxf.dynblkhelper import (
     snapshot_raw_entity_export,
     snapshot_raw_extension_subtree,
     snapshot_raw_rootdict_entries,
+    sync_raw_acad_table_geometry_btrs,
 )
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.types import is_pointer_code
@@ -107,7 +112,12 @@ def finalize_document_fidelity(source_doc: Drawing, target_doc: Drawing) -> None
             snapshot_raw_header_vars(source_doc.filename, _HEADER_RAW_OVERRIDE_KEYS),
         )
     restore_raw_classes(target_doc.classes, snapshot_raw_classes(source_doc.classes))
+    sync_raw_acad_table_geometry_btrs(target_doc)
+    sync_layer_annotation_scale_xrecords(target_doc)
+    remove_stale_hatch_associations(target_doc)
     reorder_objects_by_source_order(target_doc, snapshot_object_handle_order(source_doc))
+    ensure_insert_seqends(target_doc)
+    sync_handseed(target_doc)
 
 
 def _copy_header_state(source_doc: Drawing, target_doc: Drawing) -> None:

@@ -17,6 +17,7 @@ from ezdxf.lldxf.tagwriter import TagCollector, TagWriter
 from ezdxf.lldxf.tags import DXFTag
 from ezdxf.lldxf.types import DXFVertex, is_pointer_code, dxftag
 from ezdxf.lldxf import const
+from ezdxf.tools.handle import HandleGenerator
 
 if TYPE_CHECKING:
     from ezdxf.document import Drawing
@@ -79,6 +80,11 @@ __all__ = [
     "restore_raw_entity_export",
     "restore_raw_extension_subtree",
     "restore_raw_rootdict_entries",
+    "ensure_insert_seqends",
+    "remove_stale_hatch_associations",
+    "sync_layer_annotation_scale_xrecords",
+    "sync_handseed",
+    "sync_raw_acad_table_geometry_btrs",
     "register_source_entity_handle_mapping",
     "reorder_objects_by_source_order",
     "map_extension_subtree_handles",
@@ -5754,7 +5760,11 @@ def _remap_raw_tag_value(code: int, value: Any, handle_mapping: dict[str, str]) 
     return value
 
 
-def _remap_raw_entity_text(entity_text: str, handle_mapping: dict[str, str]) -> str:
+def _remap_raw_entity_text(
+    entity_text: str,
+    handle_mapping: dict[str, str],
+    doc: Optional[Drawing] = None,
+) -> str:
     if not entity_text:
         return entity_text
 
@@ -5783,7 +5793,316 @@ def _remap_raw_entity_text(entity_text: str, handle_mapping: dict[str, str]) -> 
     text = "\n".join(remapped_lines)
     if entity_text.endswith("\n"):
         text += "\n"
+    if doc is not None:
+        text = _sync_raw_acad_table_geometry_btr(text, doc)
     return text
+
+
+def _sync_raw_acad_table_geometry_btr(entity_text: str, doc: Drawing) -> str:
+    lines = entity_text.splitlines()
+    if len(lines) < 2:
+        return entity_text
+
+    dxftype = ""
+    for index in range(0, len(lines) - 1, 2):
+        try:
+            code = int(lines[index].strip())
+        except ValueError:
+            continue
+        if code == 0:
+            dxftype = lines[index + 1].strip()
+            break
+    if dxftype != "ACAD_TABLE":
+        return entity_text
+
+    geometry_name = ""
+    in_block_reference = False
+    for index in range(0, len(lines) - 1, 2):
+        try:
+            code = int(lines[index].strip())
+        except ValueError:
+            continue
+        value = lines[index + 1].strip()
+        if code == 100:
+            in_block_reference = value == "AcDbBlockReference"
+            continue
+        if in_block_reference and code == 2:
+            geometry_name = value
+            break
+    if not geometry_name:
+        return entity_text
+
+    block = doc.blocks.get(geometry_name)
+    if block is None or not block.block_record_handle:
+        return entity_text
+
+    for index in range(0, len(lines) - 1, 2):
+        try:
+            code = int(lines[index].strip())
+        except ValueError:
+            continue
+        if code == 343:
+            lines[index + 1] = block.block_record_handle
+            text = "\n".join(lines)
+            if entity_text.endswith("\n"):
+                text += "\n"
+            return text
+    return entity_text
+
+
+def sync_raw_acad_table_geometry_btrs(doc: Drawing) -> None:
+    for entity in list(doc.entitydb.values()):
+        if entity is None or not entity.is_alive or entity.dxftype() != "ACAD_TABLE":
+            continue
+        geometry_name = entity.dxf.get("geometry")
+        if geometry_name:
+            block = doc.blocks.get(geometry_name)
+            if block is not None and block.block_record_handle:
+                entity.dxf.block_record_handle = block.block_record_handle
+        raw_tags = getattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE, None)
+        if isinstance(raw_tags, str):
+            setattr(
+                entity,
+                RAW_TAGS_OVERRIDE_ATTRIBUTE,
+                _sync_raw_acad_table_geometry_btr(raw_tags, doc),
+            )
+
+
+def remove_stale_hatch_associations(doc: Drawing) -> None:
+    for entity in list(doc.entitydb.values()):
+        if entity is None or not entity.is_alive or entity.dxftype() != "HATCH":
+            continue
+        raw_tags = getattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE, None)
+        raw_storage = raw_tags is None and isinstance(entity, DXFTagStorage)
+        if raw_storage:
+            raw_tags = entity.xtags
+        semantic_handles = tuple(
+            str(handle)
+            for path in getattr(entity, "paths", ())
+            for handle in getattr(path, "source_boundary_objects", [])
+        )
+        raw_associative, raw_handles = _raw_hatch_association_state(raw_tags)
+        if raw_tags is not None:
+            if not raw_associative:
+                continue
+            handles = raw_handles
+        else:
+            if not entity.dxf.get("associative", 0):
+                continue
+            handles = semantic_handles
+        owner = entity.dxf.get("owner")
+        if not handles or any(
+            _is_stale_hatch_boundary_handle(doc, owner, h) for h in handles
+        ):
+            _clear_hatch_association(entity, raw_storage)
+
+
+def _is_stale_hatch_boundary_handle(
+    doc: Drawing, owner: str | None, handle: str
+) -> bool:
+    target = doc.entitydb.get(str(handle))
+    target_dxf = getattr(target, "dxf", None) if target is not None else None
+    return (
+        target is None
+        or not target.is_alive
+        or target_dxf is None
+        or target_dxf.get("owner") != owner
+    )
+
+
+def _raw_hatch_association_state(raw_tags: Any) -> tuple[bool, tuple[str, ...]]:
+    if raw_tags is None:
+        return False, ()
+    pairs = _raw_tag_pairs(raw_tags)
+    associative = False
+    source_handles: list[str] = []
+    index = 0
+    while index < len(pairs):
+        code, value = pairs[index]
+        if code == 71:
+            try:
+                associative = associative or int(value) != 0
+            except ValueError:
+                associative = True
+        elif code == 97:
+            try:
+                count = int(value)
+            except ValueError:
+                count = 0
+            index += 1
+            found = 0
+            while index < len(pairs) and found < count:
+                source_code, source_value = pairs[index]
+                if source_code == 330:
+                    source_handles.append(source_value)
+                    found += 1
+                index += 1
+            continue
+        index += 1
+    return associative, tuple(source_handles)
+
+
+def _raw_tag_pairs(raw_tags: Any) -> list[tuple[int, str]]:
+    if isinstance(raw_tags, str):
+        lines = raw_tags.splitlines()
+        pairs: list[tuple[int, str]] = []
+        for index in range(0, len(lines) - 1, 2):
+            try:
+                code = int(lines[index].strip())
+            except ValueError:
+                continue
+            pairs.append((code, lines[index + 1].strip()))
+        return pairs
+    pairs = []
+    for tag in raw_tags:
+        try:
+            code = int(tag.code)
+        except (AttributeError, TypeError, ValueError):
+            continue
+        pairs.append((code, str(tag.value).strip()))
+    return pairs
+
+
+def _clear_hatch_association(entity: DXFEntity, raw_storage: bool) -> None:
+    if hasattr(entity, "paths"):
+        entity.dxf.associative = 0
+        for path in entity.paths:
+            path.source_boundary_objects = []
+    if raw_storage:
+        _clear_raw_hatch_association_tags(entity.xtags)
+    elif hasattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE):
+        delattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE)
+
+
+def _clear_raw_hatch_association_tags(raw_tags: Any) -> None:
+    subclasses = getattr(raw_tags, "subclasses", ())
+    for tags in subclasses:
+        updated = []
+        index = 0
+        while index < len(tags):
+            tag = tags[index]
+            if tag.code == 71:
+                updated.append(dxftag(71, 0))
+            elif tag.code == 97:
+                updated.append(dxftag(97, 0))
+                try:
+                    count = int(tag.value)
+                except (TypeError, ValueError):
+                    count = 0
+                index += 1
+                found = 0
+                while index < len(tags) and found < count:
+                    if tags[index].code == 330:
+                        found += 1
+                    index += 1
+                continue
+            else:
+                updated.append(tag)
+            index += 1
+        tags[:] = updated
+
+
+def sync_layer_annotation_scale_xrecords(doc: Drawing) -> None:
+    for layer in doc.layers:
+        if not layer.has_extension_dict:
+            continue
+        xdict = layer.get_extension_dict().dictionary
+        xrecord = xdict.get("ASDK_XREC_ANNO_SCALE_INFO")
+        if xrecord is None or xrecord.dxftype() != "XRECORD":
+            continue
+        scale_index = None
+        layer_index = None
+        for index, tag in enumerate(xrecord.tags):
+            if tag.code != 340:
+                continue
+            if scale_index is None:
+                scale_index = index
+            elif layer_index is None:
+                layer_index = index
+                break
+        if layer_index is None or _is_handle_dxftype(
+            doc, xrecord.tags[layer_index].value, "LAYER"
+        ):
+            continue
+        base_layer = _base_annotation_layer(doc, layer.dxf.name)
+        if base_layer is None:
+            continue
+        if scale_index is not None and not _is_handle_dxftype(
+            doc, xrecord.tags[scale_index].value, "SCALE"
+        ):
+            xrecord.tags[scale_index] = dxftag(
+                340, _default_annotation_scale_handle(doc)
+            )
+        xrecord.tags[layer_index] = dxftag(340, base_layer.dxf.handle)
+
+
+def ensure_insert_seqends(doc: Drawing) -> None:
+    for entity in list(doc.entitydb.values()):
+        if entity is None or not entity.is_alive or entity.dxftype() != "INSERT":
+            continue
+        if not getattr(entity, "attribs", ()):
+            continue
+        entity.add_sub_entities_to_entitydb(doc.entitydb)
+        entity.take_ownership()
+
+
+def _is_handle_dxftype(doc: Drawing, handle: str, dxftype: str) -> bool:
+    entity = doc.entitydb.get(str(handle))
+    return entity is not None and entity.is_alive and entity.dxftype() == dxftype
+
+
+def _base_annotation_layer(doc: Drawing, layer_name: str) -> DXFEntity | None:
+    if " @ " not in layer_name:
+        return None
+    base_name = layer_name.rsplit(" @ ", 1)[0]
+    try:
+        return doc.layers.get(base_name)
+    except Exception:
+        return None
+
+
+def sync_handseed(doc: Drawing) -> None:
+    doc.update_all()
+    max_handle = 0
+    for handle in doc.entitydb.keys():
+        max_handle = _max_handle(max_handle, handle)
+    for entity in doc.entitydb.values():
+        for subentity in getattr(entity, "attribs", ()):
+            max_handle = _max_handle(max_handle, subentity.dxf.get("handle"))
+        seqend = getattr(entity, "seqend", None)
+        if seqend is not None:
+            max_handle = _max_handle(max_handle, seqend.dxf.get("handle"))
+        raw_tags = getattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE, None)
+        if raw_tags is None:
+            continue
+        for code, value in _raw_tag_pairs(raw_tags):
+            if code in (5, 105):
+                max_handle = _max_handle(max_handle, value)
+    try:
+        current = int(str(doc.entitydb.handles), 16)
+    except ValueError:
+        current = 0
+    insert_count = sum(
+        1
+        for entity in doc.entitydb.values()
+        if entity is not None and entity.is_alive and entity.dxftype() == "INSERT"
+    )
+    if insert_count:
+        # Some loaders allocate transient SEQEND handles for INSERT entities
+        # even when those SEQENDs are not exported for non-attributed INSERTs.
+        reserve_start = max(max_handle + 1, current)
+        max_handle = max(max_handle, reserve_start + insert_count - 1)
+    next_handle = max_handle + 1
+    if current <= max_handle:
+        doc.entitydb.handles = HandleGenerator(f"{next_handle:X}")
+    doc.header["$HANDSEED"] = str(doc.entitydb.handles)
+
+
+def _max_handle(current: int, handle: str) -> int:
+    try:
+        return max(current, int(str(handle), 16))
+    except ValueError:
+        return current
 
 
 def _restore_raw_object_graph(
@@ -5983,7 +6302,7 @@ def _restore_raw_block_entity_exports(
             setattr(
                 entity,
                 RAW_TAGS_OVERRIDE_ATTRIBUTE,
-                _remap_raw_entity_text(entity_snapshot.text, resolved_mapping),
+                _remap_raw_entity_text(entity_snapshot.text, resolved_mapping, doc),
             )
 
         if attached_plans:
@@ -6002,7 +6321,7 @@ def _restore_raw_block_boundary_entity(
     setattr(
         entity,
         RAW_TAGS_OVERRIDE_ATTRIBUTE,
-        _remap_raw_entity_text(entity_text, handle_mapping),
+        _remap_raw_entity_text(entity_text, handle_mapping, entity.doc),
     )
 
 
@@ -6391,7 +6710,7 @@ def _restore_insert_attached_entity_exports(
         setattr(
             target_entity,
             RAW_TAGS_OVERRIDE_ATTRIBUTE,
-            _remap_raw_entity_text(snapshot.text, resolved_mapping),
+            _remap_raw_entity_text(snapshot.text, resolved_mapping, doc),
         )
 
         if ext_snapshot and ext_root is not None:
@@ -6456,7 +6775,7 @@ def restore_raw_entity_export(
     setattr(
         entity,
         RAW_TAGS_OVERRIDE_ATTRIBUTE,
-        _remap_raw_entity_text(text, handle_mapping),
+        _remap_raw_entity_text(text, handle_mapping, doc),
     )
     if attached_plans:
         _restore_insert_attached_entity_exports(
@@ -6547,7 +6866,7 @@ def restore_raw_dynamic_block_layout(
         setattr(
             entity,
             RAW_TAGS_OVERRIDE_ATTRIBUTE,
-            _remap_raw_entity_text(entity_snapshot.text, resolved_mapping),
+            _remap_raw_entity_text(entity_snapshot.text, resolved_mapping, doc),
         )
         entities_needing_post_load.append(entity)
         entity_handle_map.append((source_handle, target_handle))

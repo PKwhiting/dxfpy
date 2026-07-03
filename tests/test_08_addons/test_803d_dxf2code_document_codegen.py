@@ -8,6 +8,7 @@ from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.math import Vec2
 
 from tests.test_08_addons.dxf2code_support import (
+    execute_code_in_namespace,
     export_text,
     normalize_handle_refs_in_text,
     replay_doc_to_new_doc,
@@ -109,6 +110,118 @@ def test_layer_extension_subtree_replay_remaps_external_handles():
     pointer_values = [value for code, value in snapshot[1] if code == 340]
 
     assert pointer_values == [replayed_material.dxf.handle, replayed_ref.dxf.handle]
+
+
+def test_document_to_code_file_remaps_layer_annotation_xrecord_handles(tmp_path):
+    from ezdxf.dynblkhelper import _default_annotation_scale_handle
+
+    source_doc = ezdxf.new("R2018")
+    base_layer = source_doc.layers.new("BASE_ANNO")
+    annotated_layer = source_doc.layers.new("BASE_ANNO @ 1")
+    assert source_doc.entitydb.reset_handle(base_layer, "ABC") is True
+    scale_handle = _default_annotation_scale_handle(source_doc)
+    xdict = annotated_layer.new_extension_dict().dictionary
+    xrecord = xdict.add_xrecord("ASDK_XREC_ANNO_SCALE_INFO")
+    xrecord.set_reactors([xdict.dxf.handle])
+    xrecord.reset([(70, 1), (340, scale_handle), (340, base_layer.dxf.handle), (70, -1)])
+    source_doc.modelspace().add_line(
+        (0, 0), (1, 0), dxfattribs={"layer": annotated_layer.dxf.name}
+    )
+
+    source_path = tmp_path / "source_layer_annotation_xrecord.dxf"
+    script_path = tmp_path / "generated_layer_annotation_xrecord.py"
+    output_path = tmp_path / "generated_layer_annotation_xrecord.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert "sync_layer_annotation_scale_xrecords(doc)" in script_text
+
+    exec(script_text, {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_layer = out_doc.layers.get(annotated_layer.dxf.name)
+    out_xdict = out_layer.get_extension_dict().dictionary
+    out_xrecord = out_xdict.get("ASDK_XREC_ANNO_SCALE_INFO")
+    pointer_values = [value for code, value in out_xrecord.tags if code == 340]
+
+    assert out_doc.entitydb.get(pointer_values[0]).dxftype() == "SCALE"
+    assert out_doc.entitydb.get(pointer_values[1]) is out_doc.layers.get(base_layer.dxf.name)
+
+
+def test_document_to_code_file_advances_handseed_after_raw_handle_restore(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    layer = source_doc.layers.new("HIGH_HANDLE_LAYER")
+    xdict = layer.new_extension_dict().dictionary
+    xrecord = xdict.add_xrecord("HIGH_HANDLE_XRECORD")
+    assert source_doc.entitydb.reset_handle(xdict, "F000") is True
+    assert source_doc.entitydb.reset_handle(xrecord, "F001") is True
+    xrecord.set_reactors([xdict.dxf.handle])
+    source_doc.modelspace().add_line((0, 0), (1, 0), dxfattribs={"layer": layer.dxf.name})
+    block = source_doc.blocks.new("HIGH_HANDLE_ATTRIB_BLOCK")
+    block.add_attdef("TAG", insert=(0, 0))
+    insert = source_doc.modelspace().add_blockref(block.name, (0, 0))
+    insert.add_attrib("TAG", "value", insert=(0, 0))
+    insert.take_ownership()
+    assert insert.seqend is not None
+    assert source_doc.entitydb.reset_handle(insert.seqend, "F100") is True
+
+    source_path = tmp_path / "source_high_handseed.dxf"
+    script_path = tmp_path / "generated_high_handseed.py"
+    output_path = tmp_path / "generated_high_handseed.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert "ensure_insert_seqends(doc)" in script_text
+    assert "sync_handseed(doc)" in script_text
+
+    exec(script_text, {})
+
+    out_doc = ezdxf.readfile(output_path)
+    max_handle = max(int(str(handle), 16) for handle in out_doc.entitydb.keys())
+    handseed = int(out_doc.header["$HANDSEED"], 16)
+
+    assert handseed > max_handle
+
+
+def test_sync_handseed_scans_attached_insert_seqend_handles():
+    from ezdxf.dynblkhelper import sync_handseed
+
+    doc = ezdxf.new("R2018")
+    block = doc.blocks.new("ATTRIB_BLOCK")
+    block.add_attdef("TAG", insert=(0, 0))
+    insert = doc.modelspace().add_blockref(block.name, (0, 0))
+    insert.add_attrib("TAG", "value", insert=(0, 0))
+    insert.take_ownership()
+    assert insert.seqend is not None
+    insert.seqend.dxf.handle = "F100"
+
+    sync_handseed(doc)
+
+    assert int(str(doc.entitydb.handles), 16) > int("F100", 16)
+
+
+def test_ensure_insert_seqends_materializes_missing_seqend():
+    from ezdxf.dynblkhelper import ensure_insert_seqends
+
+    doc = ezdxf.new("R2018")
+    block = doc.blocks.new("ATTRIB_BLOCK")
+    block.add_attdef("TAG", insert=(0, 0))
+    insert = doc.modelspace().add_blockref(block.name, (0, 0))
+    insert.add_attrib("TAG", "value", insert=(0, 0))
+    insert.take_ownership()
+    assert insert.seqend is not None
+    doc.entitydb.delete_entity(insert.seqend)
+    insert.seqend = None
+
+    ensure_insert_seqends(doc)
+
+    assert insert.seqend is not None
+    assert insert.seqend.dxf.handle in doc.entitydb
+    assert insert.seqend.dxf.owner == insert.dxf.handle
 
 
 def test_dimstyle_raw_replay_aligns_runtime_handle_with_raw_export_handle():
@@ -297,6 +410,39 @@ def test_document_to_code_file_replays_existing_dimension_geometry_block(tmp_pat
     assert out_dim.get_geometry_block() is not None
 
 
+def test_document_to_code_file_removes_stale_hatch_source_boundary_handles(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    block = source_doc.blocks.new("STALE_HATCH_BLOCK")
+    hatch = block.add_hatch(color=2)
+    path = hatch.paths.add_polyline_path(
+        [(0, 0), (5, 0), (5, 5), (0, 5)], is_closed=True
+    )
+    hatch.dxf.associative = 1
+    path.source_boundary_objects = ["DEAD"]
+    source_doc.modelspace().add_blockref(block.name, (0, 0))
+
+    source_path = tmp_path / "source_stale_hatch_assoc.dxf"
+    script_path = tmp_path / "generated_stale_hatch_assoc.py"
+    output_path = tmp_path / "generated_stale_hatch_assoc.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert "remove_stale_hatch_associations(doc)" in script_text
+
+    exec(script_text, {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_block = out_doc.blocks.get(block.name)
+    assert out_block is not None
+    out_hatch = list(out_block.query("HATCH"))[0]
+
+    assert out_hatch.dxf.associative == 0
+    assert not any(path.source_boundary_objects for path in out_hatch.paths)
+    assert "DEAD" not in export_text(out_hatch, out_doc.dxfversion)
+
+
 def test_document_to_code_file_recreates_paperspace_viewports(tmp_path):
     source_doc = ezdxf.new("R2010")
     psp = source_doc.layout("Layout1")
@@ -478,3 +624,57 @@ def test_replay_block_multileader_external_handles_remap_to_target_resources():
     new_style = new_doc.mleader_styles.get("RAE SLD Leader (Model Only)")
     assert new_style is not None
     assert new_style.dxf.block_record_handle == new_doc.blocks.get("_ClosedBlank").block_record_handle
+
+
+def test_dynamic_block_table_raw_restore_remaps_geometry_btr():
+    from ezdxf.addons.dxf2code import block_to_code
+    from ezdxf.dynblkhelper import (
+        DynamicBlockBasePointParameter,
+        set_dynamic_block_base_point_parameter,
+        set_dynamic_block_definition_metadata,
+    )
+
+    source_doc = ezdxf.new("R2018")
+    source_block = source_doc.blocks.new("DYN_TABLE")
+    source_table = source_block.add_table((0, 0), [["A", "B"]])
+    set_dynamic_block_definition_metadata(
+        source_block,
+        guid="{GUID}",
+        true_name="DYN_TABLE",
+    )
+    set_dynamic_block_base_point_parameter(
+        source_block,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0, 0, 0),
+            base_point=(0, 0, 0),
+            second_point=(0, 0, 0),
+            expr_id=0,
+        ),
+    )
+
+    target_doc = ezdxf.new("R2018")
+    target_doc.blocks.new(source_table.dxf.geometry)
+    # Advance handles so a stale source BTR does not accidentally point at the
+    # regenerated TABLE geometry block.
+    target_doc.modelspace().add_line((0, 0), (1, 0))
+    code = block_to_code(source_block, drawing="doc", full_document_mode=True)
+    execute_code_in_namespace(code, {"ezdxf": ezdxf, "doc": target_doc})
+    target_block = target_doc.blocks.get("DYN_TABLE")
+    table = next(entity for entity in target_block if entity.dxftype() == "ACAD_TABLE")
+    raw_geometry_name = ""
+    raw_btr_handles = []
+    in_block_reference = False
+    for tag in ExtendedTags.from_text(export_text(table, target_doc.dxfversion)):
+        if tag.code == 100:
+            in_block_reference = tag.value == "AcDbBlockReference"
+            continue
+        if in_block_reference and tag.code == 2:
+            raw_geometry_name = str(tag.value)
+        if tag.code == 343:
+            raw_btr_handles.append(str(tag.value))
+    geometry_block = target_doc.blocks.get(raw_geometry_name)
+
+    assert raw_btr_handles == [geometry_block.block_record_handle]
+    assert target_doc.entitydb.get(raw_btr_handles[0]).dxftype() == "BLOCK_RECORD"

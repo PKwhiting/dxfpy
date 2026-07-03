@@ -888,6 +888,12 @@ class _SourceCodeGenerator:
                 pairs.append(
                     f'({json.dumps(handle)}, _entity_map[{json.dumps(handle)}].dxf.handle)'
                 )
+                if entity.dxftype() == "ACAD_TABLE":
+                    block_record_handle = entity.dxf.get("block_record_handle")
+                    if block_record_handle:
+                        pairs.append(
+                            f'({json.dumps(block_record_handle)}, _entity_map[{json.dumps(handle)}].dxf.block_record_handle)'
+                        )
         for source_handle, target_expr in extra_handle_map:
             pairs.append(f'({json.dumps(source_handle)}, {target_expr})')
         joined = ", ".join(pairs)
