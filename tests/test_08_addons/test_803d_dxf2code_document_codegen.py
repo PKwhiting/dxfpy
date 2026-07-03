@@ -570,6 +570,67 @@ def test_document_codegen_runtime_swap_raw_graphic_entity_uses_source_xdata():
     ]
 
 
+def test_document_codegen_runtime_swap_raw_graphic_entity_remaps_source_330_refs():
+    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
+
+    runtime_doc = ezdxf.new("R2010")
+    runtime_doc.blocks.new("TARGET")
+    host = runtime_doc.blocks.new("HOST")
+    line = host.add_line((0, 0), (1, 0))
+    resource = runtime_doc.modelspace().add_circle((0, 0), 1)
+    source_resource_handle = "330_SOURCE_RESOURCE"
+    line.dxf.material_handle = resource.dxf.handle
+
+    runtime = DocumentCodegenRuntime(runtime_doc)
+    runtime.source_entity_map["LINE_SRC"] = line
+
+    runtime.swap_raw_graphic_entity(
+        host,
+        "LINE_SRC",
+        host.block_record.dxf.handle,
+        "",
+        [(source_resource_handle, "material_handle")],
+        [
+            (100, "AcDbEntity"),
+            (8, "0"),
+            (100, "AcDbLine"),
+            (10, 0.0),
+            (20, 0.0),
+            (11, 1.0),
+            (21, 0.0),
+            (330, source_resource_handle),
+        ],
+        [],
+    )
+
+    swapped = runtime.source_entity_map["LINE_SRC"]
+    swapped_330_refs = [
+        str(tag.value)
+        for tag in ExtendedTags.from_text(export_text(swapped, runtime_doc.dxfversion))
+        if tag.code == 330
+    ]
+
+    assert source_resource_handle not in swapped_330_refs
+    assert resource.dxf.handle in swapped_330_refs
+
+
+def test_capture_raw_graphic_entity_swap_rejects_unsupported_multileader():
+    from ezdxf.addons.dxf2code._capture import _raw_graphic_entity_can_be_swapped
+    from ezdxf.render.mleader import ConnectionSide
+
+    source_doc = ezdxf.new("R2018")
+    block = source_doc.blocks.new("UNSUPPORTED_MLEADER_BLOCK")
+    builder = block.add_multileader_mtext("Standard")
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+    mleader = next(entity for entity in block if entity.dxftype() == "MULTILEADER")
+    mleader.dxf.text_style_handle = "DEADBEEF"
+
+    assert _raw_graphic_entity_can_be_swapped(mleader) is False
+    assert _raw_graphic_entity_can_be_swapped(block.add_line((0, 0), (1, 0))) is True
+
+
 def test_capture_document_codegen_inputs_returns_typed_specs(tmp_path):
     from ezdxf.addons.dxf2code._capture import capture_document_codegen_inputs
     from ezdxf.addons.dxf2code._specs import MLeaderStyleSpec, VisualStyleEntry

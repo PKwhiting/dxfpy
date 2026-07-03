@@ -513,6 +513,14 @@ class _SourceCodeGenerator:
     def _has_entity_translator(dxftype: str) -> bool:
         return hasattr(_SourceCodeGenerator, "_" + dxftype.lower())
 
+    def _entity_can_be_translated(self, entity) -> bool:
+        dxftype = entity.dxftype()
+        if not self._has_entity_translator(dxftype):
+            return False
+        if dxftype == "MULTILEADER":
+            return self._multileader_supported(entity) is not None
+        return True
+
     def _dynamic_block_entity_handle_expr(
         self,
         block,
@@ -531,7 +539,7 @@ class _SourceCodeGenerator:
         if len(path) == 1 and handle in self._emitted_handles:
             return f'_entity_map[{json.dumps(handle)}].dxf.handle'
         entity = get_dynamic_block_entity_by_rep_index_path(block, path)
-        if entity is None or not self._has_entity_translator(entity.dxftype()):
+        if entity is None or not self._entity_can_be_translated(entity):
             return None
         self.add_import_statement(
             "from ezdxf.dynblkhelper import get_dynamic_block_entity_handle_by_rep_index_path"
@@ -846,8 +854,9 @@ class _SourceCodeGenerator:
         block_record = block.block_record
         if not is_dynamic_block_definition(block_record):
             return False
-        return not self._supports_semantic_dynamic_definition(
-            visibility_parameter=get_dynamic_block_visibility_parameter(block),
+        visibility_parameter = get_dynamic_block_visibility_parameter(block)
+        supports_semantic = self._supports_semantic_dynamic_definition(
+            visibility_parameter=visibility_parameter,
             properties_table=get_dynamic_block_properties_table(block),
             base_point_parameter=get_dynamic_block_base_point_parameter(block),
             linear_parameters=get_dynamic_block_linear_parameters(block),
@@ -855,6 +864,31 @@ class _SourceCodeGenerator:
             lookup_parameters=get_dynamic_block_lookup_parameters(block),
             lookup_actions=get_dynamic_block_lookup_actions(block),
         )
+        if not supports_semantic:
+            return True
+        return not self._dynamic_visibility_handles_are_resolvable(
+            block, visibility_parameter
+        )
+
+    def _dynamic_visibility_handles_are_resolvable(self, block, parameter) -> bool:
+        from ezdxf.dynblkhelper import (
+            get_dynamic_block_entity_by_rep_index_path,
+            get_dynamic_block_entity_rep_index_path,
+        )
+
+        if parameter is None:
+            return True
+        handles = list(parameter.all_entity_handles)
+        for state in parameter.states:
+            handles.extend(state.entity_handles)
+        for handle in handles:
+            path = get_dynamic_block_entity_rep_index_path(block, handle)
+            if not path:
+                return False
+            entity = get_dynamic_block_entity_by_rep_index_path(block, path)
+            if entity is None or not self._entity_can_be_translated(entity):
+                return False
+        return True
 
     def _emit_raw_dynamic_block_layout_fallback(
         self,
@@ -964,6 +998,12 @@ class _SourceCodeGenerator:
                     snapshot_raw_dynamic_block_layout(block),
                 )
                 return
+            if not self._dynamic_visibility_handles_are_resolvable(block, parameter):
+                self._emit_raw_dynamic_block_layout_fallback(
+                    block,
+                    snapshot_raw_dynamic_block_layout(block),
+                )
+                return
             if (
                 parameter is None
                 and properties_table is None
@@ -981,10 +1021,7 @@ class _SourceCodeGenerator:
                     f"set_dynamic_block_definition_metadata(b, guid={json.dumps(self._dynamic_block_guid(block_record))}, true_name={json.dumps(self._dynamic_block_true_name(block_record))}, rep_index={rep_index}, annotative={block_record.has_xdata('AcadAnnotative')})"
                 )
             if parameter is not None:
-                self.add_import_statement(
-                    "from ezdxf.dynblkhelper import DynamicBlockVisibilityParameter, DynamicBlockVisibilityState, set_dynamic_block_visibility_parameter"
-                )
-                self.add_source_code_line("_dyn_states = (")
+                state_handle_exprs: list[tuple[str, list[str]]] = []
                 for state in parameter.states:
                     handle_exprs = []
                     for handle in state.entity_handles:
@@ -995,19 +1032,7 @@ class _SourceCodeGenerator:
                             )
                             return
                         handle_exprs.append(expr)
-                    handles = ", ".join(handle_expr for handle_expr in handle_exprs)
-                    if len(handle_exprs) == 1:
-                        handles += ","
-                    self.add_source_code_line(
-                        f"    DynamicBlockVisibilityState({json.dumps(state.name)}, ({handles})),"
-                    )
-                self.add_source_code_line(")")
-                self.add_source_code_line("_dyn_param = DynamicBlockVisibilityParameter(")
-                self.add_source_code_line("    handle='',")
-                self.add_source_code_line(f"    label={json.dumps(parameter.label)},")
-                self.add_source_code_line(f"    parameter_name={json.dumps(parameter.parameter_name)},")
-                self.add_source_code_line(f"    location={self._format_python_value(parameter.location)},")
-                self.add_source_code_line("    states=_dyn_states,")
+                    state_handle_exprs.append((state.name, handle_exprs))
                 all_handle_exprs = []
                 for handle in parameter.all_entity_handles:
                     expr = self._dynamic_block_entity_handle_expr(block, handle)
@@ -1017,6 +1042,24 @@ class _SourceCodeGenerator:
                         )
                         return
                     all_handle_exprs.append(expr)
+                self.add_import_statement(
+                    "from ezdxf.dynblkhelper import DynamicBlockVisibilityParameter, DynamicBlockVisibilityState, set_dynamic_block_visibility_parameter"
+                )
+                self.add_source_code_line("_dyn_states = (")
+                for name, handle_exprs in state_handle_exprs:
+                    handles = ", ".join(handle_expr for handle_expr in handle_exprs)
+                    if len(handle_exprs) == 1:
+                        handles += ","
+                    self.add_source_code_line(
+                        f"    DynamicBlockVisibilityState({json.dumps(name)}, ({handles})),"
+                    )
+                self.add_source_code_line(")")
+                self.add_source_code_line("_dyn_param = DynamicBlockVisibilityParameter(")
+                self.add_source_code_line("    handle='',")
+                self.add_source_code_line(f"    label={json.dumps(parameter.label)},")
+                self.add_source_code_line(f"    parameter_name={json.dumps(parameter.parameter_name)},")
+                self.add_source_code_line(f"    location={self._format_python_value(parameter.location)},")
+                self.add_source_code_line("    states=_dyn_states,")
                 handles = ", ".join(handle_expr for handle_expr in all_handle_exprs)
                 if len(all_handle_exprs) == 1:
                     handles += ","

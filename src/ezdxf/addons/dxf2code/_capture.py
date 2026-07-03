@@ -15,6 +15,7 @@ from ezdxf.sections.header import snapshot_raw_header_vars
 
 from ._api import block_to_code, entities_to_code, table_entries_to_code
 from ._common import _maybe_get, _names, _sort_blocks
+from ._generator import _SourceCodeGenerator
 from ._specs import (
     DocumentCodegenCapture,
     EntityXRecordFallbackSpec,
@@ -93,6 +94,10 @@ def _raw_xdata(entity) -> RawXDataTags:
     if not getattr(entity, "xdata", None):
         return []
     return [[(tag.code, tag.value) for tag in tags] for tags in entity.xdata.data.values()]
+
+
+def _raw_graphic_entity_can_be_swapped(entity) -> bool:
+    return _SourceCodeGenerator()._entity_can_be_translated(entity)
 
 
 def _owned_object_specs(doc, owner_handle: str) -> list[OwnedObjectSpec]:
@@ -530,6 +535,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     raw_entity_swap_fallbacks: dict[str, list[RawEntitySwapFallbackSpec]] = {}
     handle_codes = {
         320,
+        330,
         331,
         332,
         333,
@@ -551,9 +557,15 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     for block in blocks:
         if block.name not in raw_entity_swap_blocks:
             continue
+        block_uses_raw_layout_fallback = block.name in block_layout_entity_snapshots
         specs: list[RawEntitySwapFallbackSpec] = []
         for entity in block:
             if entity.dxftype() in {"INSERT", "DIMENSION"}:
+                continue
+            if (
+                not block_uses_raw_layout_fallback
+                and not _raw_graphic_entity_can_be_swapped(entity)
+            ):
                 continue
             handle = entity.dxf.handle
             owner = entity.dxf.owner

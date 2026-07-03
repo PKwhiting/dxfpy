@@ -1532,6 +1532,35 @@ def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles():
     assert new_child_value.dxf.handle == child_value.dxf.handle
 
 
+def test_dynamic_block_visibility_unresolved_state_handle_uses_raw_layout_fallback():
+    source_doc = ezdxf.new("R2018")
+    base = source_doc.blocks.new("RAW_LAYOUT_UNRESOLVED_VISIBILITY")
+    line = base.add_line((0, 0), (1, 0))
+    set_dynamic_block_visibility_parameter(
+        base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="Visibility1",
+            location=(0.0, 10.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "STATE_A",
+                    (line.dxf.handle, "DEADBEEF"),
+                ),
+            ),
+        ),
+        guid="{GUID}",
+    )
+
+    code = block_to_code(base, drawing="doc")
+    script = code.import_str() + "\n" + str(code)
+
+    assert "restore_raw_dynamic_block_layout" in script
+    assert "_dyn_states = (" not in script
+    compile(script, "<dxf2code>", "exec")
+
+
 def test_dynamic_block_basepoint_linear_two_generation_replay_preserves_supported_path():
     source_doc, public_name = build_supported_linear_visibility_replay_doc()
     gen1_doc = replay_doc_to_new_doc(source_doc)
