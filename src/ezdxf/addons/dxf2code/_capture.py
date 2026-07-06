@@ -9,6 +9,7 @@ from ezdxf.dynblkhelper import (
     snapshot_raw_dynamic_block_layout,
     snapshot_raw_rootdict_entries,
 )
+from ezdxf.lldxf import const
 from ezdxf.lldxf.tagwriter import TagCollector
 from ezdxf.sections.classes import snapshot_raw_classes
 from ezdxf.sections.header import snapshot_raw_header_vars
@@ -68,11 +69,45 @@ def _raw_object_subclasses(entity) -> RawSubclassList:
 def _normalize(value):
     if type(value).__name__ == "float64":
         return float(value)
+    if type(value).__name__ in {"Vec2", "Vec3"}:
+        return tuple(_normalize(item) for item in value)
     if isinstance(value, tuple):
         return tuple(_normalize(item) for item in value)
     if isinstance(value, list):
         return [_normalize(item) for item in value]
     return value
+
+
+def _layout_dxfattribs(layout) -> dict[str, object]:
+    skipped = {"handle", "owner", "name", "block_record_handle"}
+    return {
+        key: _normalize(value)
+        for key, value in layout.dxf.all_existing_dxf_attribs().items()
+        if key not in skipped
+    }
+
+
+def _mleader_style_handle(entity) -> str:
+    try:
+        return entity.dxf.get("style_handle") or ""
+    except const.DXFAttributeError:
+        pass
+    xtags = getattr(entity, "xtags", None)
+    if xtags is None:
+        return ""
+    try:
+        tags = xtags.get_subclass("AcDbMLeader")
+    except const.DXFKeyError:
+        return ""
+    start = 0
+    for index, tag in enumerate(tags):
+        if tag.code == 301:
+            start = index + 1
+            break
+    for tag in tags[start:]:
+        if tag.code == 340:
+            return str(tag.value)
+    return ""
 
 
 def _entity_export_tags(entity) -> list[RawTag]:
@@ -157,6 +192,17 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     paper_layout_names = [
         name for name in doc.layouts.names() if name not in ("Model", "Model_Space")
     ]
+    active_paper_layout_name = next(
+        (
+            name
+            for name in paper_layout_names
+            if getattr(doc.layout(name), "is_active_paperspace", False)
+        ),
+        "",
+    )
+    paper_layout_dxfattribs = {
+        name: _layout_dxfattribs(doc.layout(name)) for name in paper_layout_names
+    }
     paper_layout_codes: list[tuple[str, Any]] = []
     imports = {"import ezdxf", "from pathlib import Path"}
 
@@ -349,6 +395,22 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
                     reactors=reactors,
                 )
             )
+
+    mleader_entity_style_refs: list[tuple[str, str]] = []
+    seen_mleader_handles: set[str] = set()
+    for layout in [doc.modelspace(), *[doc.layout(name) for name in paper_layout_names], *blocks]:
+        for entity in layout:
+            if entity.dxftype() != "MULTILEADER":
+                continue
+            handle = entity.dxf.get("handle")
+            if not handle or handle in seen_mleader_handles:
+                continue
+            style_name = _SourceCodeGenerator._named_object_resource_name(
+                entity, "mleader_styles", _mleader_style_handle(entity)
+            )
+            if style_name:
+                mleader_entity_style_refs.append((handle, style_name))
+                seen_mleader_handles.add(handle)
 
     required_root_dicts = [
         key
@@ -619,6 +681,8 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "block_codes": block_codes,
         "block_layout_entity_snapshots": block_layout_entity_snapshots,
         "paper_layout_names": paper_layout_names,
+        "active_paper_layout_name": active_paper_layout_name,
+        "paper_layout_dxfattribs": paper_layout_dxfattribs,
         "paper_layout_codes": paper_layout_codes,
         "msp_code": msp_code,
         "imports": imports,
@@ -636,6 +700,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "material_name": material_name,
         "interfere_handles": interfere_handles,
         "mleader_style_specs": mleader_style_specs,
+        "mleader_entity_style_refs": mleader_entity_style_refs,
         "required_root_dicts": required_root_dicts,
         "has_acad_layerstates": has_acad_layerstates,
         "assoc_network_tags": assoc_network_tags,

@@ -23,6 +23,8 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     block_codes = data["block_codes"]
     block_layout_entity_snapshots = data["block_layout_entity_snapshots"]
     paper_layout_names = data["paper_layout_names"]
+    active_paper_layout_name = data["active_paper_layout_name"]
+    paper_layout_dxfattribs = data["paper_layout_dxfattribs"]
     paper_layout_codes = data["paper_layout_codes"]
     msp_code = data["msp_code"]
     imports = data["imports"]
@@ -40,6 +42,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     material_name = data["material_name"]
     interfere_handles = data["interfere_handles"]
     mleader_style_specs = data["mleader_style_specs"]
+    mleader_entity_style_refs = data["mleader_entity_style_refs"]
     required_root_dicts = data["required_root_dicts"]
     has_acad_layerstates = data["has_acad_layerstates"]
     assoc_network_tags = data["assoc_network_tags"]
@@ -243,11 +246,27 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
 
     if paper_layout_names:
         lines.append("# paperspace layouts")
+        lines.append(f"_paper_layout_names = {paper_layout_names!r}")
+        lines.append(f"_paper_layout_dxfattribs = {paper_layout_dxfattribs!r}")
+        lines.append("for _layout_name in _paper_layout_names:")
+        lines.append("    if _layout_name not in doc.layouts:")
+        lines.append(
+            "        doc.new_layout(_layout_name, dxfattribs=_paper_layout_dxfattribs.get(_layout_name, {}))"
+        )
+        lines.append("for _layout_name in list(doc.layouts.names()):")
+        lines.append(
+            "    if _layout_name not in ('Model', 'Model_Space') and _layout_name not in _paper_layout_names: doc.delete_layout(_layout_name)"
+        )
+        if active_paper_layout_name:
+            lines.append(
+                f"if {active_paper_layout_name!r} in doc.layouts: doc.layouts.set_active_layout({active_paper_layout_name!r})"
+            )
         for layout_name in paper_layout_names:
             lines.append(
-                f'if {layout_name!r} not in doc.layouts: doc.new_layout({layout_name!r})'
+                f"_layout_dxfattribs = _paper_layout_dxfattribs.get({layout_name!r}, {{}})"
             )
             lines.append(f'psp = doc.layout({layout_name!r})')
+            lines.append("psp.dxf.update(_layout_dxfattribs, ignore_errors=True)")
             lines.append("psp.delete_all_entities()")
             for name, code in paper_layout_codes:
                 if name != layout_name:
@@ -338,6 +357,10 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     if raw_entity_swap_calls:
         lines.append("# raw entity swaps")
         lines.extend(raw_entity_swap_calls)
+        lines.append("")
+    if mleader_entity_style_refs:
+        lines.append("# restore MLEADER entity style handles")
+        lines.append(f"rt.restore_mleader_entity_styles({mleader_entity_style_refs!r})")
         lines.append("")
     lines.append("# restore header state and classes")
     lines.append(f"doc.encoding = {doc.encoding!r}")

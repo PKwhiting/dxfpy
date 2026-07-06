@@ -1602,6 +1602,11 @@ class _SourceCodeGenerator:
         collection = getattr(doc, collection_name, None)
         if collection is None:
             return None
+        object_dict = getattr(collection, "object_dict", None)
+        if hasattr(object_dict, "items"):
+            for name, resource in object_dict.items():
+                if resource.dxf.handle == handle:
+                    return name
         for name, resource in collection:
             if resource.dxf.handle == handle:
                 return name

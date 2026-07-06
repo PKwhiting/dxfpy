@@ -510,6 +510,61 @@ def test_document_to_code_file_recreates_paperspace_viewports(tmp_path):
     assert len(list(out_layout.query("VIEWPORT"))) == 2
 
 
+def test_document_to_code_file_preserves_paperspace_layout_metadata(tmp_path):
+    source_doc = ezdxf.new("R2010")
+    pv1 = source_doc.new_layout("PV-1")
+    pv2 = source_doc.new_layout("PV-2")
+    source_doc.layouts.set_active_layout("PV-2")
+    source_doc.delete_layout("Layout1")
+    pv1.dxf.update(
+        {
+            "page_setup_name": "24x36 Commercial",
+            "plot_configuration_file": "DWG To PDF.pc3",
+            "paper_size": "ANSI_full_bleed_B_(17.00_x_11.00_Inches)",
+            "current_style_sheet": "RAE Plot Style.ctb",
+            "paper_width": 431.7999877929687,
+            "paper_height": 279.3999938964844,
+            "left_margin": 0.0,
+            "right_margin": 0.0,
+            "top_margin": 0.0,
+            "bottom_margin": 0.0,
+            "plot_paper_units": 0,
+            "plot_layout_flags": 688,
+            "limmax": (16.99999951940822, 10.99999975970411, 0.0),
+        }
+    )
+    pv1.add_line((0, 0), (1, 0))
+    pv2.add_line((0, 0), (0, 1))
+
+    source_path = tmp_path / "source_layout_metadata.dxf"
+    script_path = tmp_path / "generated_layout_metadata.py"
+    output_path = tmp_path / "generated_layout_metadata.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_layout_names = list(out_doc.layouts.names())
+    out_pv1 = out_doc.layout("PV-1")
+
+    assert "Layout1" not in out_layout_names
+    assert "PV-1" in out_layout_names
+    assert "PV-2" in out_layout_names
+    assert out_doc.layouts.active_layout().name == "PV-2"
+    assert out_pv1.dxf.page_setup_name == "24x36 Commercial"
+    assert out_pv1.dxf.plot_configuration_file == "DWG To PDF.pc3"
+    assert out_pv1.dxf.paper_size == "ANSI_full_bleed_B_(17.00_x_11.00_Inches)"
+    assert out_pv1.dxf.current_style_sheet == "RAE Plot Style.ctb"
+    assert out_pv1.dxf.paper_width == 431.7999877929687
+    assert out_pv1.dxf.paper_height == 279.3999938964844
+    assert out_pv1.dxf.left_margin == 0.0
+    assert out_pv1.dxf.bottom_margin == 0.0
+    assert out_pv1.dxf.plot_paper_units == 0
+    assert out_pv1.dxf.plot_layout_flags == 688
+    assert tuple(out_pv1.dxf.limmax) == (16.99999951940822, 10.99999975970411, 0.0)
+
+
 def test_document_to_code_file_restores_extra_rootdict_resources(tmp_path):
     source_doc = ezdxf.new("R2010")
     source_doc.objects.set_raster_variables(frame=1, quality=0, units="m")
@@ -803,7 +858,65 @@ def test_replay_block_multileader_external_handles_remap_to_target_resources():
     assert (340, "MLEADERSTYLE", "Standard") in refs
     new_style = new_doc.mleader_styles.get("RAE SLD Leader (Model Only)")
     assert new_style is not None
+    assert new_entity.dxf.style_handle == new_style.dxf.handle
     assert new_style.dxf.block_record_handle == new_doc.blocks.get("_ClosedBlank").block_record_handle
+
+
+def test_document_to_code_file_rebinds_mleader_style_after_late_rootdict_restore(tmp_path):
+    from ezdxf.render.mleader import ConnectionSide
+
+    source_doc = ezdxf.new("R2010")
+    source_doc.blocks.new("_ClosedBlank")
+    style = source_doc.mleader_styles.duplicate_entry("Standard", "RAE Leader [Paper]")
+    style.dxf.name = "Standard"
+    style.dxf.block_record_handle = source_doc.blocks.get("_ClosedBlank").block_record_handle
+    psp = source_doc.layout("Layout1")
+    builder = psp.add_multileader_mtext("RAE Leader [Paper]")
+    builder.set_content("note")
+    builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
+    builder.build(insert=Vec2(0, 0))
+
+    source_path = tmp_path / "source_mleader_style_rebind.dxf"
+    script_path = tmp_path / "generated_mleader_style_rebind.py"
+    output_path = tmp_path / "generated_mleader_style_rebind.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_entity = next(entity for entity in out_doc.layout("Layout1") if entity.dxftype() == "MULTILEADER")
+    out_style = out_doc.mleader_styles.get("RAE Leader [Paper]")
+
+    assert out_style is not None
+    assert out_entity.dxf.style_handle == out_style.dxf.handle
+
+
+def test_document_codegen_runtime_rebinds_raw_mleader_style():
+    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
+    from ezdxf.entities.dxfentity import DXFTagStorage
+
+    doc = ezdxf.new("R2010")
+    style = doc.mleader_styles.duplicate_entry("Standard", "RAE Leader [Paper]")
+    raw = DXFTagStorage.load(
+        ExtendedTags.from_text(
+            "  0\nMULTILEADER\n  5\nABC\n330\n0\n100\nAcDbEntity\n  8\n0\n"
+            "100\nAcDbMLeader\n270\n2\n300\nCONTEXT_DATA{\n304\nnote\n"
+            "340\nTEXT_STYLE_HANDLE\n301\n}\n340\nOLD_MLEADER_STYLE\n"
+        ),
+        doc,
+    )
+    runtime = DocumentCodegenRuntime(doc)
+    runtime.source_entity_map["SRC_MLEADER"] = raw
+
+    runtime.restore_mleader_entity_styles([("SRC_MLEADER", "RAE Leader [Paper]")])
+
+    style_handles = [
+        tag.value
+        for tag in raw.xtags.get_subclass("AcDbMLeader")
+        if tag.code == 340
+    ]
+    assert style_handles == ["TEXT_STYLE_HANDLE", style.dxf.handle]
 
 
 def test_dynamic_block_table_raw_restore_remaps_geometry_btr():

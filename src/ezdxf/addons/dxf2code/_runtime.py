@@ -10,6 +10,7 @@ from ezdxf.dynblkhelper import (
 from ezdxf.entities import factory
 from ezdxf.entities import DXFEntity
 from ezdxf.entities.dxfentity import DXFTagStorage
+from ezdxf.lldxf import const
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tags import Tags
 from ezdxf.lldxf.types import DXFTag, dxftag
@@ -271,6 +272,37 @@ class DocumentCodegenRuntime:
                 reactors.append(self.source_entity_map[handle].dxf.handle)
         if reactors:
             style.set_reactors(reactors)
+
+    def restore_mleader_entity_styles(
+        self, refs: list[tuple[str, str]]
+    ) -> None:
+        for source_handle, style_name in refs:
+            entity = self.source_entity_map.get(source_handle)
+            style = self.doc.mleader_styles.get(style_name)
+            if entity is not None and style is not None:
+                try:
+                    entity.dxf.style_handle = style.dxf.handle
+                except const.DXFAttributeError:
+                    self._restore_raw_mleader_style_handle(entity, style.dxf.handle)
+
+    @staticmethod
+    def _restore_raw_mleader_style_handle(entity, style_handle: str) -> None:
+        xtags = getattr(entity, "xtags", None)
+        if xtags is None:
+            return
+        try:
+            tags = xtags.get_subclass("AcDbMLeader")
+        except const.DXFKeyError:
+            return
+        start = 0
+        for index, tag in enumerate(tags):
+            if tag.code == 301:  # END_CONTEXT_DATA, common tags follow.
+                start = index + 1
+                break
+        for index in range(start, len(tags)):
+            if tags[index].code == 340:
+                tags[index] = dxftag(340, style_handle)
+                return
 
     def rebuild_entity_xrecord_tree(
         self,

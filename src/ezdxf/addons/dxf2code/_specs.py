@@ -135,6 +135,8 @@ class DocumentCodegenCapture(TypedDict):
     block_codes: list[Code]
     block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]]
     paper_layout_names: list[str]
+    active_paper_layout_name: str
+    paper_layout_dxfattribs: dict[str, dict[str, object]]
     paper_layout_codes: list[tuple[str, Code]]
     msp_code: Code
     imports: set[str]
@@ -152,6 +154,7 @@ class DocumentCodegenCapture(TypedDict):
     material_name: str | None
     interfere_handles: list[HeaderHandleRef]
     mleader_style_specs: list[MLeaderStyleSpec]
+    mleader_entity_style_refs: list[tuple[str, str]]
     required_root_dicts: list[str]
     has_acad_layerstates: bool
     assoc_network_tags: list[RawTag]
