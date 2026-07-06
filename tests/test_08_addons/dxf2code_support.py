@@ -4,7 +4,15 @@ from io import StringIO
 
 import ezdxf
 from ezdxf.addons.dxf2code import block_to_code, entities_to_code, table_entries_to_code
-from ezdxf.dynblkhelper import get_dynamic_block_record_handle, register_source_entity_handle_mapping
+from ezdxf._fidelity_compare import (
+    ReplayComparison,
+    compare_replay_documents,
+    format_replay_comparison,
+)
+from ezdxf.dynblkhelper import (
+    get_dynamic_block_record_handle,
+    register_source_entity_handle_mapping,
+)
 from ezdxf.fidelity import finalize_document_fidelity, prepare_document_fidelity
 from ezdxf.lldxf.tagwriter import TagWriter
 from ezdxf.lldxf.types import is_pointer_code
@@ -189,3 +197,16 @@ def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.
     execute_code_in_namespace(entities_to_code(source_doc.modelspace(), layout="msp"), namespace)
     finalize_document_fidelity(source_doc, target_doc)
     return target_doc
+
+
+def assert_clean_replay(
+    source_doc: ezdxf.document.Drawing,
+    replay_doc: ezdxf.document.Drawing,
+    *,
+    include_layout_order: bool = False,
+) -> ReplayComparison:
+    comparison = compare_replay_documents(source_doc, replay_doc)
+    assert not comparison.has_issues(
+        include_layout_order=include_layout_order
+    ), format_replay_comparison(comparison)
+    return comparison

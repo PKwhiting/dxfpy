@@ -8,6 +8,7 @@ from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.math import Vec2
 
 from tests.test_08_addons.dxf2code_support import (
+    assert_clean_replay,
     execute_code_in_namespace,
     export_text,
     normalize_handle_refs_in_text,
@@ -56,6 +57,16 @@ def test_layer_material_handle_replay_maps_by_material_name():
     layer = new_doc.layers.get("MATERIAL_LAYER")
     assert layer is not None
     assert layer.dxf.material_handle == new_doc.materials.get("Global").dxf.handle
+
+
+def test_dxf2code_replay_comparison_reports_clean_basic_replay():
+    source_doc = ezdxf.new("R2018")
+    source_doc.modelspace().add_line((0, 0), (1, 0))
+
+    new_doc = replay_doc_to_new_doc(source_doc)
+    comparison = assert_clean_replay(source_doc, new_doc)
+
+    assert comparison.layout_names_match is True
 
 
 def test_document_to_code_file_maps_header_interfere_visualstyle_handles(tmp_path):
