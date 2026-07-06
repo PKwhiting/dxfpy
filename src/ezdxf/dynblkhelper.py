@@ -5787,6 +5787,10 @@ def _remap_raw_entity_text(
             mapped = handle_mapping.get(value_line.strip())
             if mapped is not None:
                 value_line = mapped
+            elif doc is not None and _is_unresolved_xdata_handle(
+                doc, code, value_line.strip()
+            ):
+                value_line = "0"
         remapped_lines.append(value_line)
         index += 2
 
@@ -5868,6 +5872,75 @@ def sync_raw_acad_table_geometry_btrs(doc: Drawing) -> None:
             )
 
 
+def sync_extension_dict_owners(doc: Drawing) -> None:
+    for entity in list(doc.entitydb.values()):
+        if entity is None or not entity.is_alive or not entity.has_extension_dict:
+            continue
+        owner_handle = entity.dxf.get("handle")
+        raw_tags = getattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE, None)
+        if raw_tags is not None:
+            owner_handle = next(
+                (value for code, value in _raw_tag_pairs(raw_tags) if code in (5, 105)),
+                owner_handle,
+            )
+        if owner_handle:
+            entity.get_extension_dict().update_owner(owner_handle)
+
+
+def normalize_unresolved_xdata_handles(doc: Drawing) -> None:
+    for entity in list(doc.entitydb.values()):
+        if entity is None or not entity.is_alive:
+            continue
+        raw_tags = getattr(entity, RAW_TAGS_OVERRIDE_ATTRIBUTE, None)
+        if isinstance(raw_tags, str):
+            setattr(
+                entity,
+                RAW_TAGS_OVERRIDE_ATTRIBUTE,
+                _normalize_raw_xdata_handles(raw_tags, doc),
+            )
+        if entity.xdata is None:
+            continue
+        for tags in entity.xdata.data.values():
+            for index, tag in enumerate(tags):
+                if _is_unresolved_xdata_handle(doc, tag.code, tag.value):
+                    tags[index] = dxftag(1005, "0")
+
+
+def _normalize_raw_xdata_handles(entity_text: str, doc: Drawing) -> str:
+    if not entity_text:
+        return entity_text
+
+    lines = entity_text.splitlines()
+    updated: list[str] = []
+    index = 0
+    while index < len(lines):
+        code_line = lines[index]
+        updated.append(code_line)
+        if index + 1 >= len(lines):
+            break
+        value_line = lines[index + 1]
+        try:
+            code = int(code_line.strip())
+        except ValueError:
+            updated.append(value_line)
+            index += 2
+            continue
+        if _is_unresolved_xdata_handle(doc, code, value_line.strip()):
+            value_line = "0"
+        updated.append(value_line)
+        index += 2
+
+    text = "\n".join(updated)
+    if entity_text.endswith("\n"):
+        text += "\n"
+    return text
+
+
+def _is_unresolved_xdata_handle(doc: Drawing, code: int, value: Any) -> bool:
+    handle = str(value)
+    return code == 1005 and handle != "0" and doc.entitydb.get(handle) is None
+
+
 def remove_stale_hatch_associations(doc: Drawing) -> None:
     for entity in list(doc.entitydb.values()):
         if entity is None or not entity.is_alive or entity.dxftype() != "HATCH":
@@ -5890,24 +5963,35 @@ def remove_stale_hatch_associations(doc: Drawing) -> None:
             if not entity.dxf.get("associative", 0):
                 continue
             handles = semantic_handles
+        hatch_handle = entity.dxf.get("handle")
+        if raw_tags is not None:
+            hatch_handle = next(
+                (value for code, value in _raw_tag_pairs(raw_tags) if code == 5),
+                hatch_handle,
+            )
         owner = entity.dxf.get("owner")
         if not handles or any(
-            _is_stale_hatch_boundary_handle(doc, owner, h) for h in handles
+            _is_stale_hatch_boundary_handle(doc, owner, hatch_handle, h)
+            for h in handles
         ):
             _clear_hatch_association(entity, raw_storage)
 
 
 def _is_stale_hatch_boundary_handle(
-    doc: Drawing, owner: str | None, handle: str
+    doc: Drawing, owner: str | None, hatch_handle: str | None, handle: str
 ) -> bool:
     target = doc.entitydb.get(str(handle))
     target_dxf = getattr(target, "dxf", None) if target is not None else None
-    return (
+    if (
         target is None
         or not target.is_alive
         or target_dxf is None
         or target_dxf.get("owner") != owner
-    )
+    ):
+        return True
+    if not hatch_handle:
+        return False
+    return str(hatch_handle) not in (str(handle) for handle in target.get_reactors())
 
 
 def _raw_hatch_association_state(raw_tags: Any) -> tuple[bool, tuple[str, ...]]:

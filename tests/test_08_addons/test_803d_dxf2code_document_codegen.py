@@ -443,6 +443,40 @@ def test_document_to_code_file_removes_stale_hatch_source_boundary_handles(tmp_p
     assert "DEAD" not in export_text(out_hatch, out_doc.dxfversion)
 
 
+def test_remove_stale_hatch_associations_requires_boundary_reactor():
+    from ezdxf.dynblkhelper import remove_stale_hatch_associations
+
+    doc = ezdxf.new("R2018")
+    block = doc.blocks.new("HATCH_BOUNDARY_REACTOR_BLOCK")
+    bad_boundary = block.add_lwpolyline(
+        [(0, 0), (5, 0), (5, 5), (0, 5)], close=True
+    )
+    bad_hatch = block.add_hatch(color=2)
+    bad_path = bad_hatch.paths.add_polyline_path(
+        [(0, 0), (5, 0), (5, 5), (0, 5)], is_closed=True
+    )
+    bad_hatch.dxf.associative = 1
+    bad_path.source_boundary_objects = [bad_boundary.dxf.handle]
+
+    good_boundary = block.add_lwpolyline(
+        [(10, 0), (15, 0), (15, 5), (10, 5)], close=True
+    )
+    good_hatch = block.add_hatch(color=3)
+    good_path = good_hatch.paths.add_polyline_path(
+        [(10, 0), (15, 0), (15, 5), (10, 5)], is_closed=True
+    )
+    good_hatch.dxf.associative = 1
+    good_path.source_boundary_objects = [good_boundary.dxf.handle]
+    good_boundary.set_reactors([good_hatch.dxf.handle])
+
+    remove_stale_hatch_associations(doc)
+
+    assert bad_hatch.dxf.associative == 0
+    assert not bad_path.source_boundary_objects
+    assert good_hatch.dxf.associative == 1
+    assert good_path.source_boundary_objects == [good_boundary.dxf.handle]
+
+
 def test_document_to_code_file_recreates_paperspace_viewports(tmp_path):
     source_doc = ezdxf.new("R2010")
     psp = source_doc.layout("Layout1")
@@ -570,6 +604,41 @@ def test_document_codegen_runtime_swap_raw_graphic_entity_uses_source_xdata():
     ]
 
 
+def test_document_codegen_runtime_swap_raw_graphic_entity_nulls_dangling_xdata_handles():
+    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
+
+    runtime_doc = ezdxf.new("R2010")
+    runtime_doc.appids.new("TEST_APP")
+    host = runtime_doc.blocks.new("HOST")
+    line = host.add_line((0, 0), (1, 0))
+
+    runtime = DocumentCodegenRuntime(runtime_doc)
+    runtime.source_entity_map["LINE_SRC"] = line
+    runtime.swap_raw_graphic_entity(
+        host,
+        "LINE_SRC",
+        host.block_record.dxf.handle,
+        "",
+        [],
+        [
+            (100, "AcDbEntity"),
+            (8, "0"),
+            (100, "AcDbLine"),
+            (10, 0.0),
+            (20, 0.0),
+            (11, 1.0),
+            (21, 0.0),
+        ],
+        [[(1001, "TEST_APP"), (1005, "DEADBEEF")]],
+    )
+
+    swapped = runtime.source_entity_map["LINE_SRC"]
+
+    assert [(tag.code, tag.value) for tag in swapped.get_xdata("TEST_APP")] == [
+        (1005, "0")
+    ]
+
+
 def test_document_codegen_runtime_swap_raw_graphic_entity_remaps_source_330_refs():
     from ezdxf.addons.dxf2code import DocumentCodegenRuntime
 
@@ -629,6 +698,56 @@ def test_capture_raw_graphic_entity_swap_rejects_unsupported_multileader():
 
     assert _raw_graphic_entity_can_be_swapped(mleader) is False
     assert _raw_graphic_entity_can_be_swapped(block.add_line((0, 0), (1, 0))) is True
+
+
+def test_replay_cleanup_normalizes_unresolved_xdata_handles():
+    from ezdxf.dynblkhelper import normalize_unresolved_xdata_handles
+    from ezdxf.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
+
+    doc = ezdxf.new("R2010")
+    doc.appids.new("TEST_APP")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+    line.set_xdata("TEST_APP", [(1005, "DEADBEEF")])
+    setattr(
+        line,
+        RAW_TAGS_OVERRIDE_ATTRIBUTE,
+        "  0\nLINE\n  5\nABC\n330\n0\n100\nAcDbEntity\n  8\n0\n"
+        "100\nAcDbLine\n 10\n0.0\n 20\n0.0\n 11\n1.0\n 21\n0.0\n"
+        "1001\nTEST_APP\n1005\nDEADBEEF\n",
+    )
+
+    normalize_unresolved_xdata_handles(doc)
+
+    assert [(tag.code, tag.value) for tag in line.get_xdata("TEST_APP")] == [
+        (1005, "0")
+    ]
+    assert "1005\n0\n" in getattr(line, RAW_TAGS_OVERRIDE_ATTRIBUTE)
+
+
+def test_replay_cleanup_syncs_extension_dict_owner_to_exported_handle():
+    from ezdxf.dynblkhelper import sync_extension_dict_owners
+    from ezdxf.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
+
+    doc = ezdxf.new("R2010")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+    xdict = line.new_extension_dict().dictionary
+    xdict.dxf.owner = "BAD"
+
+    sync_extension_dict_owners(doc)
+
+    assert xdict.dxf.owner == line.dxf.handle
+
+    xdict.dxf.owner = "BAD"
+    setattr(
+        line,
+        RAW_TAGS_OVERRIDE_ATTRIBUTE,
+        "  0\nLINE\n  5\nABC\n330\n0\n100\nAcDbEntity\n  8\n0\n"
+        "100\nAcDbLine\n 10\n0.0\n 20\n0.0\n 11\n1.0\n 21\n0.0\n",
+    )
+
+    sync_extension_dict_owners(doc)
+
+    assert xdict.dxf.owner == "ABC"
 
 
 def test_capture_document_codegen_inputs_returns_typed_specs(tmp_path):

@@ -372,6 +372,8 @@ class DocumentCodegenRuntime:
                     mapped_value = self.mapped_handle(value)
                     if mapped_value is not None:
                         value = mapped_value
+                    elif value != "0" and self.doc.entitydb.get(value) is None:
+                        value = "0"
                 payload.append((code, value))
             new.set_xdata(appid, payload)
         if old.has_extension_dict:

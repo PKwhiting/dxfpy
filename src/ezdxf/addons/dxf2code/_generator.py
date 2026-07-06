@@ -951,11 +951,12 @@ class _SourceCodeGenerator:
             if info is None:
                 continue
             rep_index, rep_handle = info
-            rep_handle_expr = (
-                f'_entity_map[{json.dumps(handle)}].dxf.handle'
-                if rep_handle == handle
-                else json.dumps(rep_handle)
-            )
+            if rep_handle == handle or rep_handle in self._emitted_handles:
+                rep_handle_expr = f'_entity_map[{json.dumps(rep_handle)}].dxf.handle'
+            elif entity.doc is not None and entity.doc.entitydb.get(rep_handle) is None:
+                rep_handle_expr = json.dumps("0")
+            else:
+                rep_handle_expr = json.dumps(rep_handle)
             self.add_source_code_line(
                 f'_entity_map[{json.dumps(handle)}].set_xdata("AcDbBlockRepETag", [(1070, 1), (1071, {rep_index}), (1005, {rep_handle_expr})])'
             )

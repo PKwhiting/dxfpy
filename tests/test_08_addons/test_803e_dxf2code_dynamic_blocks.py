@@ -1561,6 +1561,35 @@ def test_dynamic_block_visibility_unresolved_state_handle_uses_raw_layout_fallba
     compile(script, "<dxf2code>", "exec")
 
 
+def test_dynamic_block_rep_etag_dangling_handle_emits_null_handle():
+    from ezdxf.dynblkhelper import set_dynamic_block_definition_metadata
+
+    source_doc = ezdxf.new("R2018")
+    base = source_doc.blocks.new("DYN_DANGLING_REP_HANDLE")
+    line = base.add_line((0, 0), (1, 0))
+    set_dynamic_block_definition_metadata(
+        base,
+        guid="{GUID}",
+        true_name=base.name,
+    )
+    set_dynamic_block_base_point_parameter(
+        base,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(0, 0, 0),
+            base_point=(0, 0, 0),
+            second_point=(0, 0, 0),
+            expr_id=0,
+        ),
+    )
+    line.set_xdata("AcDbBlockRepETag", [(1070, 1), (1071, 3), (1005, "DEADBEEF")])
+
+    code = block_to_code(base, drawing="doc")
+
+    assert '(1005, "0")' in str(code)
+
+
 def test_dynamic_block_basepoint_linear_two_generation_replay_preserves_supported_path():
     source_doc, public_name = build_supported_linear_visibility_replay_doc()
     gen1_doc = replay_doc_to_new_doc(source_doc)
