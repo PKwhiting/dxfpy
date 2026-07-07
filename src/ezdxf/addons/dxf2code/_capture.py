@@ -110,6 +110,34 @@ def _mleader_style_handle(entity) -> str:
     return ""
 
 
+def _acad_table_geometry_block_names(doc) -> set[str]:
+    names: set[str] = set()
+    for entity in doc.entitydb.values():
+        if entity.dxftype() != "ACAD_TABLE":
+            continue
+        geometry_name = entity.dxf.get("geometry")
+        if geometry_name:
+            names.add(str(geometry_name))
+    return names
+
+
+def _raw_dynamic_acad_table_geometry_block_names(doc) -> set[str]:
+    generator = _SourceCodeGenerator(layout="b", full_document_mode=True)
+    names: set[str] = set()
+    for block in doc.blocks:
+        if block.is_any_layout:
+            continue
+        if not generator._needs_raw_dynamic_block_layout_fallback(block):
+            continue
+        for entity in block:
+            if entity.dxftype() != "ACAD_TABLE":
+                continue
+            geometry_name = entity.dxf.get("geometry")
+            if geometry_name:
+                names.add(str(geometry_name))
+    return names
+
+
 def _entity_export_tags(entity) -> list[RawTag]:
     def normalize(value):
         if type(value).__name__ == "float64":
@@ -206,7 +234,18 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     paper_layout_codes: list[tuple[str, Any]] = []
     imports = {"import ezdxf", "from pathlib import Path"}
 
-    blocks = _sort_blocks([block for block in doc.blocks if not block.is_any_layout])
+    # High-level ACAD_TABLE replay creates its own geometry block; emitting the
+    # source *T### block again collides. Raw-restored dynamic blocks are the
+    # exception: their table entities still reference the source geometry block.
+    table_geometry_blocks = (
+        _acad_table_geometry_block_names(doc)
+        - _raw_dynamic_acad_table_geometry_block_names(doc)
+    )
+    blocks = _sort_blocks([
+        block
+        for block in doc.blocks
+        if not block.is_any_layout and block.name not in table_geometry_blocks
+    ])
     for block in blocks:
         code = block_to_code(block, drawing="doc", full_document_mode=True)
         block_codes.append(code)

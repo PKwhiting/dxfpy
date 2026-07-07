@@ -2348,7 +2348,9 @@ class AcadTableBlockContent(DXFTagStorage):
             return
         write_tag2 = tagwriter.write_tag2
         dxf = self.dxf
-        write_tag2(280, dxf.version)
+        # Preserve omitted AutoCAD table flags; writing default tags changes replay fidelity.
+        if dxf.hasattr("version"):
+            write_tag2(280, dxf.version)
         write_tag2(342, dxf.table_style_id)
         write_tag2(343, dxf.block_record_handle)
         tagwriter.write_vertex(11, dxf.horizontal_direction)
@@ -2359,8 +2361,10 @@ class AcadTableBlockContent(DXFTagStorage):
         write_tag2(94, dxf.border_color_override_flag)
         write_tag2(95, dxf.border_lineweight_override_flag)
         write_tag2(96, dxf.border_visibility_override_flag)
-        write_tag2(280, self.data.suppress_title or 0)
-        write_tag2(281, self.data.suppress_column_header or 0)
+        if self.data.suppress_title is not None:
+            write_tag2(280, self.data.suppress_title)
+        if self.data.suppress_column_header is not None:
+            write_tag2(281, self.data.suppress_column_header)
         for value in self.data.row_heights:
             write_tag2(141, value)
         for value in self.data.col_widths:

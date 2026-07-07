@@ -899,6 +899,12 @@ class _SourceCodeGenerator:
         self.add_import_statement(
             "from ezdxf.dynblkhelper import restore_raw_dynamic_block_layout"
         )
+        # Raw table exports store the table geometry BTR as a handle (group 343).
+        # AutoCAD erases the table if that handle is not remapped to the replay block.
+        extra_handle_map = (
+            *extra_handle_map,
+            *self._raw_acad_table_geometry_handle_map(block),
+        )
         pairs: list[str] = []
         for source_handle, target_expr in extra_handle_map:
             pairs.append(f'({json.dumps(source_handle)}, {target_expr})')
@@ -908,6 +914,33 @@ class _SourceCodeGenerator:
         self.add_source_code_line(
             f"restore_raw_dynamic_block_layout(b, {self._format_python_value(snapshot)}, ({joined}))"
         )
+
+    def _raw_acad_table_geometry_handle_map(self, block) -> tuple[tuple[str, str], ...]:
+        doc = getattr(block, "doc", None)
+        pairs: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for entity in block:
+            if entity.dxftype() != "ACAD_TABLE":
+                continue
+            block_record_handle = entity.dxf.get("block_record_handle")
+            geometry_name = entity.dxf.get("geometry")
+            if not block_record_handle or not geometry_name:
+                continue
+            block_record_handle = str(block_record_handle)
+            if block_record_handle in seen:
+                continue
+            geometry_block = doc.blocks.get(geometry_name) if doc is not None else None
+            if geometry_block is None or not geometry_block.block_record_handle:
+                continue
+            geometry_name = str(geometry_name)
+            block_expr = f"{self.doc}.blocks.get({json.dumps(geometry_name)})"
+            target_expr = (
+                f"({block_expr}.block_record_handle "
+                f"if {block_expr} is not None else {json.dumps(block_record_handle)})"
+            )
+            pairs.append((block_record_handle, target_expr))
+            seen.add(block_record_handle)
+        return tuple(pairs)
 
     def _emit_raw_dynamic_definition_restore(
         self,
@@ -2285,8 +2318,49 @@ class _SourceCodeGenerator:
         self.add_source_code_line("    },")
         self.add_source_code_line(")")
 
+        self._emit_acad_table_geometry_name(entity)
+        self._emit_acad_table_dxf_scalar_state(entity)
         self._emit_acad_table_mutations(entity)
         self._schedule_acad_table_fields(entity)
+
+    def _emit_acad_table_geometry_name(self, entity: DXFEntity) -> None:
+        geometry_name = entity.dxf.get("geometry")
+        if not geometry_name:
+            return
+        self.add_source_code_line("# preserve source ACAD_TABLE geometry block name")
+        self.add_source_code_line(f"_table_geometry = {json.dumps(geometry_name)}")
+        self.add_source_code_line("if e.dxf.geometry != _table_geometry:")
+        self.add_source_code_line(f"    if _table_geometry not in {self.doc}.blocks:")
+        self.add_source_code_line(
+            f"        {self.doc}.blocks.rename_block(e.dxf.geometry, _table_geometry)"
+        )
+        self.add_source_code_line("        e.dxf.geometry = _table_geometry")
+
+    def _emit_acad_table_dxf_scalar_state(self, entity: DXFEntity) -> None:
+        if not entity.dxf.hasattr("version"):
+            self.add_source_code_line('e.dxf.discard("version")')
+        for key in (
+            "horizontal_direction",
+            "table_value",
+            "override_flag",
+            "border_color_override_flag",
+            "border_lineweight_override_flag",
+            "border_visibility_override_flag",
+        ):
+            if entity.dxf.hasattr(key):
+                self.add_source_code_line(
+                    f"e.dxf.{key} = {self._format_python_value(entity.dxf.get(key))}"
+                )
+        if entity.dxf.hasattr("version"):
+            self.add_source_code_line(
+                f"e.dxf.version = {self._format_python_value(entity.dxf.get('version'))}"
+            )
+        data = getattr(entity, "data", None)
+        if data is not None:
+            if data.suppress_title is None:
+                self.add_source_code_line("e.data.suppress_title = None")
+            if data.suppress_column_header is None:
+                self.add_source_code_line("e.data.suppress_column_header = None")
 
     def _schedule_acad_table_fields(self, entity: DXFEntity) -> None:
         data = getattr(entity, "data", None)
@@ -2333,11 +2407,14 @@ class _SourceCodeGenerator:
 
         inferred_title = 0 if data.n_rows >= 3 else 1
         inferred_header = 0 if data.n_rows >= 2 else 1
-        if (data.suppress_title or 0) != inferred_title:
+        if data.suppress_title is not None and data.suppress_title != inferred_title:
             self.add_source_code_line(
                 f"e.set_title_suppressed({bool(data.suppress_title)})"
             )
-        if (data.suppress_column_header or 0) != inferred_header:
+        if (
+            data.suppress_column_header is not None
+            and data.suppress_column_header != inferred_header
+        ):
             self.add_source_code_line(
                 f"e.set_column_header_suppressed({bool(data.suppress_column_header)})"
             )

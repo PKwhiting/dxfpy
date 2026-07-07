@@ -12,7 +12,18 @@ if TYPE_CHECKING:
     from ezdxf.document import Drawing
 
 
-_LAYOUT_ATTRIB_SKIP = frozenset({"handle", "owner", "block_record_handle"})
+_LAYOUT_ATTRIB_SKIP = frozenset(
+    {"handle", "owner", "block_record_handle", "viewport_handle"}
+)
+_ACAD_TABLE_ATTRIBS = (
+    "geometry",
+    "block_record_name",
+    "table_style_name",
+    "version",
+    "override_flag",
+    "n_rows",
+    "n_cols",
+)
 
 
 @dataclass(frozen=True)
@@ -28,6 +39,33 @@ class LayoutEntityCountDiff:
     layout: str
     source: tuple[tuple[str, int], ...]
     replay: tuple[tuple[str, int], ...]
+
+
+@dataclass(frozen=True)
+class BadLayoutViewportRef:
+    layout: str
+    viewport_handle: str
+    expected_owner: str
+    actual_owner: str
+    reason: str
+
+
+@dataclass(frozen=True)
+class AcadTableDiff:
+    layout: str
+    table_index: int
+    attrib: str
+    source: Any
+    replay: Any
+
+
+@dataclass(frozen=True)
+class BadAcadTableBtr:
+    container: str
+    table_handle: str
+    geometry: str
+    block_record_handle: str
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -69,6 +107,7 @@ class ReplayComparison:
     replay_active_layout: str
     layout_metadata_diffs: tuple[LayoutMetadataDiff, ...]
     layout_entity_count_diffs: tuple[LayoutEntityCountDiff, ...]
+    replay_bad_layout_viewport_refs: tuple[BadLayoutViewportRef, ...]
     source_mleader_count: int
     replay_mleader_count: int
     source_mleader_style_distribution: tuple[tuple[str, int], ...]
@@ -78,6 +117,8 @@ class ReplayComparison:
     replay_unresolved_xdata_handles: tuple[UnresolvedXDataHandle, ...]
     replay_bad_extension_dict_owners: tuple[BadExtensionDictOwner, ...]
     replay_stale_hatch_associations: tuple[StaleHatchAssociation, ...]
+    acad_table_diffs: tuple[AcadTableDiff, ...] = ()
+    replay_bad_acad_table_btrs: tuple[BadAcadTableBtr, ...] = ()
 
     @property
     def layout_names_match(self) -> bool:
@@ -105,7 +146,10 @@ class ReplayComparison:
                 not self.active_layout_matches,
                 self.layout_metadata_diffs,
                 self.layout_entity_count_diffs,
+                self.replay_bad_layout_viewport_refs,
                 not self.mleader_style_distribution_matches,
+                self.acad_table_diffs,
+                self.replay_bad_acad_table_btrs,
                 self.source_invalid_mleader_style_refs,
                 self.replay_invalid_mleader_style_refs,
                 self.replay_unresolved_xdata_handles,
@@ -133,10 +177,13 @@ def compare_replay_documents(source_doc: Drawing, replay_doc: Drawing) -> Replay
         replay_active_layout=_active_layout_name(replay_doc),
         layout_metadata_diffs=_layout_metadata_diffs(source_doc, replay_doc),
         layout_entity_count_diffs=_layout_entity_count_diffs(source_doc, replay_doc),
+        replay_bad_layout_viewport_refs=_bad_layout_viewport_refs(replay_doc),
         source_mleader_count=source_mleader_stats[0],
         replay_mleader_count=replay_mleader_stats[0],
         source_mleader_style_distribution=source_mleader_stats[1],
         replay_mleader_style_distribution=replay_mleader_stats[1],
+        acad_table_diffs=_acad_table_diffs(source_doc, replay_doc),
+        replay_bad_acad_table_btrs=_bad_acad_table_btrs(replay_doc),
         source_invalid_mleader_style_refs=source_mleader_stats[2],
         replay_invalid_mleader_style_refs=replay_mleader_stats[2],
         replay_unresolved_xdata_handles=_unresolved_xdata_handles(replay_doc),
@@ -160,10 +207,15 @@ def format_replay_comparison(
         f"  replay_active_layout={comparison.replay_active_layout!r}",
         f"  layout_metadata_diff_count={len(comparison.layout_metadata_diffs)}",
         f"  layout_entity_count_diff_count={len(comparison.layout_entity_count_diffs)}",
+        "  replay_bad_layout_viewport_ref_count="
+        f"{len(comparison.replay_bad_layout_viewport_refs)}",
         f"  source_mleader_count={comparison.source_mleader_count}",
         f"  replay_mleader_count={comparison.replay_mleader_count}",
         "  mleader_style_distribution_matches="
         f"{comparison.mleader_style_distribution_matches}",
+        f"  acad_table_diff_count={len(comparison.acad_table_diffs)}",
+        "  replay_bad_acad_table_btr_count="
+        f"{len(comparison.replay_bad_acad_table_btrs)}",
         "  source_invalid_mleader_style_refs="
         f"{len(comparison.source_invalid_mleader_style_refs)}",
         "  replay_invalid_mleader_style_refs="
@@ -184,6 +236,12 @@ def format_replay_comparison(
         comparison.layout_entity_count_diffs,
         sample_limit,
     )
+    _append_sample(
+        lines,
+        "replay_bad_layout_viewport_refs",
+        comparison.replay_bad_layout_viewport_refs,
+        sample_limit,
+    )
     if not comparison.mleader_style_distribution_matches:
         lines.append(
             "  source_mleader_style_distribution="
@@ -193,6 +251,13 @@ def format_replay_comparison(
             "  replay_mleader_style_distribution="
             f"{comparison.replay_mleader_style_distribution!r}"
         )
+    _append_sample(lines, "acad_table_diffs", comparison.acad_table_diffs, sample_limit)
+    _append_sample(
+        lines,
+        "replay_bad_acad_table_btrs",
+        comparison.replay_bad_acad_table_btrs,
+        sample_limit,
+    )
     _append_sample(
         lines,
         "source_invalid_mleader_style_refs",
@@ -334,6 +399,166 @@ def _layout_type_counts(doc: Drawing, layout_name: str) -> tuple[tuple[str, int]
     return tuple(
         sorted(Counter(entity.dxftype() for entity in doc.layout(layout_name)).items())
     )
+
+
+def _bad_layout_viewport_refs(doc: Drawing) -> tuple[BadLayoutViewportRef, ...]:
+    # AutoCAD dereferences LAYOUT.viewport_handle when activating a tab; stale
+    # source handles can pass AUDIT but still crash during layout switching.
+    bad: list[BadLayoutViewportRef] = []
+    for layout_name in _paper_layout_names(doc):
+        layout = doc.layout(layout_name)
+        viewport_handle = str(layout.dxf.get("viewport_handle") or "")
+        expected_owner = str(layout.block_record_handle or "")
+        has_viewports = any(entity.dxftype() == "VIEWPORT" for entity in layout)
+        reason = ""
+        actual_owner = ""
+        if not viewport_handle:
+            if has_viewports:
+                reason = "missing_viewport_handle"
+        else:
+            target = doc.entitydb.get(viewport_handle)
+            if target is None:
+                reason = "missing_viewport"
+            elif not target.is_alive:
+                reason = "erased_viewport"
+            elif target.dxftype() != "VIEWPORT":
+                reason = f"points_to_{target.dxftype()}"
+                actual_owner = str(target.dxf.get("owner") or "")
+            else:
+                actual_owner = str(target.dxf.get("owner") or "")
+                if actual_owner != expected_owner:
+                    reason = "wrong_viewport_owner"
+        if reason:
+            bad.append(
+                BadLayoutViewportRef(
+                    layout_name,
+                    viewport_handle,
+                    expected_owner,
+                    actual_owner,
+                    reason,
+                )
+            )
+    return tuple(bad)
+
+
+def _acad_table_diffs(
+    source_doc: Drawing, replay_doc: Drawing
+) -> tuple[AcadTableDiff, ...]:
+    diffs: list[AcadTableDiff] = []
+    replay_layouts = set(_layout_names(replay_doc))
+    for layout_name in _layout_names(source_doc):
+        if layout_name not in replay_layouts:
+            continue
+        source_tables = _acad_tables(source_doc, layout_name)
+        replay_tables = _acad_tables(replay_doc, layout_name)
+        if len(source_tables) != len(replay_tables):
+            diffs.append(
+                AcadTableDiff(
+                    layout_name,
+                    -1,
+                    "count",
+                    len(source_tables),
+                    len(replay_tables),
+                )
+            )
+        for index, (source_table, replay_table) in enumerate(
+            zip(source_tables, replay_tables)
+        ):
+            for attrib in _ACAD_TABLE_ATTRIBS:
+                source_value = _acad_table_value(source_doc, source_table, attrib)
+                replay_value = _acad_table_value(replay_doc, replay_table, attrib)
+                if not _equivalent_values(source_value, replay_value):
+                    diffs.append(
+                        AcadTableDiff(
+                            layout_name,
+                            index,
+                            attrib,
+                            source_value,
+                            replay_value,
+                        )
+                    )
+    return tuple(diffs)
+
+
+def _acad_tables(doc: Drawing, layout_name: str) -> list:
+    return [entity for entity in doc.layout(layout_name) if entity.dxftype() == "ACAD_TABLE"]
+
+
+def _acad_table_value(doc: Drawing, table, attrib: str) -> Any:
+    if attrib == "block_record_name":
+        return _handle_resource_name(doc, table.dxf.get("block_record_handle", ""))
+    if attrib == "table_style_name":
+        return _handle_resource_name(doc, table.dxf.get("table_style_id", ""))
+    try:
+        return _normalize(table.dxf.get(attrib))
+    except const.DXFAttributeError:
+        return None
+
+
+def _handle_resource_name(doc: Drawing, handle: str) -> str:
+    if not handle:
+        return ""
+    entity = doc.entitydb.get(str(handle))
+    if entity is None:
+        return f"<missing:{handle}>"
+    if entity.dxftype() == "TABLESTYLE":
+        for name, style in doc.table_styles.object_dict.items():
+            if style is entity:
+                return str(name)
+    if entity.dxf.hasattr("name"):
+        return str(entity.dxf.name)
+    return entity.dxftype()
+
+
+def _bad_acad_table_btrs(doc: Drawing) -> tuple[BadAcadTableBtr, ...]:
+    # AUDIT reports these as "AcDbTable BTR Id invalid" and erases the tables.
+    block_record_names = _block_record_names(doc)
+    bad: list[BadAcadTableBtr] = []
+    for entity in doc.entitydb.values():
+        if entity is None or not entity.is_alive or entity.dxftype() != "ACAD_TABLE":
+            continue
+        geometry_name = str(entity.dxf.get("geometry") or "")
+        block_record_handle = str(entity.dxf.get("block_record_handle") or "")
+        reason = ""
+        if not geometry_name:
+            reason = "missing_geometry"
+        elif not block_record_handle:
+            reason = "missing_block_record_handle"
+        else:
+            geometry_block = doc.blocks.get(geometry_name)
+            target = doc.entitydb.get(block_record_handle)
+            if geometry_block is None:
+                reason = "missing_geometry_block"
+            elif target is None:
+                reason = "missing_block_record"
+            elif target.dxftype() != "BLOCK_RECORD":
+                reason = f"block_record_handle_points_to_{target.dxftype()}"
+            elif geometry_block.block_record_handle != block_record_handle:
+                reason = "geometry_block_record_mismatch"
+        if reason:
+            bad.append(
+                BadAcadTableBtr(
+                    block_record_names.get(str(entity.dxf.get("owner") or ""), ""),
+                    str(entity.dxf.get("handle") or ""),
+                    geometry_name,
+                    block_record_handle,
+                    reason,
+                )
+            )
+    return tuple(bad)
+
+
+def _block_record_names(doc: Drawing) -> dict[str, str]:
+    names: dict[str, str] = {}
+    for layout_name in _layout_names(doc):
+        layout = doc.layout(layout_name)
+        handle = layout.block_record_handle
+        if handle:
+            names[str(handle)] = layout_name
+    for block in doc.blocks:
+        if block.block_record_handle:
+            names[str(block.block_record_handle)] = block.name
+    return names
 
 
 def _mleader_style_keys(doc: Drawing) -> dict[str, str]:

@@ -126,7 +126,7 @@ def _resource_entities(doc: ezdxf.document.Drawing) -> list:
     return entities
 
 
-def _block_dependencies(blocks) -> dict[str, set[str]]:
+def block_dependencies(blocks) -> dict[str, set[str]]:
     block_by_name = {block.name: block for block in blocks}
     block_by_record_handle = {
         block.block_record_handle: block
@@ -142,16 +142,20 @@ def _block_dependencies(blocks) -> dict[str, set[str]]:
             if base_block is not None and base_block.name != block.name:
                 deps.add(base_block.name)
         for entity in block:
-            if entity.dxftype() != "INSERT":
+            if entity.dxftype() == "INSERT":
+                name = entity.dxf.name
+            elif entity.dxftype() == "ACAD_TABLE":
+                # Match production ordering: table geometry blocks feed raw BTR refs.
+                name = entity.dxf.get("geometry", "")
+            else:
                 continue
-            name = entity.dxf.name
             if name in block_by_name and name != block.name:
                 deps.add(name)
     return dependencies
 
 
 def sort_blocks(blocks):
-    dependencies = _block_dependencies(blocks)
+    dependencies = block_dependencies(blocks)
     block_by_name = {block.name: block for block in blocks}
     ordered: list = []
     visiting: set[str] = set()

@@ -532,6 +532,68 @@ def test_acad_table_text_surface_to_code():
     assert new_doc.table_styles.get("Standard") is not None
 
 
+def test_acad_table_scalar_dxf_state_to_code():
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A"]])
+    table.dxf.version = 1
+    table.dxf.table_value = 99
+    table.dxf.override_flag = 7340056
+    table.dxf.border_color_override_flag = 7
+    table.dxf.border_lineweight_override_flag = 8
+    table.dxf.border_visibility_override_flag = 9
+
+    _, new_msp = translate_entities_to_new_layout(source_doc.modelspace())
+    new_table = next(entity for entity in new_msp if entity.dxftype() == "ACAD_TABLE")
+
+    assert new_table.dxf.version == 1
+    assert new_table.dxf.table_value == 99
+    assert new_table.dxf.override_flag == 7340056
+    assert new_table.dxf.border_color_override_flag == 7
+    assert new_table.dxf.border_lineweight_override_flag == 8
+    assert new_table.dxf.border_visibility_override_flag == 9
+
+
+def test_acad_table_omitted_version_to_code():
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A"]])
+    table.dxf.discard("version")
+    table.data.suppress_title = None
+    table.data.suppress_column_header = None
+
+    _, new_msp = translate_entities_to_new_layout(source_doc.modelspace())
+    new_table = next(entity for entity in new_msp if entity.dxftype() == "ACAD_TABLE")
+    stream = StringIO()
+    new_table.export_dxf(TagWriter(stream, dxfversion=new_table.doc.dxfversion))
+    tags = ExtendedTags.from_text(stream.getvalue()).get_subclass("AcDbTable")
+    codes_before_row_heights = []
+    for tag in tags:
+        if tag.code == 141:
+            break
+        codes_before_row_heights.append(tag.code)
+
+    assert new_table.dxf.hasattr("version") is False
+    assert new_table.data.suppress_title is None
+    assert new_table.data.suppress_column_header is None
+    assert 280 not in codes_before_row_heights
+    assert 281 not in codes_before_row_heights
+
+
+def test_acad_table_geometry_block_name_to_code():
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A"]])
+    source_geometry = "*T42"
+    source_doc.blocks.rename_block(table.dxf.geometry, source_geometry)
+    table.dxf.geometry = source_geometry
+
+    new_doc, new_msp = translate_entities_to_new_layout(source_doc.modelspace())
+    new_table = next(entity for entity in new_msp if entity.dxftype() == "ACAD_TABLE")
+    geometry_block = new_doc.blocks.get(source_geometry)
+
+    assert geometry_block is not None
+    assert new_table.dxf.geometry == source_geometry
+    assert new_table.dxf.block_record_handle == geometry_block.block_record_handle
+
+
 def test_acad_table_minimal_block_cell_to_code():
     source_doc = ezdxf.new("R2018")
     block = source_doc.blocks.new("TABLE_BLOCK_CELL_MIN", base_point=(0, 0))

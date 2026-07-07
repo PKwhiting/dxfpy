@@ -20,9 +20,13 @@ def _block_dependencies(blocks) -> dict[str, set[str]]:
     for block in blocks:
         deps = dependencies[block.name]
         for entity in block:
-            if entity.dxftype() != "INSERT":
+            if entity.dxftype() == "INSERT":
+                name = entity.dxf.name
+            elif entity.dxftype() == "ACAD_TABLE":
+                # Table geometry blocks must exist before raw table refs are restored.
+                name = entity.dxf.get("geometry", "")
+            else:
                 continue
-            name = entity.dxf.name
             if name in block_by_name and name != block.name:
                 deps.add(name)
         base_handle = get_dynamic_block_record_handle(block.block_record)

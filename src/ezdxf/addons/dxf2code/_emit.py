@@ -248,10 +248,15 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.append("# paperspace layouts")
         lines.append(f"_paper_layout_names = {paper_layout_names!r}")
         lines.append(f"_paper_layout_dxfattribs = {paper_layout_dxfattribs!r}")
+        lines.append("# viewport_handle is remapped after each layout VIEWPORT is recreated")
         lines.append("for _layout_name in _paper_layout_names:")
+        lines.append(
+            "    _layout_create_attribs = dict(_paper_layout_dxfattribs.get(_layout_name, {}))"
+        )
+        lines.append('    _layout_create_attribs.pop("viewport_handle", None)')
         lines.append("    if _layout_name not in doc.layouts:")
         lines.append(
-            "        doc.new_layout(_layout_name, dxfattribs=_paper_layout_dxfattribs.get(_layout_name, {}))"
+            "        doc.new_layout(_layout_name, dxfattribs=_layout_create_attribs)"
         )
         lines.append("for _layout_name in list(doc.layouts.names()):")
         lines.append(
@@ -265,14 +270,30 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
             lines.append(
                 f"_layout_dxfattribs = _paper_layout_dxfattribs.get({layout_name!r}, {{}})"
             )
+            lines.append(
+                '_layout_viewport_handle = _layout_dxfattribs.get("viewport_handle", "")'
+            )
+            lines.append(
+                "_layout_update_attribs = {k: v for k, v in _layout_dxfattribs.items() if k != 'viewport_handle'}"
+            )
             lines.append(f'psp = doc.layout({layout_name!r})')
-            lines.append("psp.dxf.update(_layout_dxfattribs, ignore_errors=True)")
+            lines.append("psp.dxf.update(_layout_update_attribs, ignore_errors=True)")
             lines.append("psp.delete_all_entities()")
             for name, code in paper_layout_codes:
                 if name != layout_name:
                     continue
                 lines.extend(code.code)
                 lines.append("rt.register_entity_map(_entity_map)")
+            lines.append("_layout_viewport = _entity_map.get(_layout_viewport_handle)")
+            lines.append("if _layout_viewport is None:")
+            lines.append("    # Minimal or repaired layouts may only expose the recreated VIEWPORT")
+            lines.append(
+                '    _layout_viewport = next((e for e in psp if e.dxftype() == "VIEWPORT"), None)'
+            )
+            lines.append(
+                'if _layout_viewport is not None and _layout_viewport.dxftype() == "VIEWPORT":'
+            )
+            lines.append("    psp.dxf.viewport_handle = _layout_viewport.dxf.handle")
             lines.append("")
 
     if sortents_by_block:

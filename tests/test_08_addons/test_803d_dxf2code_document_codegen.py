@@ -982,3 +982,53 @@ def test_dynamic_block_table_raw_restore_remaps_geometry_btr():
 
     assert raw_btr_handles == [geometry_block.block_record_handle]
     assert target_doc.entitydb.get(raw_btr_handles[0]).dxftype() == "BLOCK_RECORD"
+
+
+def test_document_to_code_file_preserves_acad_table_geometry_block_name(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A"]])
+    source_geometry = "*T42"
+    source_doc.blocks.rename_block(table.dxf.geometry, source_geometry)
+    table.dxf.geometry = source_geometry
+
+    source_path = tmp_path / "source_table_geometry_name.dxf"
+    script_path = tmp_path / "generated_table_geometry_name.py"
+    output_path = tmp_path / "generated_table_geometry_name.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_table = next(entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE")
+    out_geometry = out_doc.blocks.get(source_geometry)
+
+    assert out_geometry is not None
+    assert out_table.dxf.geometry == source_geometry
+    assert out_table.dxf.block_record_handle == out_geometry.block_record_handle
+
+
+def test_document_to_code_file_remaps_paper_layout_viewport_handle(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    layout = source_doc.layout("Layout1")
+    layout.add_line((0, 0), (1, 0))
+    viewport = layout.add_viewport(
+        center=(5, 5), size=(10, 10), view_center_point=(0, 0), view_height=10
+    )
+    layout.dxf.viewport_handle = viewport.dxf.handle
+
+    source_path = tmp_path / "source_layout_viewport.dxf"
+    script_path = tmp_path / "generated_layout_viewport.py"
+    output_path = tmp_path / "generated_layout_viewport.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_layout = out_doc.layout("Layout1")
+    viewport = out_doc.entitydb.get(out_layout.dxf.viewport_handle)
+
+    assert viewport is not None
+    assert viewport.dxftype() == "VIEWPORT"
+    assert viewport.dxf.owner == out_layout.block_record_handle

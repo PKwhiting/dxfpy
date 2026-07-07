@@ -10,11 +10,11 @@ from ezdxf.entities.dxfobj import Field
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tagwriter import TagWriter
 from ezdxf.addons.dxf2code import (
+    document_to_code_file,
     entities_to_code,
-    table_entries_to_code,
     block_to_code,
 )
-from ezdxf.fidelity import finalize_document_fidelity, prepare_document_fidelity
+from ezdxf._fidelity_compare import compare_replay_documents
 from ezdxf.dynblkhelper import (
     DynamicBlockBasePointParameter,
     DynamicBlockLinearParameter,
@@ -35,13 +35,11 @@ from ezdxf.dynblkhelper import (
     get_dynamic_block_lookup_actions,
     get_dynamic_block_lookup_parameters,
     get_dynamic_block_properties_table,
-    get_dynamic_block_record_handle,
     get_dynamic_block_reference,
     get_dynamic_block_stretch_actions,
     get_dynamic_block_visibility_entities,
     get_dynamic_block_visibility_state,
     get_dynamic_block_visibility_states,
-    register_source_entity_handle_mapping,
     restore_raw_entity_export,
     set_dynamic_block_base_point_parameter,
     set_dynamic_block_linear_parameter,
@@ -57,10 +55,16 @@ from ezdxf.dynblkhelper import (
 
 
 import ezdxf.entities
-from ezdxf.lldxf.types import dxftag, is_pointer_code
+from ezdxf.lldxf.types import dxftag
 from ezdxf.lldxf.tags import Tags  # required by exec() or eval()
 from ezdxf.entities.ltype import LinetypePattern  # required by exec() or eval()
 from ezdxf.math import Vec2, Vec3
+from tests.test_08_addons.dxf2code_support import (
+    block_dependencies as _block_dependencies,
+    execute_code_in_namespace,
+    replay_doc_to_new_doc,
+    sort_blocks as _sort_blocks,
+)
 
 doc = ezdxf.new("R2010")
 msp = doc.modelspace()
@@ -73,182 +77,6 @@ def translate_to_code_and_execute(entity):
     code = entities_to_code([entity], layout="msp")
     exec(code.import_str() + "\n" + str(code), globals())
     return msp[-1]
-
-
-def translate_entities_to_new_layout(entities):
-    target_doc = ezdxf.new("R2010")
-    return execute_entities_code_in_doc(entities, target_doc)
-
-
-def execute_entities_code_in_doc(entities, target_doc):
-    target_msp = target_doc.modelspace()
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_msp}
-    code = entities_to_code(entities, layout="msp")
-    execute_code_in_namespace(code, namespace)
-    return target_doc, target_msp
-
-
-def execute_code_in_namespace(code, namespace):
-    exec(code.import_str() + "\n" + str(code), namespace)
-
-
-def _normalize_handle_refs_in_text(text: str) -> str:
-    lines = text.replace("\r\n", "\n").split("\n")
-    normalized: list[str] = []
-    index = 0
-    while index < len(lines):
-        code_line = lines[index]
-        normalized.append(code_line)
-        if index + 1 >= len(lines):
-            break
-        value_line = lines[index + 1]
-        try:
-            code = int(code_line.strip())
-        except ValueError:
-            normalized.append(value_line)
-            index += 2
-            continue
-        if code in (5, 105, 1005) or is_pointer_code(code):
-            normalized.append("<REF>")
-        else:
-            normalized.append(value_line)
-        index += 2
-    return "\n".join(normalized)
-
-
-def _export_text(entity, dxfversion: str) -> str:
-    stream = StringIO()
-    entity.export_dxf(TagWriter(stream, dxfversion=dxfversion))
-    return stream.getvalue()
-
-
-def _names(table) -> set[str]:
-    return {entry.dxf.name for entry in table}
-
-
-def _maybe_get(table, name: str):
-    try:
-        return table.get(name)
-    except Exception:
-        return None
-
-
-def _resource_entities(doc: ezdxf.document.Drawing) -> list:
-    default_doc = ezdxf.new(doc.dxfversion)
-    entities: list = []
-
-    active_viewports = doc.viewports.get("*Active")
-    if active_viewports:
-        entities.append(active_viewports[0])
-
-    for name in sorted(_names(doc.layers) - _names(default_doc.layers)):
-        entity = _maybe_get(doc.layers, name)
-        if entity is not None:
-            entities.append(entity)
-    for name in sorted(_names(doc.linetypes) - _names(default_doc.linetypes)):
-        entity = _maybe_get(doc.linetypes, name)
-        if entity is not None:
-            entities.append(entity)
-    for name in sorted(_names(doc.styles) - _names(default_doc.styles)):
-        entity = _maybe_get(doc.styles, name)
-        if entity is not None:
-            entities.append(entity)
-    for name in sorted(_names(doc.dimstyles) - _names(default_doc.dimstyles)):
-        entity = _maybe_get(doc.dimstyles, name)
-        if entity is not None:
-            entities.append(entity)
-    for name in sorted(_names(doc.appids) - _names(default_doc.appids)):
-        entity = _maybe_get(doc.appids, name)
-        if entity is not None:
-            entities.append(entity)
-    for name in sorted(
-        set(doc.mleader_styles.object_dict.keys())
-        - set(default_doc.mleader_styles.object_dict.keys())
-    ):
-        entity = doc.mleader_styles.get(name)
-        if entity is not None:
-            entities.append(entity)
-    for name in sorted(
-        set(doc.table_styles.object_dict.keys())
-        - set(default_doc.table_styles.object_dict.keys())
-    ):
-        entity = doc.table_styles.get(name)
-        if entity is not None:
-            entities.append(entity)
-    return entities
-
-
-def _block_dependencies(blocks) -> dict[str, set[str]]:
-    block_by_name = {block.name: block for block in blocks}
-    block_by_record_handle = {
-        block.block_record_handle: block
-        for block in blocks
-        if block.block_record_handle
-    }
-    dependencies: dict[str, set[str]] = {block.name: set() for block in blocks}
-    for block in blocks:
-        deps = dependencies[block.name]
-        base_handle = get_dynamic_block_record_handle(block.block_record)
-        if base_handle:
-            base_block = block_by_record_handle.get(base_handle)
-            if base_block is not None and base_block.name != block.name:
-                deps.add(base_block.name)
-        for entity in block:
-            if entity.dxftype() != "INSERT":
-                continue
-            name = entity.dxf.name
-            if name in block_by_name and name != block.name:
-                deps.add(name)
-    return dependencies
-
-
-def _sort_blocks(blocks):
-    dependencies = _block_dependencies(blocks)
-    block_by_name = {block.name: block for block in blocks}
-    ordered: list = []
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(name: str) -> None:
-        if name in visited or name in visiting:
-            return
-        visiting.add(name)
-        for dep in dependencies.get(name, ()): 
-            visit(dep)
-        visiting.remove(name)
-        visited.add(name)
-        ordered.append(block_by_name[name])
-
-    for block in blocks:
-        visit(block.name)
-    return ordered
-
-
-def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.Drawing:
-    target_doc = ezdxf.new(source_doc.dxfversion)
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
-    resources = _resource_entities(source_doc)
-    if resources:
-        execute_code_in_namespace(table_entries_to_code(resources, drawing="doc"), namespace)
-    prepare_document_fidelity(source_doc, target_doc)
-    blocks = _sort_blocks([block for block in source_doc.blocks if not block.is_any_layout])
-    for block in blocks:
-        target_block = target_doc.blocks.get(block.name)
-        if target_block is not None:
-            target_doc.blocks.delete_block(block.name, safe=False)
-            target_block = None
-        execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
-        target_block = target_doc.blocks.get(block.name)
-        if target_block is None:
-            continue
-        register_source_entity_handle_mapping(block.block_record, target_block.block_record)
-        if block.block is not None and target_block.block is not None:
-            register_source_entity_handle_mapping(block.block, target_block.block)
-        if block.endblk is not None and target_block.endblk is not None:
-            register_source_entity_handle_mapping(block.endblk, target_block.endblk)
-    execute_code_in_namespace(entities_to_code(source_doc.modelspace(), layout="msp"), namespace)
-    finalize_document_fidelity(source_doc, target_doc)
-    return target_doc
 
 
 def _dynamic_block_by_public_name(doc: ezdxf.document.Drawing, public_name: str):
@@ -1449,7 +1277,7 @@ def test_plain_wrapper_nested_dynamic_replay_preserves_blkref_handles():
     assert list(wrapper.block_record.blkref_handles) == [wrapper_insert.dxf.handle]
 
 
-def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles():
+def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles(tmp_path):
     source_doc = ezdxf.new("R2018")
     child = source_doc.blocks.new("RAW_LAYOUT_CHILD")
     child.add_line((0, 0), (1, 0))
@@ -1457,6 +1285,10 @@ def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles():
     line = base.add_line((0, 0), (10, 0))
     attdef = base.add_attdef("PARAM_1", insert=(0, 2), text="A")
     child_insert = base.add_blockref(child.name, (5, 0))
+    table = base.add_table((0, 4), [["T"]])
+    table_geometry = "*T900"
+    source_doc.blocks.rename_block(table.dxf.geometry, table_geometry)
+    table.dxf.geometry = table_geometry
     assert source_doc.entitydb.reset_handle(child_insert, "ABCD")
     child_xdict = child_insert.new_extension_dict().dictionary
     assert source_doc.entitydb.reset_handle(child_xdict, "ABCE")
@@ -1512,6 +1344,8 @@ def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles():
     )
 
     assert "restore_raw_dynamic_block_layout" in str(block_to_code(base, drawing="doc"))
+    source_blocks = [block for block in source_doc.blocks if not block.is_any_layout]
+    assert table_geometry in _block_dependencies(source_blocks)[base.name]
 
     new_doc = replay_doc_to_new_doc(source_doc)
     new_base = new_doc.blocks.get(base.name)
@@ -1530,6 +1364,33 @@ def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles():
     new_child_value = new_child_data.get("VALUE")
     assert new_child_value is not None
     assert new_child_value.dxf.handle == child_value.dxf.handle
+    new_table = next(entity for entity in new_base if entity.dxftype() == "ACAD_TABLE")
+    new_table_geometry = new_doc.blocks.get(table_geometry)
+
+    assert new_table_geometry is not None
+    assert new_table.dxf.geometry == table_geometry
+    assert new_table.dxf.block_record_handle == new_table_geometry.block_record_handle
+
+    stream = StringIO()
+    new_table.export_dxf(TagWriter(stream, dxfversion=new_doc.dxfversion))
+    lines = stream.getvalue().splitlines()
+    raw_btr_handles = [
+        lines[index + 1].strip()
+        for index in range(0, len(lines) - 1, 2)
+        if lines[index].strip() == "343"
+    ]
+    assert raw_btr_handles == [new_table_geometry.block_record_handle]
+
+    source_path = tmp_path / "raw_dynamic_table_source.dxf"
+    script_path = tmp_path / "raw_dynamic_table_replay.py"
+    output_path = tmp_path / "raw_dynamic_table_replay.dxf"
+    source_doc.saveas(source_path)
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    generated_doc = ezdxf.readfile(output_path)
+    comparison = compare_replay_documents(source_doc, generated_doc)
+    assert comparison.replay_bad_acad_table_btrs == ()
 
 
 def test_dynamic_block_visibility_unresolved_state_handle_uses_raw_layout_fallback():
