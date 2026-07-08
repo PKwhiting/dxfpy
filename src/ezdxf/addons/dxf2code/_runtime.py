@@ -6,6 +6,7 @@ from ezdxf.dynblkhelper import (
     _delete_graph_stack,
     _ensure_dynamic_block_extension_dict,
     _new_tag_storage_object,
+    _raw_object_handle_mapping,
 )
 from ezdxf.entities import factory
 from ezdxf.entities import DXFEntity
@@ -54,6 +55,11 @@ class DocumentCodegenRuntime:
 
     def register_entity_map(self, entity_map: dict[str, DXFEntity]) -> None:
         self.source_entity_map.update(entity_map)
+        global_mapping = _raw_object_handle_mapping(self.doc)
+        for source_handle, entity in entity_map.items():
+            target_handle = entity.dxf.get("handle")
+            if source_handle and target_handle:
+                global_mapping[str(source_handle)] = str(target_handle)
 
     def ensure_dynamic_block_extension_dict(self, block_record):
         return _ensure_dynamic_block_extension_dict(block_record)

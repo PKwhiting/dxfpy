@@ -18,6 +18,7 @@ def test_compare_replay_documents_reports_replay_issues():
     replay_doc.layout("Layout1").dxf.viewport_handle = "DEADCAFE"
     replay_table = replay_doc.layout("Layout1").add_table((0, 0), [["A"]])
     replay_table.dxf.override_flag = 1
+    replay_doc.blocks.get(replay_table.dxf.geometry).add_line((7, 0), (8, 0))
     bad_table = replay_doc.blocks.new("BAD_TABLE_CONTAINER").add_table((0, 0), [["B"]])
     bad_table.dxf.geometry = "*T_MISSING"
     bad_table.dxf.block_record_handle = "DEADBEEF"
@@ -52,6 +53,8 @@ def test_compare_replay_documents_reports_replay_issues():
     assert comparison.replay_bad_layout_viewport_refs[0].reason == "missing_viewport"
     assert len(comparison.acad_table_diffs) == 1
     assert comparison.acad_table_diffs[0].attrib == "override_flag"
+    assert len(comparison.acad_table_geometry_block_diffs) == 1
+    assert comparison.acad_table_geometry_block_diffs[0].reason == "content"
     assert len(comparison.replay_bad_acad_table_btrs) == 1
     assert comparison.replay_bad_acad_table_btrs[0].reason == "missing_geometry_block"
     assert len(comparison.replay_invalid_mleader_style_refs) == 1
@@ -60,6 +63,7 @@ def test_compare_replay_documents_reports_replay_issues():
     assert len(comparison.replay_stale_hatch_associations) == 1
     assert "replay_bad_layout_viewport_ref_count=1" in report
     assert "acad_table_diff_count=1" in report
+    assert "acad_table_geometry_block_diff_count=1" in report
     assert "replay_bad_acad_table_btr_count=1" in report
     assert "replay_unresolved_xdata_handles=1" in report
 
@@ -74,6 +78,7 @@ def test_replay_comparison_can_ignore_layout_order():
         replay_active_layout="Layout1",
         layout_metadata_diffs=(),
         layout_entity_count_diffs=(),
+        layout_block_record_name_diffs=(),
         replay_bad_layout_viewport_refs=(),
         source_mleader_count=0,
         replay_mleader_count=0,
@@ -89,3 +94,25 @@ def test_replay_comparison_can_ignore_layout_order():
     assert comparison.layout_names_match is False
     assert comparison.has_issues() is False
     assert comparison.has_issues(include_layout_order=True) is True
+
+
+def test_replay_comparison_accepts_dynamic_table_insert_replacements():
+    from ezdxf.dynblkhelper import replace_dynamic_block_acad_tables_with_blockrefs
+
+    source_doc = ezdxf.new("R2018")
+    source_block = source_doc.blocks.new("*U900")
+    source_table = source_block.add_table((0, 0), [["A"]])
+    source_geometry = source_table.dxf.geometry
+
+    replay_doc = ezdxf.new("R2018")
+    replay_block = replay_doc.blocks.new("*U900")
+    replay_table = replay_block.add_table((0, 0), [["A"]])
+    if replay_table.dxf.geometry != source_geometry:
+        replay_doc.blocks.rename_block(replay_table.dxf.geometry, source_geometry)
+        replay_table.dxf.geometry = source_geometry
+    replace_dynamic_block_acad_tables_with_blockrefs(replay_doc)
+
+    comparison = compare_replay_documents(source_doc, replay_doc)
+
+    assert comparison.acad_table_geometry_block_diffs == ()
+    assert comparison.has_issues() is False

@@ -930,6 +930,31 @@ def test_document_codegen_runtime_rebinds_raw_mleader_style():
     assert style_handles == ["TEXT_STYLE_HANDLE", style.dxf.handle]
 
 
+def test_replay_cleanup_replaces_dynamic_block_acad_tables_with_blockrefs():
+    from ezdxf.dynblkhelper import replace_dynamic_block_acad_tables_with_blockrefs
+
+    doc = ezdxf.new("R2018")
+    dyn_block = doc.blocks.new("*U900")
+    table = dyn_block.add_table((1, 2), [["A"]])
+    table.dxf.horizontal_direction = (0, 1, 0)
+    table_handle = table.dxf.handle
+    table_geometry = table.dxf.geometry
+    normal_block = doc.blocks.new("NORMAL_TABLE_BLOCK")
+    normal_table = normal_block.add_table((0, 0), [["B"]])
+
+    replace_dynamic_block_acad_tables_with_blockrefs(doc)
+
+    replacement = doc.entitydb.get(table_handle)
+    assert replacement is not None
+    assert replacement.dxftype() == "INSERT"
+    assert replacement.dxf.name == table_geometry
+    assert replacement.dxf.owner == dyn_block.block_record_handle
+    assert replacement.dxf.rotation == 90.0
+    assert all(entity.dxftype() != "ACAD_TABLE" for entity in dyn_block)
+    assert normal_table.is_alive
+    assert next(entity for entity in normal_block if entity.dxftype() == "ACAD_TABLE") is normal_table
+
+
 def test_dynamic_block_table_raw_restore_remaps_geometry_btr():
     from ezdxf.addons.dxf2code import block_to_code
     from ezdxf.dynblkhelper import (
@@ -997,7 +1022,11 @@ def test_document_to_code_file_preserves_acad_table_geometry_block_name(tmp_path
     source_doc.saveas(source_path)
 
     document_to_code_file(str(source_path), str(script_path), str(output_path))
-    exec(script_path.read_text(encoding="utf-8"), {})
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert "replace_dynamic_block_acad_tables_with_blockrefs(doc)" in script_text
+
+    exec(script_text, {})
 
     out_doc = ezdxf.readfile(output_path)
     out_table = next(entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE")
@@ -1032,3 +1061,82 @@ def test_document_to_code_file_remaps_paper_layout_viewport_handle(tmp_path):
     assert viewport is not None
     assert viewport.dxftype() == "VIEWPORT"
     assert viewport.dxf.owner == out_layout.block_record_handle
+
+
+def test_document_to_code_file_preserves_paper_layout_block_record_name(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    layout = source_doc.new_layout("Custom")
+    source_block_name = "*Paper_Space42"
+    source_doc.blocks.rename_block(layout.block_record.dxf.name, source_block_name)
+
+    source_path = tmp_path / "source_layout_block_name.dxf"
+    script_path = tmp_path / "generated_layout_block_name.py"
+    output_path = tmp_path / "generated_layout_block_name.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_layout = out_doc.layout("Custom")
+    out_block_record = out_doc.entitydb.get(out_layout.block_record_handle)
+
+    assert out_block_record.dxf.name == source_block_name
+
+
+def test_document_to_code_file_restores_acad_groups(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    msp = source_doc.modelspace()
+    line = msp.add_line((0, 0), (1, 0))
+    circle = msp.add_circle((0, 0), radius=1)
+    group = source_doc.groups.new("TEST_GROUP")
+    group.set_data([line, circle])
+
+    source_path = tmp_path / "source_groups.dxf"
+    script_path = tmp_path / "generated_groups.py"
+    output_path = tmp_path / "generated_groups.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_group = out_doc.groups.get("TEST_GROUP")
+
+    assert out_group is not None
+    assert sorted(entity.dxftype() for entity in out_group) == ["CIRCLE", "LINE"]
+
+
+def test_document_to_code_file_restores_layout_sortents(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    layout = source_doc.layout("Layout1")
+    first = layout.add_line((0, 0), (1, 0))
+    second = layout.add_line((0, 1), (1, 1))
+    block = source_doc.blocks.get(layout.block_record.dxf.name)
+    xdict = block.block_record.new_extension_dict().dictionary
+    sortents = source_doc.objects.new_entity(
+        "SORTENTSTABLE",
+        dxfattribs={
+            "owner": xdict.dxf.handle,
+            "block_record_handle": block.block_record.dxf.handle,
+        },
+    )
+    sortents.set_handles([(second.dxf.handle, first.dxf.handle)])
+    xdict.add("ACAD_SORTENTS", sortents)
+
+    source_path = tmp_path / "source_layout_sortents.dxf"
+    script_path = tmp_path / "generated_layout_sortents.py"
+    output_path = tmp_path / "generated_layout_sortents.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_layout = out_doc.layout("Layout1")
+    out_block = out_doc.blocks.get(out_layout.block_record.dxf.name)
+    out_xdict = out_block.block_record.get_extension_dict().dictionary
+    out_sortents = out_xdict.get("ACAD_SORTENTS")
+
+    assert out_sortents is not None
+    assert len(out_sortents.table) == 1

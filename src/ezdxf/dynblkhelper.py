@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from io import StringIO
 import io
+import math
 import uuid
 from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Optional, Sequence, Union
 from ezdxf.entities import Insert, DXFTagStorage, XRecord, Dictionary, factory
@@ -82,6 +83,7 @@ __all__ = [
     "restore_raw_rootdict_entries",
     "ensure_insert_seqends",
     "remove_stale_hatch_associations",
+    "replace_dynamic_block_acad_tables_with_blockrefs",
     "sync_layer_annotation_scale_xrecords",
     "sync_handseed",
     "sync_raw_acad_table_geometry_btrs",
@@ -5870,6 +5872,49 @@ def sync_raw_acad_table_geometry_btrs(doc: Drawing) -> None:
                 RAW_TAGS_OVERRIDE_ATTRIBUTE,
                 _sync_raw_acad_table_geometry_btr(raw_tags, doc),
             )
+
+
+def replace_dynamic_block_acad_tables_with_blockrefs(doc: Drawing) -> None:
+    replacements = []
+    for block in list(doc.blocks):
+        if not str(block.name).upper().startswith("*U"):
+            continue
+        for entity in list(block):
+            if entity.dxftype() != "ACAD_TABLE":
+                continue
+            geometry_name = entity.dxf.get("geometry")
+            if not geometry_name or doc.blocks.get(geometry_name) is None:
+                continue
+            replacements.append(
+                (
+                    block,
+                    entity.dxf.get("handle"),
+                    geometry_name,
+                    entity.dxf.get("insert", (0, 0, 0)),
+                    _acad_table_blockref_attribs(entity),
+                )
+            )
+            block.delete_entity(entity)
+
+    if not replacements:
+        return
+    doc.entitydb.purge()
+    for block, handle, geometry_name, insert, attribs in replacements:
+        blockref = block.add_blockref(geometry_name, insert, dxfattribs=attribs)
+        if handle:
+            doc.entitydb.reset_handle(blockref, str(handle))
+
+
+def _acad_table_blockref_attribs(entity: DXFEntity) -> dict[str, Any]:
+    attribs: dict[str, Any] = {"layer": entity.dxf.get("layer") or "0"}
+    for key in ("color", "linetype", "lineweight", "true_color", "transparency"):
+        value = entity.dxf.get(key)
+        if value is not None:
+            attribs[key] = value
+    direction = entity.dxf.get("horizontal_direction")
+    if direction is not None:
+        attribs["rotation"] = math.degrees(math.atan2(direction[1], direction[0]))
+    return attribs
 
 
 def sync_extension_dict_owners(doc: Drawing) -> None:

@@ -21,6 +21,7 @@ from ._specs import (
     DocumentCodegenCapture,
     EntityXRecordFallbackSpec,
     ExtensionSnapshot,
+    GroupSpec,
     HeaderHandleRef,
     MLeaderStyleSpec,
     OwnedObjectSpec,
@@ -230,6 +231,10 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     )
     paper_layout_dxfattribs = {
         name: _layout_dxfattribs(doc.layout(name)) for name in paper_layout_names
+    }
+    paper_layout_block_record_names = {
+        name: str(doc.layout(name).block_record.dxf.get("name") or "")
+        for name in paper_layout_names
     }
     paper_layout_codes: list[tuple[str, Any]] = []
     imports = {"import ezdxf", "from pathlib import Path"}
@@ -548,21 +553,42 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
 
     sortents_by_block: list[SortentsBlockSpec] = []
     block_xdict_orders: dict[str, list[str]] = {}
-    for block in blocks:
+    paper_layout_blocks = [
+        doc.blocks.get(doc.layout(name).block_record.dxf.name)
+        for name in paper_layout_names
+    ]
+    sortent_layouts = [*blocks, *(block for block in paper_layout_blocks if block is not None)]
+    for block in sortent_layouts:
+        block_name = block.block_record.dxf.get("name") or getattr(block, "name", "")
         xdict = (
             block.block_record.get_extension_dict().dictionary
             if block.block_record.has_extension_dict
             else None
         )
         if xdict is not None:
-            block_xdict_orders[block.name] = [str(key) for key in xdict.keys()]
+            block_xdict_orders[block_name] = [str(key) for key in xdict.keys()]
         if xdict is None or "ACAD_SORTENTS" not in xdict:
             continue
         sortents = xdict.get("ACAD_SORTENTS")
         if sortents is not None:
             sortents_by_block.append(
-                SortentsBlockSpec(block_name=block.name, tags=list(sortents.table.items()))
+                SortentsBlockSpec(block_name=block_name, tags=list(sortents.table.items()))
             )
+
+    group_specs: list[GroupSpec] = []
+    for name, group in doc.groups:
+        handles = [str(entity.dxf.handle) for entity in group if entity.dxf.handle]
+        if not handles:
+            continue
+        group_specs.append(
+            GroupSpec(
+                name=str(name),
+                handles=handles,
+                description=str(group.dxf.get("description") or ""),
+                selectable=bool(group.dxf.get("selectable", 1)),
+                unnamed=int(group.dxf.get("unnamed", 0)),
+            )
+        )
 
     entity_xrecord_fallbacks: dict[str, list[EntityXRecordFallbackSpec]] = {}
     for block in blocks:
@@ -722,6 +748,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "paper_layout_names": paper_layout_names,
         "active_paper_layout_name": active_paper_layout_name,
         "paper_layout_dxfattribs": paper_layout_dxfattribs,
+        "paper_layout_block_record_names": paper_layout_block_record_names,
         "paper_layout_codes": paper_layout_codes,
         "msp_code": msp_code,
         "imports": imports,
@@ -753,6 +780,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "late_rootdict_entries": late_rootdict_entries,
         "sortents_by_block": sortents_by_block,
         "block_xdict_orders": block_xdict_orders,
+        "group_specs": group_specs,
         "entity_xrecord_fallbacks": entity_xrecord_fallbacks,
         "raw_graph_fallbacks": raw_graph_fallbacks,
         "raw_entity_swap_fallbacks": raw_entity_swap_fallbacks,

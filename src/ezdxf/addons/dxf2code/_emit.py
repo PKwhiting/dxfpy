@@ -25,6 +25,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     paper_layout_names = data["paper_layout_names"]
     active_paper_layout_name = data["active_paper_layout_name"]
     paper_layout_dxfattribs = data["paper_layout_dxfattribs"]
+    paper_layout_block_record_names = data["paper_layout_block_record_names"]
     paper_layout_codes = data["paper_layout_codes"]
     msp_code = data["msp_code"]
     imports = data["imports"]
@@ -56,6 +57,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     late_rootdict_entries = data["late_rootdict_entries"]
     sortents_by_block = data["sortents_by_block"]
     block_xdict_orders = data["block_xdict_orders"]
+    group_specs = data["group_specs"]
     entity_xrecord_fallbacks = data["entity_xrecord_fallbacks"]
     raw_graph_fallbacks = data["raw_graph_fallbacks"]
     raw_entity_swap_fallbacks = data["raw_entity_swap_fallbacks"]
@@ -74,6 +76,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     lines.append("from ezdxf.dynblkhelper import restore_raw_rootdict_entries")
     lines.append("from ezdxf.dynblkhelper import restore_raw_extension_subtree")
     lines.append("from ezdxf.dynblkhelper import sync_raw_acad_table_geometry_btrs")
+    lines.append("from ezdxf.dynblkhelper import replace_dynamic_block_acad_tables_with_blockrefs")
     lines.append("from ezdxf.dynblkhelper import sync_layer_annotation_scale_xrecords")
     lines.append("from ezdxf.dynblkhelper import sync_extension_dict_owners")
     lines.append("from ezdxf.dynblkhelper import normalize_unresolved_xdata_handles")
@@ -248,6 +251,9 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.append("# paperspace layouts")
         lines.append(f"_paper_layout_names = {paper_layout_names!r}")
         lines.append(f"_paper_layout_dxfattribs = {paper_layout_dxfattribs!r}")
+        lines.append(
+            f"_paper_layout_block_record_names = {paper_layout_block_record_names!r}"
+        )
         lines.append("# viewport_handle is remapped after each layout VIEWPORT is recreated")
         lines.append("for _layout_name in _paper_layout_names:")
         lines.append(
@@ -262,6 +268,22 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.append(
             "    if _layout_name not in ('Model', 'Model_Space') and _layout_name not in _paper_layout_names: doc.delete_layout(_layout_name)"
         )
+        lines.append("_layout_block_renames = []")
+        lines.append("for _layout_name, _target_block_name in _paper_layout_block_record_names.items():")
+        lines.append("    if _layout_name not in doc.layouts or not _target_block_name:")
+        lines.append("        continue")
+        lines.append("    _layout = doc.layout(_layout_name)")
+        lines.append("    _current_block_name = _layout.block_record.dxf.name")
+        lines.append("    if _current_block_name == _target_block_name:")
+        lines.append("        continue")
+        lines.append("    _tmp_block_name = f'*DXF2CODE_LAYOUT_TMP_{len(_layout_block_renames)}'")
+        lines.append("    while _tmp_block_name in doc.blocks:")
+        lines.append("        _tmp_block_name += '_'")
+        lines.append("    doc.blocks.rename_block(_current_block_name, _tmp_block_name)")
+        lines.append("    _layout_block_renames.append((_tmp_block_name, _target_block_name))")
+        lines.append("for _tmp_block_name, _target_block_name in _layout_block_renames:")
+        lines.append("    if _target_block_name not in doc.blocks:")
+        lines.append("        doc.blocks.rename_block(_tmp_block_name, _target_block_name)")
         if active_paper_layout_name:
             lines.append(
                 f"if {active_paper_layout_name!r} in doc.layouts: doc.layouts.set_active_layout({active_paper_layout_name!r})"
@@ -328,6 +350,33 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     lines.extend(msp_code.code)
     lines.append("rt.register_entity_map(_entity_map)")
     lines.append("")
+    if group_specs:
+        group_data = [
+            (
+                spec.name,
+                spec.handles,
+                spec.description,
+                spec.selectable,
+                spec.unnamed,
+            )
+            for spec in group_specs
+        ]
+        lines.append("# restore GROUPS")
+        lines.append(f"_group_specs = {group_data!r}")
+        lines.append(
+            "for _group_name, _group_handles, _group_description, _group_selectable, _group_unnamed in _group_specs:"
+        )
+        lines.append(
+            "    _group_entities = [rt.source_entity_map[_handle] for _handle in _group_handles if _handle in rt.source_entity_map]"
+        )
+        lines.append("    if not _group_entities: continue")
+        lines.append("    if _group_name in doc.groups: doc.groups.delete(_group_name)")
+        lines.append(
+            "    _group = doc.groups.new(_group_name, description=_group_description, selectable=_group_selectable)"
+        )
+        lines.append("    _group.dxf.unnamed = _group_unnamed")
+        lines.append("    _group.set_data(_group_entities)")
+        lines.append("")
     if source_fieldlist_handles:
         lines.append("# restore FIELDLIST")
         lines.append("_field_list = doc.objects.setup_field_list()")
@@ -406,6 +455,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     lines.append("sync_extension_dict_owners(doc)")
     lines.append("normalize_unresolved_xdata_handles(doc)")
     lines.append("remove_stale_hatch_associations(doc)")
+    lines.append("replace_dynamic_block_acad_tables_with_blockrefs(doc)")
     lines.append("ensure_insert_seqends(doc)")
     lines.append("sync_handseed(doc)")
     lines.append("")

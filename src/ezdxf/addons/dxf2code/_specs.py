@@ -124,6 +124,15 @@ class SortentsBlockSpec:
     tags: SortentsHandles
 
 
+@dataclass(slots=True)
+class GroupSpec:
+    name: str
+    handles: list[str]
+    description: str
+    selectable: bool
+    unnamed: int
+
+
 class DocumentCodegenCapture(TypedDict):
     doc: Drawing
     source: Path
@@ -137,6 +146,7 @@ class DocumentCodegenCapture(TypedDict):
     paper_layout_names: list[str]
     active_paper_layout_name: str
     paper_layout_dxfattribs: dict[str, dict[str, object]]
+    paper_layout_block_record_names: dict[str, str]
     paper_layout_codes: list[tuple[str, Code]]
     msp_code: Code
     imports: set[str]
@@ -168,6 +178,7 @@ class DocumentCodegenCapture(TypedDict):
     late_rootdict_entries: tuple[RootDictEntryRestoreSnapshot, ...]
     sortents_by_block: list[SortentsBlockSpec]
     block_xdict_orders: dict[str, list[str]]
+    group_specs: list[GroupSpec]
     entity_xrecord_fallbacks: dict[str, list[EntityXRecordFallbackSpec]]
     raw_graph_fallbacks: dict[str, RawGraphFallbackSpec]
     raw_entity_swap_fallbacks: dict[str, list[RawEntitySwapFallbackSpec]]

@@ -42,6 +42,13 @@ class LayoutEntityCountDiff:
 
 
 @dataclass(frozen=True)
+class LayoutBlockRecordNameDiff:
+    layout: str
+    source: str
+    replay: str
+
+
+@dataclass(frozen=True)
 class BadLayoutViewportRef:
     layout: str
     viewport_handle: str
@@ -57,6 +64,17 @@ class AcadTableDiff:
     attrib: str
     source: Any
     replay: Any
+
+
+@dataclass(frozen=True)
+class AcadTableGeometryBlockDiff:
+    geometry: str
+    reason: str
+    source_count: int
+    replay_count: int
+    first_diff_index: int = -1
+    source_type: str = ""
+    replay_type: str = ""
 
 
 @dataclass(frozen=True)
@@ -107,6 +125,7 @@ class ReplayComparison:
     replay_active_layout: str
     layout_metadata_diffs: tuple[LayoutMetadataDiff, ...]
     layout_entity_count_diffs: tuple[LayoutEntityCountDiff, ...]
+    layout_block_record_name_diffs: tuple[LayoutBlockRecordNameDiff, ...]
     replay_bad_layout_viewport_refs: tuple[BadLayoutViewportRef, ...]
     source_mleader_count: int
     replay_mleader_count: int
@@ -118,6 +137,7 @@ class ReplayComparison:
     replay_bad_extension_dict_owners: tuple[BadExtensionDictOwner, ...]
     replay_stale_hatch_associations: tuple[StaleHatchAssociation, ...]
     acad_table_diffs: tuple[AcadTableDiff, ...] = ()
+    acad_table_geometry_block_diffs: tuple[AcadTableGeometryBlockDiff, ...] = ()
     replay_bad_acad_table_btrs: tuple[BadAcadTableBtr, ...] = ()
 
     @property
@@ -146,9 +166,11 @@ class ReplayComparison:
                 not self.active_layout_matches,
                 self.layout_metadata_diffs,
                 self.layout_entity_count_diffs,
+                self.layout_block_record_name_diffs,
                 self.replay_bad_layout_viewport_refs,
                 not self.mleader_style_distribution_matches,
                 self.acad_table_diffs,
+                self.acad_table_geometry_block_diffs,
                 self.replay_bad_acad_table_btrs,
                 self.source_invalid_mleader_style_refs,
                 self.replay_invalid_mleader_style_refs,
@@ -177,12 +199,18 @@ def compare_replay_documents(source_doc: Drawing, replay_doc: Drawing) -> Replay
         replay_active_layout=_active_layout_name(replay_doc),
         layout_metadata_diffs=_layout_metadata_diffs(source_doc, replay_doc),
         layout_entity_count_diffs=_layout_entity_count_diffs(source_doc, replay_doc),
+        layout_block_record_name_diffs=_layout_block_record_name_diffs(
+            source_doc, replay_doc
+        ),
         replay_bad_layout_viewport_refs=_bad_layout_viewport_refs(replay_doc),
         source_mleader_count=source_mleader_stats[0],
         replay_mleader_count=replay_mleader_stats[0],
         source_mleader_style_distribution=source_mleader_stats[1],
         replay_mleader_style_distribution=replay_mleader_stats[1],
         acad_table_diffs=_acad_table_diffs(source_doc, replay_doc),
+        acad_table_geometry_block_diffs=_acad_table_geometry_block_diffs(
+            source_doc, replay_doc
+        ),
         replay_bad_acad_table_btrs=_bad_acad_table_btrs(replay_doc),
         source_invalid_mleader_style_refs=source_mleader_stats[2],
         replay_invalid_mleader_style_refs=replay_mleader_stats[2],
@@ -207,6 +235,8 @@ def format_replay_comparison(
         f"  replay_active_layout={comparison.replay_active_layout!r}",
         f"  layout_metadata_diff_count={len(comparison.layout_metadata_diffs)}",
         f"  layout_entity_count_diff_count={len(comparison.layout_entity_count_diffs)}",
+        "  layout_block_record_name_diff_count="
+        f"{len(comparison.layout_block_record_name_diffs)}",
         "  replay_bad_layout_viewport_ref_count="
         f"{len(comparison.replay_bad_layout_viewport_refs)}",
         f"  source_mleader_count={comparison.source_mleader_count}",
@@ -214,6 +244,8 @@ def format_replay_comparison(
         "  mleader_style_distribution_matches="
         f"{comparison.mleader_style_distribution_matches}",
         f"  acad_table_diff_count={len(comparison.acad_table_diffs)}",
+        "  acad_table_geometry_block_diff_count="
+        f"{len(comparison.acad_table_geometry_block_diffs)}",
         "  replay_bad_acad_table_btr_count="
         f"{len(comparison.replay_bad_acad_table_btrs)}",
         "  source_invalid_mleader_style_refs="
@@ -238,6 +270,12 @@ def format_replay_comparison(
     )
     _append_sample(
         lines,
+        "layout_block_record_name_diffs",
+        comparison.layout_block_record_name_diffs,
+        sample_limit,
+    )
+    _append_sample(
+        lines,
         "replay_bad_layout_viewport_refs",
         comparison.replay_bad_layout_viewport_refs,
         sample_limit,
@@ -252,6 +290,12 @@ def format_replay_comparison(
             f"{comparison.replay_mleader_style_distribution!r}"
         )
     _append_sample(lines, "acad_table_diffs", comparison.acad_table_diffs, sample_limit)
+    _append_sample(
+        lines,
+        "acad_table_geometry_block_diffs",
+        comparison.acad_table_geometry_block_diffs,
+        sample_limit,
+    )
     _append_sample(
         lines,
         "replay_bad_acad_table_btrs",
@@ -395,6 +439,29 @@ def _layout_entity_count_diffs(
     return tuple(diffs)
 
 
+def _layout_block_record_name_diffs(
+    source_doc: Drawing, replay_doc: Drawing
+) -> tuple[LayoutBlockRecordNameDiff, ...]:
+    diffs: list[LayoutBlockRecordNameDiff] = []
+    replay_layouts = set(_layout_names(replay_doc))
+    for layout_name in _layout_names(source_doc):
+        if layout_name not in replay_layouts:
+            continue
+        source_name = _layout_block_record_name(source_doc, layout_name)
+        replay_name = _layout_block_record_name(replay_doc, layout_name)
+        if source_name != replay_name:
+            diffs.append(LayoutBlockRecordNameDiff(layout_name, source_name, replay_name))
+    return tuple(diffs)
+
+
+def _layout_block_record_name(doc: Drawing, layout_name: str) -> str:
+    layout = doc.layout(layout_name)
+    block_record = doc.entitydb.get(layout.block_record_handle)
+    if block_record is None:
+        return ""
+    return str(block_record.dxf.get("name") or "")
+
+
 def _layout_type_counts(doc: Drawing, layout_name: str) -> tuple[tuple[str, int], ...]:
     return tuple(
         sorted(Counter(entity.dxftype() for entity in doc.layout(layout_name)).items())
@@ -478,6 +545,102 @@ def _acad_table_diffs(
                         )
                     )
     return tuple(diffs)
+
+
+def _acad_table_geometry_block_diffs(
+    source_doc: Drawing, replay_doc: Drawing
+) -> tuple[AcadTableGeometryBlockDiff, ...]:
+    diffs: list[AcadTableGeometryBlockDiff] = []
+    source_names = _acad_table_geometry_names(source_doc)
+    replay_names = _acad_table_geometry_names(replay_doc)
+    for geometry_name in sorted(source_names - replay_names):
+        source_signature = _block_signature(source_doc, geometry_name)
+        diffs.append(
+            AcadTableGeometryBlockDiff(
+                geometry_name, "missing", len(source_signature), 0
+            )
+        )
+    for geometry_name in sorted(replay_names - source_names):
+        replay_signature = _block_signature(replay_doc, geometry_name)
+        diffs.append(
+            AcadTableGeometryBlockDiff(
+                geometry_name, "extra", 0, len(replay_signature)
+            )
+        )
+    for geometry_name in sorted(source_names & replay_names):
+        source_signature = _block_signature(source_doc, geometry_name)
+        replay_signature = _block_signature(replay_doc, geometry_name)
+        if source_signature == replay_signature:
+            continue
+        first_diff = next(
+            (
+                index
+                for index, (source, replay) in enumerate(
+                    zip(source_signature, replay_signature)
+                )
+                if source != replay
+            ),
+            min(len(source_signature), len(replay_signature)),
+        )
+        source_type = (
+            source_signature[first_diff][0]
+            if first_diff < len(source_signature)
+            else ""
+        )
+        replay_type = (
+            replay_signature[first_diff][0]
+            if first_diff < len(replay_signature)
+            else ""
+        )
+        diffs.append(
+            AcadTableGeometryBlockDiff(
+                geometry_name,
+                "content",
+                len(source_signature),
+                len(replay_signature),
+                first_diff,
+                source_type,
+                replay_type,
+            )
+        )
+    return tuple(diffs)
+
+
+def _acad_table_geometry_names(doc: Drawing) -> set[str]:
+    names: set[str] = set()
+    for entity in doc.entitydb.values():
+        if entity is None or not entity.is_alive or entity.dxftype() != "ACAD_TABLE":
+            continue
+        geometry_name = entity.dxf.get("geometry")
+        if geometry_name and doc.blocks.get(str(geometry_name)) is not None:
+            names.add(str(geometry_name))
+    for block in doc.blocks:
+        if not str(block.name).upper().startswith("*U"):
+            continue
+        for entity in block:
+            if entity.dxftype() != "INSERT":
+                continue
+            geometry_name = str(entity.dxf.get("name") or "")
+            if geometry_name.startswith("*T") and doc.blocks.get(geometry_name) is not None:
+                names.add(geometry_name)
+    return names
+
+
+def _block_signature(doc: Drawing, block_name: str) -> tuple[tuple[str, Any], ...]:
+    block = doc.blocks.get(block_name)
+    if block is None:
+        return ()
+    return tuple(_entity_signature(entity) for entity in block)
+
+
+def _entity_signature(entity) -> tuple[str, Any]:
+    attribs = {
+        key: _normalize(value)
+        for key, value in entity.dxf.all_existing_dxf_attribs().items()
+        if key not in {"handle", "owner"}
+    }
+    content = getattr(entity, "text", None)
+    return entity.dxftype(), tuple(sorted(attribs.items())), content
 
 
 def _acad_tables(doc: Drawing, layout_name: str) -> list:

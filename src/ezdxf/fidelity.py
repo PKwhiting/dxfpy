@@ -14,6 +14,7 @@ from ezdxf.dynblkhelper import (
     register_source_entity_handle_mapping,
     remap_header_resource_handles,
     remove_stale_hatch_associations,
+    replace_dynamic_block_acad_tables_with_blockrefs,
     reorder_objects_by_source_order,
     sync_handseed,
     sync_layer_annotation_scale_xrecords,
@@ -115,6 +116,7 @@ def finalize_document_fidelity(source_doc: Drawing, target_doc: Drawing) -> None
     sync_raw_acad_table_geometry_btrs(target_doc)
     sync_layer_annotation_scale_xrecords(target_doc)
     remove_stale_hatch_associations(target_doc)
+    replace_dynamic_block_acad_tables_with_blockrefs(target_doc)
     reorder_objects_by_source_order(target_doc, snapshot_object_handle_order(source_doc))
     ensure_insert_seqends(target_doc)
     sync_handseed(target_doc)
