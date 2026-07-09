@@ -226,6 +226,15 @@ def test_set_acexpr_builds_expression_field_with_two_children():
     assert (301, "25.0000") in field.tags
 
 
+def test_build_acexpr_rejects_non_field_children():
+    doc = ezdxf.new("R2018")
+
+    with pytest.raises(ezdxf.lldxf.const.DXFTypeError) as error:
+        Field.build_acexpr(doc, "%<\\_FldIdx 0>%", [object()])
+
+    assert "object" in str(error.value)
+
+
 def test_clear_tags_clears_simple_attributes():
     entity = Field.from_text(FIELD)
     entity.clear()

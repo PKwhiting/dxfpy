@@ -1,7 +1,7 @@
 # Copyright (c) 2019-2024 Manfred Moitzi
 # License: MIT License
 from __future__ import annotations
-from typing import TYPE_CHECKING, Iterable, Optional, Iterator, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Iterator, Sequence, cast
 from typing_extensions import Self
 import copy
 from dataclasses import dataclass, field
@@ -20,7 +20,7 @@ from ezdxf.lldxf import const
 from ezdxf.entities import factory
 from .dxfentity import base_class, SubclassProcessor, DXFEntity, DXFTagStorage
 from .dxfgfx import DXFGraphic, acdb_entity
-from .dxfobj import DXFObject
+from .dxfobj import DXFObject, Field
 from .objectcollection import ObjectCollection
 from .copy import default_copy
 
@@ -1830,15 +1830,29 @@ class AcadTableBlockContent(DXFTagStorage):
         self,
         row: int,
         col: int,
-        field,
+        field: Field,
         *,
         text: str = "",
         register_field_list: bool = False,
-    ):
-        from .dxfobj import Field
+    ) -> Field | None:
+        """Attach a linked FIELD object to a text cell.
 
+        Args:
+            row: Zero-based row index.
+            col: Zero-based column index.
+            field: FIELD object to attach to the cell.
+            text: Cached visible display text.
+            register_field_list: Accepted for consistency with text-like field
+                hosts. ACAD_TABLE field synchronization maintains FIELDLIST
+                entries for all table field objects when field cells are rebuilt.
+
+        Returns:
+            Wrapper FIELD object created for the synchronized table cell, or
+            ``None`` if the wrapper cannot be resolved.
+
+        """
         if not isinstance(field, Field):
-            raise const.DXFTypeError(f"invalid DXF type: {field.dxftype()}")
+            raise const.DXFTypeError(f"invalid DXF type: {type(field).__name__}")
         if self.doc is None:
             raise const.DXFStructureError("ACAD_TABLE requires a valid DXF document")
         if field.doc is not None and field.doc is not self.doc:
@@ -1862,11 +1876,24 @@ class AcadTableBlockContent(DXFTagStorage):
         row: int,
         col: int,
         *,
-        dxfattribs=None,
+        dxfattribs: Optional[dict[str, Any]] = None,
         text: str = "",
         register_field_list: bool = False,
-    ):
-        field = factory.new("FIELD", dxfattribs=dxfattribs)
+    ) -> tuple[Field, Field | None]:
+        """Create and attach a linked FIELD object to a text cell.
+
+        Args:
+            row: Zero-based row index.
+            col: Zero-based column index.
+            dxfattribs: Optional DXF attributes for the new FIELD object.
+            text: Cached visible display text.
+            register_field_list: See :meth:`set_cell_linked_field`.
+
+        Returns:
+            Tuple ``(primary_field, wrapper_field)``.
+
+        """
+        field = cast(Field, factory.new("FIELD", dxfattribs=dxfattribs))
         wrapper = self.set_cell_linked_field(
             row,
             col,
@@ -1885,8 +1912,21 @@ class AcadTableBlockContent(DXFTagStorage):
         *,
         text: str = "",
         register_field_list: bool = False,
-    ):
-        field = factory.new("FIELD", dxfattribs={})
+    ) -> tuple[Field, Field | None]:
+        """Create an ``AcVar`` field in a text cell.
+
+        Args:
+            row: Zero-based row index.
+            col: Zero-based column index.
+            name: AutoCAD variable name, e.g. ``"Author"``.
+            text: Cached visible display text.
+            register_field_list: See :meth:`set_cell_linked_field`.
+
+        Returns:
+            Tuple ``(primary_field, wrapper_field)``.
+
+        """
+        field = cast(Field, factory.new("FIELD", dxfattribs={}))
         field.set_acvar(name, display=text)
         wrapper = self.set_cell_linked_field(
             row,
@@ -1908,10 +1948,25 @@ class AcadTableBlockContent(DXFTagStorage):
         value: Optional[str] = None,
         text: str = "",
         register_field_list: bool = False,
-    ):
+    ) -> tuple[Field, Field | None]:
+        """Create a drawing-property field in a text cell.
+
+        Args:
+            row: Zero-based row index.
+            col: Zero-based column index.
+            name: Custom drawing property name.
+            field_format: Optional AutoCAD field formatting code.
+            value: Optional stored custom property value.
+            text: Cached visible display text.
+            register_field_list: See :meth:`set_cell_linked_field`.
+
+        Returns:
+            Tuple ``(primary_field, wrapper_field)``.
+
+        """
         if self.doc is None:
             raise const.DXFStructureError("ACAD_TABLE requires a valid DXF document")
-        field = factory.new("FIELD", dxfattribs={})
+        field = cast(Field, factory.new("FIELD", dxfattribs={}))
         if value is None:
             value = text
         if self.doc is not None:
@@ -1935,22 +1990,39 @@ class AcadTableBlockContent(DXFTagStorage):
         self,
         row: int,
         col: int,
-        target,
+        target: DXFEntity | str,
         property_name: str,
         *,
         field_format: str = "%lu2",
-        value=None,
+        value: Any = None,
         display: Optional[str] = None,
         text: Optional[str] = None,
         register_field_list: bool = False,
-    ):
+    ) -> tuple[Field, Field | None]:
+        """Create an object-property field in a text cell.
+
+        Args:
+            row: Zero-based row index.
+            col: Zero-based column index.
+            target: Referenced DXF entity or handle string.
+            property_name: AutoCAD object property name, e.g. ``"Length"``.
+            field_format: AutoCAD field formatting code.
+            value: Optional evaluated property value.
+            display: Optional cached field display string.
+            text: Optional cached visible cell text.
+            register_field_list: See :meth:`set_cell_linked_field`.
+
+        Returns:
+            Tuple ``(primary_field, wrapper_field)``.
+
+        """
         if text is None and display is not None:
             text = display
         if text is None:
             text = ""
         if self.doc is None:
             raise const.DXFStructureError("ACAD_TABLE requires a valid DXF document")
-        field = factory.new("FIELD", dxfattribs={})
+        field = cast(Field, factory.new("FIELD", dxfattribs={}))
         field.set_acobjprop(
             target,
             property_name,
@@ -1973,16 +2045,32 @@ class AcadTableBlockContent(DXFTagStorage):
         row: int,
         col: int,
         expression: str,
-        child_fields: Sequence,
+        child_fields: Sequence[Field],
         *,
         field_format: str = "%lu2",
-        value=None,
+        value: Any = None,
         display: Optional[str] = None,
         text: Optional[str] = None,
         register_field_list: bool = False,
-    ):
-        from .dxfobj import Field
+    ) -> tuple[Field, Field | None]:
+        """Create an expression field in a text cell.
 
+        Args:
+            row: Zero-based row index.
+            col: Zero-based column index.
+            expression: ``AcExpr`` expression using ``%<\\_FldIdx n>%`` child
+                placeholders.
+            child_fields: Child FIELD objects used by the expression.
+            field_format: AutoCAD field formatting code.
+            value: Optional evaluated expression value.
+            display: Optional cached field display string.
+            text: Optional cached visible cell text.
+            register_field_list: See :meth:`set_cell_linked_field`.
+
+        Returns:
+            Tuple ``(primary_field, wrapper_field)``.
+
+        """
         if self.doc is None:
             raise const.DXFStructureError("ACAD_TABLE requires a valid DXF document")
         if display is None and value is not None:

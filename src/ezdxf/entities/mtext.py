@@ -931,6 +931,7 @@ class MText(DXFGraphic):
         - ``CIRCLE.Area``
         - ``LWPOLYLINE.Length`` for 2D polylines with straight or circular-arc segments
         - ``LWPOLYLINE.Area`` for 2D polylines with straight or circular-arc segments
+        - ``HATCH.Area`` for supported boundary path shapes
 
         Args:
             target: referenced DXF entity

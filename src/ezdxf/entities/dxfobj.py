@@ -647,7 +647,12 @@ class Field(DXFObject):
         expr_children: list[Field] = []
         for child in child_fields:
             if not isinstance(child, Field):
-                raise DXFTypeError(f"invalid DXF type: {child.dxftype()}")
+                dxftype = (
+                    child.dxftype()
+                    if isinstance(child, DXFEntity)
+                    else type(child).__name__
+                )
+                raise DXFTypeError(f"invalid DXF type: {dxftype}")
             if child.doc is not None and child.doc is not doc:
                 raise DXFStructureError("field belongs to a different DXF document")
             child_copy = doc.objects.add_field(owner="0")
