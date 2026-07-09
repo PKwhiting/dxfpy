@@ -14,6 +14,13 @@ The low-level `FIELD` object support is broader than the current high-level
 authoring helpers. For the current validated host/entity/property matrix, see
 the :ref:`field tutorial <tut_fields>`.
 
+Prefer host-level helpers for removing fields instead of deleting ``FIELD``
+objects manually. Methods such as :meth:`~ezdxf.entities.Text.remove_field`,
+:meth:`~ezdxf.entities.MText.remove_field`,
+:meth:`~ezdxf.entities.MultiLeader.remove_field`, and
+:meth:`~ezdxf.entities.AcadTableBlockContent.remove_cell_field` remove the
+hosted field graph and clean related ``FIELDLIST`` or table roundtrip metadata.
+
 ======================== =========================================================
 Subclass of              :class:`ezdxf.entities.DXFObject`
 DXF type                 ``'FIELD'``

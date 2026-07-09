@@ -259,6 +259,51 @@ Example:
         register_field_list=True,
     )
 
+Removing fields safely
+----------------------
+
+Use the host-level removal helpers to replace a field by static text. The
+helpers remove the hosted ``FIELD`` tree and prune stale handles from the root
+``ACAD_FIELDLIST``. ``ACAD_TABLE`` removal also updates linked ``TABLECONTENT``
+roundtrip metadata.
+
+If the optional ``text`` argument is omitted, the helper preserves the current
+visible text where possible. This creates plain static content; `ezdxf` does not
+evaluate the removed field.
+
+Text-like hosts:
+
+.. code-block:: python
+
+    text = msp.add_text("----", dxfattribs={"insert": (0, 0, 0)})
+    text.new_acvar_field("Author", text="----", register_field_list=True)
+
+    # Replace the field by explicit static text:
+    text.remove_field(text="Static Author")
+
+    mtext = msp.add_mtext("Keep this text", dxfattribs={"insert": (0, 4, 0)})
+    mtext.new_acvar_field("Author", text="Keep this text", register_field_list=True)
+
+    # Remove the field and preserve the current visible text:
+    mtext.remove_field()
+
+``Text.remove_field()`` also applies to ``ATTRIB`` and ``ATTDEF`` entities.
+``MultiLeader.remove_field()`` is available for MTEXT-content multileaders.
+
+Table cells:
+
+.. code-block:: python
+
+    table.new_cell_acvar_field(1, 1, "Author", text="----", register_field_list=True)
+
+    # Replace the table cell field by explicit static text:
+    table.remove_cell_field(1, 1, text="Static value")
+
+    table.new_cell_acvar_field(2, 1, "Author", text="Visible value", register_field_list=True)
+
+    # Remove the table cell field and preserve the visible value:
+    table.remove_cell_field(2, 1)
+
 Reading fields
 --------------
 
@@ -300,19 +345,23 @@ Entity-level helpers:
 - :meth:`~ezdxf.entities.MText.new_dwgprops_field`
 - :meth:`~ezdxf.entities.MText.new_acobjprop_field`
 - :meth:`~ezdxf.entities.MText.new_acexpr_field`
+- :meth:`~ezdxf.entities.MText.remove_field`
 - :meth:`~ezdxf.entities.Text.new_acvar_field`
 - :meth:`~ezdxf.entities.Text.new_dwgprops_field`
 - :meth:`~ezdxf.entities.Text.new_acobjprop_field`
 - :meth:`~ezdxf.entities.Text.new_acexpr_field`
+- :meth:`~ezdxf.entities.Text.remove_field`
 - :meth:`~ezdxf.entities.MultiLeader.new_acvar_field`
 - :meth:`~ezdxf.entities.MultiLeader.new_dwgprops_field`
 - :meth:`~ezdxf.entities.MultiLeader.new_acobjprop_field`
 - :meth:`~ezdxf.entities.MultiLeader.new_acexpr_field`
+- :meth:`~ezdxf.entities.MultiLeader.remove_field`
 - ``ACAD_TABLE`` cell helpers:
   :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_acvar_field`,
   :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_dwgprops_field`,
   :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_acobjprop_field`,
-  :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_acexpr_field`
+  :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_acexpr_field`,
+  :meth:`~ezdxf.entities.AcadTableBlockContent.remove_cell_field`
 - :class:`~ezdxf.entities.Insert` helpers:
   :meth:`~ezdxf.entities.Insert.add_attrib_acvar_field`,
   :meth:`~ezdxf.entities.Insert.add_attrib_dwgprops_field`,

@@ -10,6 +10,7 @@ This example shows common SDK workflows for:
 - object-property fields
 - expression fields composed from child fields
 - ``ACAD_TABLE`` text-cell fields
+- safe field removal helpers
 
 The generated DXF file is meant for inspection in AutoCAD or BricsCAD, which are
 responsible for evaluating/updating the fields after opening the file.
@@ -44,6 +45,7 @@ class FieldDemoBuilder:
         self._add_text_fields()
         self._add_multileader_fields()
         self._add_expression_field()
+        self._add_field_removal_examples()
         self._add_table_fields()
         return self.doc
 
@@ -116,6 +118,27 @@ class FieldDemoBuilder:
             register_field_list=True,
         )
 
+    def _add_field_removal_examples(self) -> None:
+        """Add text-like hosts whose fields are removed as static content."""
+        self._add_label("Removed TEXT field:", (0, 22, 0))
+        text = self.msp.add_text(
+            "FIELD TEXT",
+            height=2.5,
+            dxfattribs={"insert": (30, 22, 0)},
+        )
+        text.new_acvar_field("Author", text="FIELD TEXT", register_field_list=True)
+        text.remove_field(text="STATIC TEXT")
+
+        self._add_label("Removed MTEXT field:", (0, 16, 0))
+        mtext = self.msp.add_mtext(
+            "PRESERVED MTEXT",
+            dxfattribs=self._mtext_attribs(30, 16),
+        )
+        mtext.new_acvar_field(
+            "Author", text="PRESERVED MTEXT", register_field_list=True
+        )
+        mtext.remove_field()
+
     def _add_table_fields(self) -> None:
         """Add object-backed fields to ACAD_TABLE text cells."""
         table = self.msp.add_table(
@@ -125,6 +148,8 @@ class FieldDemoBuilder:
                 ["AcVar", "----"],
                 ["DWGPROPS", "VALUE-123"],
                 ["AcObjProp", "10.0000"],
+                ["Removed default", "PRESERVE ME"],
+                ["Removed explicit", "REMOVE ME"],
             ],
             col_widths=[28.0, 28.0],
         )
@@ -137,6 +162,14 @@ class FieldDemoBuilder:
         table.new_cell_acobjprop_field(
             3, 1, self.line, "Length", text="10.0000", register_field_list=True
         )
+        table.new_cell_acvar_field(
+            4, 1, "Author", text="PRESERVE ME", register_field_list=True
+        )
+        table.remove_cell_field(4, 1)
+        table.new_cell_acvar_field(
+            5, 1, "Author", text="REMOVE ME", register_field_list=True
+        )
+        table.remove_cell_field(5, 1, text="STATIC TABLE TEXT")
 
     def _add_multileader(
         self, name: str, insert: Vec2, *, dwgprops: bool = False
