@@ -601,6 +601,37 @@ def test_get_dynamic_block_visibility_state_varies_per_insert():
     assert get_dynamic_block_visibility_state(insert_b) == "STATE_B"
 
 
+def test_set_dynamic_block_visibility_state_updates_existing_autocad_cache_record():
+    doc = ezdxf.readzip("integration_tests/data/dynblks.zip", "dynblk1.dxf")
+    insert = list(doc.modelspace().query("INSERT"))[0]
+    definition = get_dynamic_block_definition(insert)
+
+    assert definition is not None
+    assert get_dynamic_block_visibility_state(insert) == "CircleVisibilityState"
+
+    set_dynamic_block_visibility_state(
+        insert, definition, state="SquareVisibilityState"
+    )
+
+    reference = get_dynamic_block_reference(insert)
+    assert reference is not None
+    assert get_dynamic_block_visibility_state(insert) == "SquareVisibilityState"
+    assert [entity.dxf.get("invisible", 0) for entity in reference] == [1, 0]
+
+
+def test_set_dynamic_block_visibility_state_rejects_unknown_state():
+    doc = ezdxf.new("R2018")
+    insert = make_dynamic_insert(doc, "STATE_A")
+    definition = get_dynamic_block_definition(insert)
+
+    assert definition is not None
+    with pytest.raises(
+        ezdxf.lldxf.const.DXFValueError,
+        match="unknown dynamic block visibility state",
+    ):
+        set_dynamic_block_visibility_state(insert, definition, state="MISSING")
+
+
 def test_get_dynamic_block_visibility_entities_resolves_base_and_reference_entities():
     doc = ezdxf.new("R2018")
     insert = make_dynamic_insert_with_entities(doc, "STATE_C")

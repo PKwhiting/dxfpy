@@ -1561,6 +1561,70 @@ def _iter_visibility_state_xrecords(insert: Insert) -> Iterator[XRecord]:
     return iter_items(enhanced)
 
 
+def _visibility_state_cache_tags(
+    location: tuple[float, float, float], state: str
+) -> list[tuple[int, Any]]:
+    return [
+        (1071, 135625452),
+        (1071, 184556386),
+        (70, 25),
+        (70, 104),
+        (10, location),
+        (1, state),
+    ]
+
+
+def _visibility_parameter_cache_key(dynamic_block: BlockLayout) -> str:
+    graph = _get_enhanced_block_graph(dynamic_block.block_record)
+    if graph is None:
+        return "6"
+    for entity in _iter_graph_owned_objects(graph):
+        if entity.dxftype() == "BLOCKVISIBILITYPARAMETER":
+            expr_id = _eval_expr_id(entity)
+            return str(expr_id) if expr_id >= 0 else "6"
+    return "6"
+
+
+def _existing_visibility_state_xrecords(
+    insert: Insert, state_names: set[str]
+) -> list[XRecord]:
+    return [
+        xrecord
+        for xrecord in _iter_visibility_state_xrecords(insert)
+        if xrecord.tags.get_first_value(1, "") in state_names
+    ]
+
+
+def _set_dynamic_block_visibility_cache(
+    insert: Insert,
+    dynamic_block: BlockLayout,
+    parameter: DynamicBlockVisibilityParameter,
+    *,
+    state: str,
+    location: tuple[float, float, float],
+) -> Dictionary:
+    enhanced = _ensure_dynamic_insert_cache_dictionary(insert, dynamic_block)
+    tags = _visibility_state_cache_tags(location, state)
+    state_names = {visibility_state.name for visibility_state in parameter.states}
+    existing = _existing_visibility_state_xrecords(insert, state_names)
+    if existing:
+        for xrecord in existing:
+            xrecord.reset(tags)
+        return enhanced
+
+    cache_key = _visibility_parameter_cache_key(dynamic_block)
+    xrecord = enhanced.get(cache_key)
+    if xrecord is not None and not isinstance(xrecord, XRecord):
+        raise const.DXFStructureError(
+            "dynamic block visibility cache key is not an XRECORD"
+        )
+    if not isinstance(xrecord, XRecord):
+        xrecord = enhanced.add_xrecord(cache_key)
+    xrecord.set_reactors([enhanced.dxf.handle])
+    xrecord.reset(tags)
+    return enhanced
+
+
 def get_dynamic_block_visibility_state(
     insert: Insert, doc: Optional[Drawing] = None
 ) -> str:
@@ -7418,6 +7482,9 @@ def set_dynamic_block_visibility_state(
     parameter = get_dynamic_block_visibility_parameter(dynamic_block)
     if parameter is None:
         raise const.DXFValueError("dynamic block has no visibility parameter")
+    state_names = {visibility_state.name for visibility_state in parameter.states}
+    if state not in state_names:
+        raise const.DXFValueError(f"unknown dynamic block visibility state: {state!r}")
     if location is None:
         location = parameter.location
     reference = get_dynamic_block_reference(insert)
@@ -7431,7 +7498,7 @@ def set_dynamic_block_visibility_state(
             state,
             dynamic_block=dynamic_block,
         )
-    if len(parameter.states):
+    if reference is not None and len(parameter.states):
         _apply_property_attdef_visibility(
             reference,
             dynamic_block,
@@ -7440,47 +7507,14 @@ def set_dynamic_block_visibility_state(
         )
     if not update_cache:
         return
-    xdict = insert.get_extension_dict() if insert.has_extension_dict else insert.new_extension_dict()
-    root = xdict.dictionary
-    rep = root.get("AcDbBlockRepresentation")
-    if not isinstance(rep, Dictionary):
-        rep = root.add_new_dict("AcDbBlockRepresentation", hard_owned=True)
-    rep = _hard_owned_dictionary(rep, root.dxf.handle)
-    repdata = rep.get("AcDbRepData")
-    if not isinstance(repdata, DXFTagStorage) or repdata.dxftype() != "ACDB_BLOCKREPRESENTATION_DATA":
-        repdata = _new_tag_storage_object(
-            dynamic_block.doc,
-            "ACDB_BLOCKREPRESENTATION_DATA",
-            rep.dxf.handle,
-            [[(100, "AcDbBlockRepresentationData"), (70, 1), (340, dynamic_block.block_record_handle)]],
-        )
-        rep.add("AcDbRepData", repdata)
-    _set_owner_reactor(repdata, rep.dxf.handle)
-    app_cache = rep.get("AppDataCache")
-    if not isinstance(app_cache, Dictionary):
-        app_cache = rep.add_new_dict("AppDataCache", hard_owned=True)
-    app_cache = _hard_owned_dictionary(app_cache, rep.dxf.handle)
-    enhanced = app_cache.get("ACAD_ENHANCEDBLOCKDATA")
-    if not isinstance(enhanced, Dictionary):
-        enhanced = app_cache.add_new_dict("ACAD_ENHANCEDBLOCKDATA", hard_owned=True)
-    enhanced = _hard_owned_dictionary(enhanced, app_cache.dxf.handle)
-    enhanced.set_reactors([app_cache.dxf.handle])
-    xrecord = enhanced.get("6")
-    if not isinstance(xrecord, XRecord):
-        xrecord = enhanced.add_xrecord("6")
-    xrecord.set_reactors([enhanced.dxf.handle])
-    xrecord.reset(
-        [
-            (1071, 135625452),
-            (1071, 184556386),
-            (70, 25),
-            (70, 104),
-            (10, location),
-            (1, state),
-        ]
+    _set_dynamic_block_visibility_cache(
+        insert,
+        dynamic_block,
+        parameter,
+        state=state,
+        location=location,
     )
-    if _populate_linear_insert_cache_records(insert, dynamic_block, state=state):
-        enhanced.discard("6")
+    _populate_linear_insert_cache_records(insert, dynamic_block, state=state)
 
 
 def set_dynamic_block_insert_cache(
