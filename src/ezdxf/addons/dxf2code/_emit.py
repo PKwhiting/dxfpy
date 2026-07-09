@@ -53,18 +53,27 @@ def _emit_paper_layouts(
         "doc.delete_layout(_layout_name)"
     )
     lines.append("_layout_block_renames = []")
-    lines.append("for _layout_name, _target_block_name in _paper_layout_block_record_names.items():")
+    lines.append(
+        "for _layout_name, _target_block_name in "
+        "_paper_layout_block_record_names.items():"
+    )
     lines.append("    if _layout_name not in doc.layouts or not _target_block_name:")
     lines.append("        continue")
     lines.append("    _layout = doc.layout(_layout_name)")
     lines.append("    _current_block_name = _layout.block_record.dxf.name")
     lines.append("    if _current_block_name == _target_block_name:")
     lines.append("        continue")
-    lines.append("    _tmp_block_name = f'*DXF2CODE_LAYOUT_TMP_{len(_layout_block_renames)}'")
+    lines.append(
+        "    _tmp_block_name = "
+        "f'*DXF2CODE_LAYOUT_TMP_{len(_layout_block_renames)}'"
+    )
     lines.append("    while _tmp_block_name in doc.blocks:")
     lines.append("        _tmp_block_name += '_'")
     lines.append("    doc.blocks.rename_block(_current_block_name, _tmp_block_name)")
-    lines.append("    _layout_block_renames.append((_tmp_block_name, _target_block_name))")
+    lines.append(
+        "    _layout_block_renames.append("
+        "(_tmp_block_name, _target_block_name))"
+    )
     lines.append("for _tmp_block_name, _target_block_name in _layout_block_renames:")
     lines.append("    if _target_block_name not in doc.blocks:")
     lines.append("        doc.blocks.rename_block(_tmp_block_name, _target_block_name)")

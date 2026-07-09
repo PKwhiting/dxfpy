@@ -11,6 +11,7 @@ from ezdxf.dynblkhelper import (
 from ezdxf.entities import factory
 from ezdxf.entities import DXFEntity
 from ezdxf.entities.dxfentity import DXFTagStorage
+from ezdxf.layouts.layouts import key as layout_key
 from ezdxf.lldxf import const
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tags import Tags
@@ -189,10 +190,10 @@ class DocumentCodegenRuntime:
         ordered_layouts = {}
         for layout_name in layout_order:
             if layout_name in layouts:
-                ordered_layouts[layout_name.upper()] = layouts.get(layout_name)
-        for layout_key, layout in layouts._layouts.items():
-            if layout_key not in ordered_layouts:
-                ordered_layouts[layout_key] = layout
+                ordered_layouts[layout_key(layout_name)] = layouts.get(layout_name)
+        for name_key, layout in layouts._layouts.items():
+            if name_key not in ordered_layouts:
+                ordered_layouts[name_key] = layout
         layouts._layouts = ordered_layouts
 
     def _register_field_tree_handles(self, objects: Sequence[DXFEntity]) -> None:
