@@ -158,6 +158,14 @@ class AcadTableLinkedData:
         index = 0
         while index < len(tags):
             tag = tags[index]
+            if tag.code == 90 and data.n_cols == 0 and not data.columns:
+                data.n_cols = int(tag.value)
+                index += 1
+                continue
+            if tag.code == 91 and data.n_rows == 0 and not data.cells:
+                data.n_rows = int(tag.value)
+                index += 1
+                continue
             if tag.code == 1 and tag.value == "FORMATTEDTABLEDATACOLUMN_BEGIN":
                 end = _find_marker_end(tags, index + 1, 309, "FORMATTEDTABLEDATACOLUMN_END")
                 table_format = _parse_table_format(Tags(tags[index : end + 1]))
@@ -180,7 +188,9 @@ class AcadTableLinkedData:
             if tag.code == 1 and tag.value == "LINKEDTABLEDATACELL_BEGIN":
                 end = _find_marker_end(tags, index + 1, 309, "LINKEDTABLEDATACELL_END")
                 cell_tags = Tags(tags[index : end + 1])
-                data.cells.append(_parse_linked_table_cell(cell_tags, cell_index, n_cols))
+                data.cells.append(
+                    _parse_linked_table_cell(cell_tags, cell_index, data.n_cols)
+                )
                 cell_index += 1
                 index = end + 1
                 continue
@@ -800,7 +810,7 @@ def _parse_linked_cell_content(tags: Tags) -> AcadTableLinkedCellContent:
             content.alignment = int(value)
         elif code == 330:
             pending_handle = str(value)
-        elif code == 301 and value == "VALUE":
+        elif code in (300, 301) and value == "VALUE":
             in_value = True
         elif code == 301 and pending_handle is not None:
             pending_attr = AcadTableBlockAttributeValue(handle=pending_handle, text=str(value))
@@ -1703,14 +1713,17 @@ class AcadTableBlockContent(DXFTagStorage):
         if self.doc is None:
             return
         for mtext in list(block.query("MTEXT")):
-            get_field = getattr(mtext, "get_field", None)
-            if not callable(get_field):
+            get_field_dict = getattr(mtext, "get_field_dict", None)
+            if not callable(get_field_dict):
                 continue
-            wrapper = mtext.get_field()
-            if wrapper is None:
+            try:
+                field_dict = mtext.get_field_dict()
+            except AttributeError:
                 continue
-            for child in wrapper.get_child_fields():
-                self.doc.objects.delete_entity(child)
+            for key, entry in list(field_dict.items()):
+                if isinstance(entry, Field):
+                    field_dict.discard(key)
+                    entry._delete_field_tree()
 
     def _add_cell_blockref(self, block, cell: AcadTableCell) -> None:
         assert self.data is not None
@@ -1767,8 +1780,7 @@ class AcadTableBlockContent(DXFTagStorage):
         self._destroy_geometry_field_support(block)
         block.delete_all_entities()
         self._build_text_table_geometry(block, style)
-        if any(cell.block_attributes or cell.field_handle is not None for cell in self.data.cells):
-            self._sync_linked_table_content()
+        self._sync_linked_table_content()
 
     def set_cell_text_height(self, row: int, col: int, value: Optional[float]) -> AcadTableCell:
         cell = self.get_cell(row, col)
@@ -2250,35 +2262,45 @@ class AcadTableBlockContent(DXFTagStorage):
             return
         has_block_attributes = any(cell.block_attributes for cell in self.data.cells)
         has_field_cells = any(cell.field_handle for cell in self.data.cells)
-        if not has_block_attributes and not has_field_cells:
+        if (
+            not has_block_attributes
+            and not has_field_cells
+            and self.get_linked_table_content() is None
+        ):
             return
         xrecord = self._get_or_create_roundtrip_xrecord()
         table_content = self._get_or_create_table_content(xrecord)
         self._get_or_create_table_geometry(xrecord)
         self._ensure_table_style_roundtrip_support()
-        field_copy_handles = self._ensure_table_field_roundtrip_support(table_content) if has_field_cells else {}
+        if has_field_cells:
+            field_copy_handles = self._ensure_table_field_roundtrip_support(
+                table_content
+            )
+        else:
+            self._delete_table_field_roundtrip_support(table_content)
+            field_copy_handles = {}
         table_content.table_style_handle = self.dxf.get("table_style_id")
-        table_content.linked_data = _make_linked_table_data(self, field_copy_handles=field_copy_handles)
+        table_content.linked_data = _make_linked_table_data(
+            self, field_copy_handles=field_copy_handles
+        )
         self.linked_data = table_content.linked_data
+
+    def _delete_table_field_roundtrip_support(self, table_content: TableContent) -> None:
+        """Delete field copies owned by linked ``TABLECONTENT`` metadata."""
+        if self.doc is None:
+            return
+        wrappers = [
+            entity
+            for entity in self.doc.objects
+            if isinstance(entity, Field) and entity.dxf.owner == table_content.dxf.handle
+        ]
+        for wrapper in wrappers:
+            wrapper._delete_field_tree()
 
     def _ensure_table_field_roundtrip_support(self, table_content: TableContent) -> dict[str, str]:
         if self.doc is None or self.data is None:
             return {}
-        from .dxfobj import Field
-
-        stale_wrappers = [
-            entity
-            for entity in self.doc.objects
-            if entity.dxftype() == "FIELD" and entity.dxf.owner == table_content.dxf.handle
-        ]
-        stale_handles = {entity.dxf.handle for entity in stale_wrappers}
-        stale_children = [
-            entity
-            for entity in self.doc.objects
-            if entity.dxftype() == "FIELD" and entity.dxf.owner in stale_handles
-        ]
-        for entity in stale_children + stale_wrappers:
-            self.doc.objects.delete_entity(entity)
+        self._delete_table_field_roundtrip_support(table_content)
 
         field_list = self.doc.objects.setup_field_list()
         mapping: dict[str, str] = {}

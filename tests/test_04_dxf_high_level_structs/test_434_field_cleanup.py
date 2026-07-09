@@ -1,0 +1,264 @@
+from __future__ import annotations
+
+from io import StringIO
+from typing import Callable, Protocol, Sequence
+
+import pytest
+
+import ezdxf
+from ezdxf.document import Drawing
+from ezdxf.entities import DXFEntity, Field
+from ezdxf.entities.acad_table import (
+    AcadTableBlockContent,
+    AcadTableLinkedCellContent,
+    TableContent,
+)
+from ezdxf.math import Vec2
+
+
+class FieldHost(Protocol):
+    def get_field(self) -> Field | None: ...
+
+    def new_acexpr_field(
+        self,
+        expression: str,
+        child_fields: Sequence[Field],
+        *,
+        value: float,
+        display: str,
+        text: str,
+        register_field_list: bool,
+    ) -> tuple[Field, Field]: ...
+
+
+def live_fields(doc: Drawing) -> list[Field]:
+    return [
+        entity
+        for entity in doc.objects
+        if isinstance(entity, Field) and entity.is_alive
+    ]
+
+
+def live_field_handles(doc: Drawing) -> set[str]:
+    return {field.dxf.handle for field in live_fields(doc) if field.dxf.handle}
+
+
+def field_list_handles(doc: Drawing) -> list[str]:
+    field_list = doc.objects.get_field_list()
+    return list(field_list.handles) if field_list is not None else []
+
+
+def field_tree_handles(field: Field | None) -> set[str]:
+    if field is None:
+        return set()
+    return {item.dxf.handle for item in field.get_field_tree() if item.dxf.handle}
+
+
+def assert_field_list_has_only_live_fields(doc: Drawing) -> None:
+    field_handles = live_field_handles(doc)
+
+    assert set(field_list_handles(doc)).issubset(field_handles)
+
+
+def assert_no_field_has_missing_owner(doc: Drawing) -> None:
+    for field in live_fields(doc):
+        owner = field.dxf.owner
+        if owner and owner != "0":
+            assert doc.entitydb.get(owner) is not None
+
+
+def assert_field_state_is_clean(doc: Drawing) -> None:
+    assert_field_list_has_only_live_fields(doc)
+    assert_no_field_has_missing_owner(doc)
+    auditor = doc.audit()
+
+    assert auditor.has_errors is False
+    assert auditor.fixes == []
+
+
+def roundtrip(doc: Drawing) -> Drawing:
+    stream = StringIO()
+    doc.write(stream)
+    return ezdxf.read(StringIO(stream.getvalue()))
+
+
+def replace_with_expression_field(host: FieldHost, line: DXFEntity) -> None:
+    child = Field()
+    child.set_acobjprop(line, "Length", value=10.0, display="10.0000")
+    host.new_acexpr_field(
+        r"%<\_FldIdx 0>%",
+        [child],
+        value=10.0,
+        display="10.0000",
+        text="10.0000",
+        register_field_list=True,
+    )
+
+
+def make_text_host() -> tuple[Drawing, FieldHost, DXFEntity]:
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    host = msp.add_text("A", dxfattribs={"insert": (0, 0)})
+    host.new_acvar_field("Author", text="A", register_field_list=True)
+    return doc, host, line
+
+
+def make_mtext_host() -> tuple[Drawing, FieldHost, DXFEntity]:
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    host = msp.add_mtext("A", dxfattribs={"insert": (0, 0)})
+    host.new_acvar_field("Author", text="A", register_field_list=True)
+    return doc, host, line
+
+
+def make_multileader_host() -> tuple[Drawing, FieldHost, DXFEntity]:
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    builder = msp.add_multileader_mtext("Standard")
+    builder.set_content("A")
+    builder.build(insert=Vec2(0, 0))
+    host = builder.multileader
+    host.new_acvar_field("Author", text="A", register_field_list=True)
+    return doc, host, line
+
+
+def make_attdef_host() -> tuple[Drawing, FieldHost, DXFEntity]:
+    doc = ezdxf.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (10, 0))
+    block = doc.blocks.new("B")
+    host = block.add_attdef("TAG", (0, 0), text="A")
+    host.new_acvar_field("Author", text="A", register_field_list=True)
+    return doc, host, line
+
+
+def make_attrib_host() -> tuple[Drawing, FieldHost, DXFEntity]:
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    block = doc.blocks.new("B")
+    block.add_attdef("TAG", (0, 0), text="A")
+    insert = msp.add_blockref("B", (0, 0))
+    host = insert.add_attrib("TAG", "A", (0, 0))
+    host.new_acvar_field("Author", text="A", register_field_list=True)
+    return doc, host, line
+
+
+def make_insert_attrib_helper_host() -> tuple[Drawing, FieldHost, DXFEntity]:
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    block = doc.blocks.new("B")
+    block.add_attdef("TAG", (0, 0), text="A")
+    insert = msp.add_blockref("B", (0, 0))
+    host = insert.add_attrib_acvar_field(
+        "TAG", "A", (0, 0), field_name="Author", register_field_list=True
+    )
+    return doc, host, line
+
+
+HOST_FACTORIES: tuple[
+    tuple[str, Callable[[], tuple[Drawing, FieldHost, DXFEntity]]], ...
+] = (
+    ("TEXT", make_text_host),
+    ("MTEXT", make_mtext_host),
+    ("MULTILEADER", make_multileader_host),
+    ("ATTDEF", make_attdef_host),
+    ("ATTRIB", make_attrib_host),
+    ("INSERT_ATTRIB_HELPER", make_insert_attrib_helper_host),
+)
+
+
+@pytest.mark.parametrize("_name, factory", HOST_FACTORIES)
+def test_replacing_linked_field_cleans_old_field_tree(
+    _name: str, factory: Callable[[], tuple[Drawing, FieldHost, DXFEntity]]
+) -> None:
+    doc, host, line = factory()
+    old_handles = field_tree_handles(host.get_field())
+
+    replace_with_expression_field(host, line)
+
+    new_handles = field_tree_handles(host.get_field())
+
+    assert old_handles.isdisjoint(live_field_handles(doc))
+    assert new_handles.issubset(live_field_handles(doc))
+    assert_field_state_is_clean(doc)
+
+
+@pytest.mark.parametrize("_name, factory", HOST_FACTORIES)
+def test_replacing_linked_field_cleanup_survives_roundtrip(
+    _name: str, factory: Callable[[], tuple[Drawing, FieldHost, DXFEntity]]
+) -> None:
+    doc, host, line = factory()
+
+    replace_with_expression_field(host, line)
+
+    loaded = roundtrip(doc)
+
+    assert_field_state_is_clean(loaded)
+
+
+def linked_cell_contents(
+    table: AcadTableBlockContent, row: int, col: int
+) -> list[AcadTableLinkedCellContent]:
+    table_content = table.get_linked_table_content()
+    if not isinstance(table_content, TableContent) or table_content.linked_data is None:
+        return []
+    return table_content.linked_data.get_cell(row, col).contents
+
+
+def test_replacing_table_cell_field_keeps_field_state_clean() -> None:
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    table = msp.add_table((0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]])
+
+    table.new_cell_acvar_field(1, 1, "Author", text="----", register_field_list=True)
+    old_handles = live_field_handles(doc)
+
+    table.new_cell_acobjprop_field(
+        1, 1, line, "Length", text="10.0000", register_field_list=True
+    )
+
+    assert old_handles.isdisjoint(live_field_handles(doc))
+    assert linked_cell_contents(table, 1, 1)[0].content_type == 2
+    assert_field_state_is_clean(doc)
+
+
+def test_removing_table_cell_field_cleans_roundtrip_metadata() -> None:
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    table = msp.add_table((0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]])
+    table.new_cell_acvar_field(1, 1, "Author", text="----", register_field_list=True)
+
+    table.set_cell_text(1, 1, "STATIC")
+
+    cell = table.get_cell(1, 1)
+    contents = linked_cell_contents(table, 1, 1)
+
+    assert cell.field_handle is None
+    assert live_fields(doc) == []
+    assert contents[0].content_type == 1
+    assert contents[0].text == "STATIC"
+    assert_field_state_is_clean(doc)
+
+
+def test_removed_table_cell_field_cleanup_survives_roundtrip() -> None:
+    doc = ezdxf.new("R2018")
+    table = doc.modelspace().add_table(
+        (0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]]
+    )
+    table.new_cell_acvar_field(1, 1, "Author", text="----", register_field_list=True)
+    table.set_cell_text(1, 1, "STATIC")
+
+    loaded = roundtrip(doc)
+    loaded_table = list(loaded.modelspace().query("ACAD_TABLE"))[0]
+    contents = linked_cell_contents(loaded_table, 1, 1)
+
+    assert loaded_table.get_cell(1, 1).field_handle is None
+    assert live_fields(loaded) == []
+    assert contents[0].content_type == 1
+    assert contents[0].text == "STATIC"
+    assert_field_state_is_clean(loaded)

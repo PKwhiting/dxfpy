@@ -23,6 +23,7 @@ from .copy import default_copy
 
 if TYPE_CHECKING:
     from ezdxf.audit import Auditor
+    from ezdxf.document import Drawing
     from ezdxf.entities import DXFNamespace
     from ezdxf.lldxf.tagwriter import AbstractTagWriter
 
@@ -441,6 +442,82 @@ class Field(DXFObject):
             result.append(field)
             stack.extend(reversed(field.get_child_fields()))
         return result
+
+    def _field_tree_handles(self) -> set[str]:
+        """Returns handles of all live ``FIELD`` objects in this tree."""
+        return self._handles(self.get_field_tree())
+
+    def _delete_field_tree(
+        self, *, exclude_handles: Optional[Iterable[str]] = None
+    ) -> None:
+        """Delete this ``FIELD`` and all child ``FIELD`` objects.
+
+        Args:
+            exclude_handles: Handles in this tree to preserve.
+
+        Side Effects:
+            Removes deleted field handles from the root ``ACAD_FIELDLIST``.
+
+        """
+        doc = self.doc
+        if doc is None:
+            return
+        protected_handles = (
+            set(exclude_handles) if exclude_handles is not None else set()
+        )
+        fields = self._deletable_field_tree(protected_handles)
+        self._discard_field_list_handles(doc, self._handles(fields))
+        for field in reversed(fields):
+            if field.is_alive and field.doc is doc:
+                doc.objects.delete_entity(field)
+
+    def _register_field_tree(self) -> None:
+        """Register this ``FIELD`` tree in the root ``ACAD_FIELDLIST``."""
+        doc = self.doc
+        if doc is None:
+            raise DXFStructureError("valid DXF document required")
+        field_list = doc.objects.setup_field_list()
+        handles = list(field_list.handles)
+        known_handles = set(handles)
+        for field in self.get_field_tree():
+            handle = field.dxf.handle
+            if handle is None:
+                continue
+            if handle not in known_handles:
+                handles.append(handle)
+                known_handles.add(handle)
+        field_list.handles = handles
+
+    def _deletable_field_tree(self, exclude_handles: set[str]) -> list[Field]:
+        """Returns live tree fields not protected by `exclude_handles`."""
+        return [
+            field
+            for field in self.get_field_tree()
+            if field.dxf.handle not in exclude_handles
+        ]
+
+    @staticmethod
+    def _handles(fields: Iterable[Field]) -> set[str]:
+        """Returns valid handles of `fields`."""
+        handles: set[str] = set()
+        for field in fields:
+            handle = field.dxf.handle
+            if handle is not None:
+                handles.add(handle)
+        return handles
+
+    @staticmethod
+    def _discard_field_list_handles(doc: Drawing, handles: Iterable[str]) -> None:
+        """Remove `handles` from the root ``ACAD_FIELDLIST`` if present."""
+        remove_handles = set(handles)
+        if len(remove_handles) == 0:
+            return
+        field_list = doc.objects.get_field_list()
+        if field_list is None:
+            return
+        field_list.handles = [
+            handle for handle in field_list.handles if handle not in remove_handles
+        ]
 
     @staticmethod
     def _field_text_checksum(text: str) -> float:

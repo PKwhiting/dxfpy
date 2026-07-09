@@ -256,7 +256,10 @@ class Text(DXFGraphic):
         existing = field_dict.get(key)
         if existing is field:
             return field
-        if existing is not None:
+        if isinstance(existing, Field):
+            field_dict.discard(key)
+            existing._delete_field_tree(exclude_handles=field._field_tree_handles())
+        elif existing is not None:
             field_dict.remove(key)
 
         if field.doc is None:
@@ -300,12 +303,7 @@ class Text(DXFGraphic):
             self.dxf.text = text
 
         if register_field_list:
-            field_list = self.doc.objects.setup_field_list()
-            handles = list(field_list.handles)
-            for handle in (linked.dxf.handle for linked in wrapper.get_field_tree()):
-                if handle and handle not in handles:
-                    handles.append(handle)
-            field_list.handles = handles
+            wrapper._register_field_tree()
 
         return wrapper
 
