@@ -11,11 +11,12 @@ from ezdxf.lldxf.attributes import (
     group_code_mapping,
 )
 from .dxfentity import base_class, SubclassProcessor
-from .dxfobj import DXFObject
+from .dxfobj import DXFObject, Field
 from .factory import register_entity
 from .copy import default_copy
 
 if TYPE_CHECKING:
+    from ezdxf.audit import Auditor
     from ezdxf.entities import DXFNamespace, DXFEntity
     from ezdxf.lldxf.tagwriter import AbstractTagWriter
     from ezdxf.lldxf.tags import Tags
@@ -106,6 +107,33 @@ class FieldList(IDBuffer):
         tagwriter.write_tag2(90, len(self.handles))
         self.export_handles(tagwriter)
         tagwriter.write_tag2(SUBCLASS_MARKER, acdb_field_list.name)
+
+    def audit(self, auditor: Auditor) -> None:
+        """Remove handles that do not point to live ``FIELD`` objects."""
+        super().audit(auditor)
+        entitydb = auditor.entitydb
+        if entitydb is None:
+            return
+        valid_handles: list[str] = []
+        invalid_handles: list[str] = []
+        for handle in self.handles:
+            entity = entitydb.get(handle)
+            if isinstance(entity, Field) and entity.is_alive:
+                valid_handles.append(handle)
+            else:
+                invalid_handles.append(handle)
+        if len(invalid_handles) == 0:
+            return
+
+        from ezdxf.audit import AuditError
+
+        self.handles = valid_handles
+        auditor.fixed_error(
+            code=AuditError.POINTER_TARGET_NOT_EXIST,
+            message=f"Removed invalid FIELDLIST handles from {str(self)}.",
+            dxf_entity=self,
+            data=invalid_handles,
+        )
 
 
 acdb_filter = DefSubclass("AcDbFilter", {})

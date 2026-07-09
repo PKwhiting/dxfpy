@@ -6,6 +6,7 @@ from typing import Callable, Protocol, Sequence
 import pytest
 
 import ezdxf
+from ezdxf.audit import AuditError
 from ezdxf.document import Drawing
 from ezdxf.entities import DXFEntity, Field
 from ezdxf.entities.acad_table import (
@@ -80,6 +81,31 @@ def roundtrip(doc: Drawing) -> Drawing:
     stream = StringIO()
     doc.write(stream)
     return ezdxf.read(StringIO(stream.getvalue()))
+
+
+def test_audit_prunes_invalid_field_list_handles() -> None:
+    doc = ezdxf.new("R2018")
+    owner = doc.rootdict.dxf.handle
+    field = doc.objects.add_field(owner=owner)
+    field.set_acvar("Author", display="----")
+    xrecord = doc.objects.add_xrecord(owner=owner)
+    field_handle = field.dxf.handle
+    xrecord_handle = xrecord.dxf.handle
+    assert field_handle is not None
+    assert xrecord_handle is not None
+    field_list = doc.objects.setup_field_list()
+    field_list.handles = [field_handle, xrecord_handle, "DEAD"]
+
+    auditor = doc.audit()
+
+    assert auditor.has_errors is False
+    assert field_list.handles == [field_handle]
+    assert any(
+        fix.code == AuditError.POINTER_TARGET_NOT_EXIST
+        and fix.entity is field_list
+        and fix.data == [xrecord_handle, "DEAD"]
+        for fix in auditor.fixes
+    )
 
 
 def replace_with_expression_field(host: FieldHost, line: DXFEntity) -> None:
