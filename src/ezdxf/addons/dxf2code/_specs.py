@@ -143,6 +143,7 @@ class DocumentCodegenCapture(TypedDict):
     blocks: list[BlockLayout]
     block_codes: list[Code]
     block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]]
+    layout_names: list[str]
     paper_layout_names: list[str]
     active_paper_layout_name: str
     paper_layout_dxfattribs: dict[str, dict[str, object]]

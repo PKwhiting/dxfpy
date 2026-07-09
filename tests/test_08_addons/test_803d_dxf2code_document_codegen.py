@@ -1122,6 +1122,29 @@ def test_document_to_code_file_preserves_paper_layout_block_record_name(tmp_path
     assert out_block_record.dxf.name == source_block_name
 
 
+def test_document_to_code_file_preserves_layout_dictionary_order(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    source_doc.new_layout("Custom")
+    source_order = ["Custom", "Model", "Layout1"]
+    layout_dict = source_doc.rootdict["ACAD_LAYOUT"]
+    layout_dict._data = {name: layout_dict._data[name] for name in source_order}
+    source_doc.layouts._layouts = {
+        name.upper(): source_doc.layouts.get(name) for name in source_order
+    }
+
+    source_path = tmp_path / "source_layout_order.dxf"
+    script_path = tmp_path / "generated_layout_order.py"
+    output_path = tmp_path / "generated_layout_order.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+
+    assert out_doc.layouts.names() == source_order
+
+
 def test_document_to_code_file_restores_acad_groups(tmp_path):
     source_doc = ezdxf.new("R2018")
     msp = source_doc.modelspace()

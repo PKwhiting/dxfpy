@@ -218,8 +218,9 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
 
     block_codes = []
     block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]] = {}
+    layout_names = list(doc.layouts.names())
     paper_layout_names = [
-        name for name in doc.layouts.names() if name not in ("Model", "Model_Space")
+        name for name in layout_names if name not in ("Model", "Model_Space")
     ]
     active_paper_layout_name = next(
         (
@@ -756,6 +757,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "blocks": blocks,
         "block_codes": block_codes,
         "block_layout_entity_snapshots": block_layout_entity_snapshots,
+        "layout_names": layout_names,
         "paper_layout_names": paper_layout_names,
         "active_paper_layout_name": active_paper_layout_name,
         "paper_layout_dxfattribs": paper_layout_dxfattribs,

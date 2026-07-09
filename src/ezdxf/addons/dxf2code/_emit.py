@@ -22,6 +22,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     blocks = data["blocks"]
     block_codes = data["block_codes"]
     block_layout_entity_snapshots = data["block_layout_entity_snapshots"]
+    layout_names = data["layout_names"]
     paper_layout_names = data["paper_layout_names"]
     active_paper_layout_name = data["active_paper_layout_name"]
     paper_layout_dxfattribs = data["paper_layout_dxfattribs"]
@@ -318,6 +319,18 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
             )
             lines.append("    psp.dxf.viewport_handle = _layout_viewport.dxf.handle")
             lines.append("")
+        lines.append("# restore source ACAD_LAYOUT dictionary order")
+        lines.append(f"_layout_order = {layout_names!r}")
+        lines.append("rt.reorder_dictionary_entries(doc.layouts._dxf_layouts, _layout_order)")
+        lines.append("_ordered_layouts = {}")
+        lines.append("for _layout_name in _layout_order:")
+        lines.append("    if _layout_name in doc.layouts:")
+        lines.append("        _ordered_layouts[_layout_name.upper()] = doc.layouts.get(_layout_name)")
+        lines.append("for _layout_key, _layout in doc.layouts._layouts.items():")
+        lines.append("    if _layout_key not in _ordered_layouts:")
+        lines.append("        _ordered_layouts[_layout_key] = _layout")
+        lines.append("doc.layouts._layouts = _ordered_layouts")
+        lines.append("")
 
     if sortents_by_block:
         for spec in sortents_by_block:
