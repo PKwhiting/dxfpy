@@ -140,7 +140,6 @@ Tools
 **TODO:**
 
 - ACAD_TABLE helper tools
-- Dynamic Block helper tools
 
 
 Global Options

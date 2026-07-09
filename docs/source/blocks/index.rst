@@ -18,6 +18,7 @@ accessible by the :attr:`~ezdxf.document.Drawing.blocks` attribute of the
 
     block
     insert
+    dynamic_blocks
     attrib
     attdef
 
