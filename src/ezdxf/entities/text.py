@@ -270,6 +270,35 @@ class Text(DXFGraphic):
         field_dict.take_ownership(key, field)
         return field
 
+    def remove_field(self, key: str = "TEXT", *, text: Optional[str] = None) -> None:
+        """Remove a linked ``FIELD`` from this text entity.
+
+        Args:
+            key: dictionary entry key in the nested ``ACAD_FIELD`` dictionary
+            text: optional static replacement text
+
+        Side Effects:
+            Deletes the removed field tree and prunes the root ``ACAD_FIELDLIST``.
+
+        """
+        from .dxfobj import Field
+
+        try:
+            field_dict = self.get_field_dict()
+        except AttributeError:
+            return
+        field = field_dict.get(key)
+        if field is None:
+            return
+        if not isinstance(field, Field):
+            raise const.DXFStructureError(
+                f"expected a FIELD entity, got {str(field)} for key: {key}"
+            )
+        field_dict.discard(key)
+        field._delete_field_tree()
+        if text is not None:
+            self.dxf.text = text
+
     def set_linked_field(
         self,
         field: Field,

@@ -1672,8 +1672,12 @@ class AcadTableBlockContent(DXFTagStorage):
             self._attach_cell_field_to_mtext(mtext, cell)
 
     @staticmethod
-    def _extract_field_display_text(field) -> str:
-        for tag in reversed(field.tags):
+    def _extract_field_display_text(field: Field) -> str:
+        return AcadTableBlockContent._extract_field_tags_display_text(field.tags)
+
+    @staticmethod
+    def _extract_field_tags_display_text(tags: Tags) -> str:
+        for tag in reversed(tags):
             if tag.code == 301:
                 return str(tag.value)
         return ""
@@ -1837,6 +1841,43 @@ class AcadTableBlockContent(DXFTagStorage):
         cell.set_text_content(text)
         self.rebuild_text_table_geometry()
         return cell
+
+    def remove_cell_field(
+        self, row: int, col: int, *, text: Optional[str] = None
+    ) -> AcadTableCell:
+        """Remove the linked ``FIELD`` from a text cell.
+
+        Args:
+            row: Zero-based row index.
+            col: Zero-based column index.
+            text: Optional static replacement text. If omitted, the current
+                field display text is preserved when available.
+
+        Returns:
+            Updated table cell.
+
+        """
+        cell = self.get_cell(row, col)
+        if not cell.is_text_cell:
+            raise const.DXFValueError("target cell is not a text cell")
+        if cell.field_handle is None and cell.field_tags is None:
+            return cell
+        replacement_text = text if text is not None else self._field_cell_text(cell)
+        cell.set_text_content(replacement_text)
+        self.rebuild_text_table_geometry()
+        return cell
+
+    def _field_cell_text(self, cell: AcadTableCell) -> str:
+        """Returns best available static replacement text for a field cell."""
+        if cell.field_handle is not None:
+            self._capture_cell_field_state(cell)
+        if len(cell.field_display_text):
+            return cell.field_display_text
+        if cell.field_tags is not None:
+            display = self._extract_field_tags_display_text(cell.field_tags)
+            if len(display):
+                return display
+        return cell.text
 
     def set_cell_linked_field(
         self,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from io import StringIO
 from typing import Callable, Protocol, Sequence
 
@@ -20,6 +21,10 @@ from ezdxf.math import Vec2
 class FieldHost(Protocol):
     def get_field(self) -> Field | None: ...
 
+    def remove_field(
+        self, key: str = "TEXT", *, text: str | None = None
+    ) -> None: ...
+
     def new_acexpr_field(
         self,
         expression: str,
@@ -30,6 +35,13 @@ class FieldHost(Protocol):
         text: str,
         register_field_list: bool,
     ) -> tuple[Field, Field]: ...
+
+
+@dataclass(frozen=True)
+class HostCase:
+    name: str
+    factory: Callable[[], tuple[Drawing, FieldHost, DXFEntity]]
+    visible_text: Callable[[FieldHost], str]
 
 
 def live_fields(doc: Drawing) -> list[Field]:
@@ -185,6 +197,19 @@ def make_insert_attrib_helper_host() -> tuple[Drawing, FieldHost, DXFEntity]:
     return doc, host, line
 
 
+def text_dxf_content(host: FieldHost) -> str:
+    return str(getattr(host, "dxf").text)
+
+
+def mtext_content(host: FieldHost) -> str:
+    return str(getattr(host, "text"))
+
+
+def multileader_content(host: FieldHost) -> str:
+    get_content = getattr(host, "get_mtext_content")
+    return str(get_content())
+
+
 HOST_FACTORIES: tuple[
     tuple[str, Callable[[], tuple[Drawing, FieldHost, DXFEntity]]], ...
 ] = (
@@ -194,6 +219,15 @@ HOST_FACTORIES: tuple[
     ("ATTDEF", make_attdef_host),
     ("ATTRIB", make_attrib_host),
     ("INSERT_ATTRIB_HELPER", make_insert_attrib_helper_host),
+)
+
+HOST_CASES: tuple[HostCase, ...] = (
+    HostCase("TEXT", make_text_host, text_dxf_content),
+    HostCase("MTEXT", make_mtext_host, mtext_content),
+    HostCase("MULTILEADER", make_multileader_host, multileader_content),
+    HostCase("ATTDEF", make_attdef_host, text_dxf_content),
+    HostCase("ATTRIB", make_attrib_host, text_dxf_content),
+    HostCase("INSERT_ATTRIB_HELPER", make_insert_attrib_helper_host, text_dxf_content),
 )
 
 
@@ -224,6 +258,52 @@ def test_replacing_linked_field_cleanup_survives_roundtrip(
     loaded = roundtrip(doc)
 
     assert_field_state_is_clean(loaded)
+
+
+@pytest.mark.parametrize("case", HOST_CASES, ids=lambda case: case.name)
+def test_remove_field_deletes_field_tree_and_sets_static_text(case: HostCase) -> None:
+    doc, host, _line = case.factory()
+    old_handles = field_tree_handles(host.get_field())
+
+    host.remove_field(text="STATIC")
+
+    assert host.get_field() is None
+    assert case.visible_text(host) == "STATIC"
+    assert old_handles.isdisjoint(live_field_handles(doc))
+    assert_field_state_is_clean(doc)
+
+
+@pytest.mark.parametrize("case", HOST_CASES, ids=lambda case: case.name)
+def test_remove_field_preserves_visible_text_by_default(case: HostCase) -> None:
+    doc, host, _line = case.factory()
+
+    host.remove_field()
+
+    assert host.get_field() is None
+    assert case.visible_text(host) == "A"
+    assert_field_state_is_clean(doc)
+
+
+@pytest.mark.parametrize("case", HOST_CASES, ids=lambda case: case.name)
+def test_removed_field_cleanup_survives_roundtrip(case: HostCase) -> None:
+    doc, host, _line = case.factory()
+
+    host.remove_field(text="STATIC")
+
+    loaded = roundtrip(doc)
+
+    assert_field_state_is_clean(loaded)
+
+
+@pytest.mark.parametrize("case", HOST_CASES, ids=lambda case: case.name)
+def test_remove_missing_field_is_no_op(case: HostCase) -> None:
+    doc, host, _line = case.factory()
+    host.remove_field(text="FIRST")
+
+    host.remove_field(text="SECOND")
+
+    assert case.visible_text(host) == "FIRST"
+    assert_field_state_is_clean(doc)
 
 
 def linked_cell_contents(
@@ -288,3 +368,68 @@ def test_removed_table_cell_field_cleanup_survives_roundtrip() -> None:
     assert contents[0].content_type == 1
     assert contents[0].text == "STATIC"
     assert_field_state_is_clean(loaded)
+
+
+def test_remove_cell_field_preserves_field_display_text() -> None:
+    doc = ezdxf.new("R2018")
+    table = doc.modelspace().add_table(
+        (0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]]
+    )
+    table.new_cell_acvar_field(1, 1, "Author", text="VISIBLE", register_field_list=True)
+
+    cell = table.remove_cell_field(1, 1)
+    contents = linked_cell_contents(table, 1, 1)
+
+    assert cell.field_handle is None
+    assert cell.text == "VISIBLE"
+    assert live_fields(doc) == []
+    assert contents[0].content_type == 1
+    assert contents[0].text == "VISIBLE"
+    assert_field_state_is_clean(doc)
+
+
+def test_remove_cell_field_uses_explicit_static_text() -> None:
+    doc = ezdxf.new("R2018")
+    table = doc.modelspace().add_table(
+        (0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]]
+    )
+    table.new_cell_acvar_field(1, 1, "Author", text="VISIBLE", register_field_list=True)
+
+    cell = table.remove_cell_field(1, 1, text="EXPLICIT")
+    contents = linked_cell_contents(table, 1, 1)
+
+    assert cell.field_handle is None
+    assert cell.text == "EXPLICIT"
+    assert live_fields(doc) == []
+    assert contents[0].content_type == 1
+    assert contents[0].text == "EXPLICIT"
+    assert_field_state_is_clean(doc)
+
+
+def test_remove_cell_field_cleanup_survives_roundtrip() -> None:
+    doc = ezdxf.new("R2018")
+    table = doc.modelspace().add_table(
+        (0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]]
+    )
+    table.new_cell_acvar_field(1, 1, "Author", text="VISIBLE", register_field_list=True)
+    table.remove_cell_field(1, 1)
+
+    loaded = roundtrip(doc)
+    loaded_table = list(loaded.modelspace().query("ACAD_TABLE"))[0]
+    contents = linked_cell_contents(loaded_table, 1, 1)
+
+    assert loaded_table.get_cell(1, 1).field_handle is None
+    assert live_fields(loaded) == []
+    assert contents[0].content_type == 1
+    assert contents[0].text == "VISIBLE"
+    assert_field_state_is_clean(loaded)
+
+
+def test_remove_missing_cell_field_is_no_op() -> None:
+    doc = ezdxf.new("R2018")
+    table = doc.modelspace().add_table((0, 0), [["FIELD", "VALUE"]])
+
+    cell = table.remove_cell_field(0, 1, text="IGNORED")
+
+    assert cell.text == "VALUE"
+    assert_field_state_is_clean(doc)
