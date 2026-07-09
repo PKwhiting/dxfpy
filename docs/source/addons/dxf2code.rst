@@ -13,11 +13,12 @@ fidelity workflows, `document_to_code_file()` generates a full-document replay
 script that recreates the source drawing and writes a target DXF when the
 generated Python file is executed.
 
-`dxf2code` recreates the translated entity graph, including simple object-backed
+`dxf2code` recreates the translated entity graph, including object-backed
 ``FIELD`` wrappers hosted by ``TEXT``, ``ATTRIB``, ``ATTDEF`` and ``MTEXT``.
 For ``AcObjProp`` fields, the referenced target entity also has to be part of
 the translated entity set so the new field payload can be rebound to the new
-handles in the generated document.
+handles in the generated document. Full-document replay also restores the root
+``FIELDLIST`` object after remapping field handles.
 
 Direct ``MLEADERSTYLE`` object generation is also supported by
 `table_entries_to_code`, including the same style-resource rebinding rules used
@@ -43,11 +44,19 @@ by ATTDEF order.
 Additional ``MultiLeader.arrow_heads`` collections are also rebound by block
 name.
 
-The current supported field and ``MULTILEADER`` round-trip surface is also
-validated by a dedicated AutoCAD/Core Console artifact under
-``experiments/ezdxf-generated-fields/dxf2code_roundtrip_validation.dxf`` and
-its generated Python source companion
-``experiments/ezdxf-generated-fields/dxf2code_roundtrip_validation_generated.py``.
+``ACAD_TABLE`` text-cell fields are supported by full-document replay and by
+entity generation for validated table-cell cases. The generated code recreates
+the semantic table cell field and synchronizes the visible table-geometry MTEXT
+field. Block-content cells and unusual field graphs may still require the source
+block definition or be reported as generated-code comments when they cannot be
+rebuilt semantically.
+
+Advanced full-document replay preserves additional structures required by common
+AutoCAD drawings, including dynamic block metadata, anonymous table-geometry
+blocks, layout order, groups, SORTENTS dictionaries and selected raw fallback
+data. Unsupported or unusual features are generally emitted as comments or raw
+restore helpers instead of being silently dropped. Treat these generated comments
+as diagnostics for code that may need manual review.
 
 Short example:
 

@@ -42,6 +42,8 @@ Factory function         :meth:`ezdxf.sections.objects.ObjectsSection.add_field`
 
     .. automethod:: get_child_fields
 
+    .. automethod:: get_field_tree
+
     .. automethod:: clear
 
     .. automethod:: reset
@@ -52,7 +54,15 @@ Factory function         :meth:`ezdxf.sections.objects.ObjectsSection.add_field`
 
     .. automethod:: set_acvar
 
+    .. automethod:: set_dwgprops
+
     .. automethod:: set_acobjprop
+
+    .. automethod:: set_acexpr
+
+    .. automethod:: build_acexpr
+
+    .. automethod:: normalize_acobjprop_cache
 
 
 FieldList

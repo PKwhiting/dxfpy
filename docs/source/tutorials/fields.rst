@@ -3,8 +3,10 @@
 Tutorial for Fields
 ===================
 
-The current experimental field API can create object-backed AutoCAD-style field
-graphs for several host entities.
+The field API can create and preserve object-backed AutoCAD-style field graphs
+for several host entities. The generated DXF stores the field definition and a
+cached display value; AutoCAD or another CAD application is still responsible for
+evaluating fields after the drawing is opened.
 
 Supported field hosts
 ---------------------
@@ -14,6 +16,9 @@ Supported field hosts
 - :class:`~ezdxf.entities.MultiLeader` with MTEXT content
 - :class:`~ezdxf.entities.AttDef`
 - :class:`~ezdxf.entities.Attrib`
+- :class:`~ezdxf.entities.Insert` helper methods that create field-backed
+  attached ``ATTRIB`` entities
+- ``ACAD_TABLE`` text cells
 
 Supported field families
 ------------------------
@@ -21,6 +26,8 @@ Supported field families
 - ``AcVar``
 - ``DWGPROPS`` via the observed ``AcVar CustomDP.<Name>`` pattern
 - ``AcObjProp``
+- ``AcExpr`` expressions composed from child fields
+- linked ``_text`` wrapper fields used by text-like hosts
 
 Support model
 -------------
@@ -48,8 +55,10 @@ Host / family matrix
       - ``AcVar``
       - ``DWGPROPS``
       - ``AcObjProp``
+      - ``AcExpr``
       - Notes
     * - :class:`~ezdxf.entities.MText`
+      - yes
       - yes
       - yes
       - yes
@@ -58,8 +67,10 @@ Host / family matrix
       - yes
       - yes
       - yes
+      - yes
       - also covers ``ATTRIB`` and ``ATTDEF`` entity-level helpers
     * - :class:`~ezdxf.entities.MultiLeader`
+      - yes
       - yes
       - yes
       - yes
@@ -68,12 +79,26 @@ Host / family matrix
       - yes
       - yes
       - yes
+      - yes
       - stand-alone attribute definitions
     * - :class:`~ezdxf.entities.Attrib`
       - yes
       - yes
       - yes
+      - yes
       - attached to ``INSERT`` entities
+    * - :class:`~ezdxf.entities.Insert`
+      - yes
+      - yes
+      - yes
+      - no
+      - convenience methods create attached field-backed ``ATTRIB`` entities
+    * - ``ACAD_TABLE`` text cell
+      - yes
+      - yes
+      - yes
+      - yes
+      - field is attached to the semantic cell and visible geometry MTEXT
 
 Object-property support matrix
 ------------------------------
@@ -179,6 +204,82 @@ Example:
         register_field_list=True,
     )
 
+Expression fields
+-----------------
+
+``AcExpr`` fields combine child fields by using ``%<\\_FldIdx n>%`` placeholders
+inside the expression string. The current helper copies the provided child field
+objects into the document and links them to the expression field.
+
+Example:
+
+.. code-block:: python
+
+    from ezdxf.entities import Field
+
+    circle = msp.add_circle((0, 0), radius=3)
+    line_field = Field()
+    line_field.set_acobjprop(line, "Length", value=10.0, display="10.0000")
+    circle_field = Field()
+    circle_field.set_acobjprop(circle, "Radius", value=3.0, display="3.0000")
+
+    msp.add_mtext_acexpr_field(
+        "(%<\\_FldIdx 0>%+%<\\_FldIdx 1>%)",
+        [line_field, circle_field],
+        value=13.0,
+        display="13.0000",
+        dxfattribs={"insert": (0, 8, 0)},
+        register_field_list=True,
+    )
+
+Table cell fields
+-----------------
+
+``ACAD_TABLE`` text cells support the same common field families. The field is
+stored in the semantic table cell and synchronized to the generated table
+geometry MTEXT so that CAD applications display the cached value immediately.
+
+Example:
+
+.. code-block:: python
+
+    table = msp.add_table(
+        (0, 0),
+        [["FIELD", "VALUE"], ["Line Length", "10.0000"]],
+        col_widths=[28.0, 28.0],
+    )
+    table.new_cell_acobjprop_field(
+        1,
+        1,
+        line,
+        "Length",
+        value=10.0,
+        display="10.0000",
+        text="10.0000",
+        register_field_list=True,
+    )
+
+Reading fields
+--------------
+
+For text-like hosts use the host's ``get_field()`` method to access the wrapper
+field and ``get_primary_field()`` to access the actual child field when the host
+uses a ``_text`` wrapper. ``ACAD_TABLE`` exposes the same distinction through
+:meth:`~ezdxf.entities.AcadTableBlockContent.get_cell_field` and
+:meth:`~ezdxf.entities.AcadTableBlockContent.get_cell_primary_field`.
+
+Example:
+
+.. code-block:: python
+
+    primary = mtext.get_primary_field()
+    if primary is not None:
+        print(primary.evaluator_id, primary.field_code)
+
+    table_primary = table.get_cell_primary_field(1, 1)
+    if table_primary is not None:
+        print(table_primary.evaluator_id, table_primary.field_code)
+
 Host-specific convenience methods
 ---------------------------------
 
@@ -207,6 +308,15 @@ Entity-level helpers:
 - :meth:`~ezdxf.entities.MultiLeader.new_dwgprops_field`
 - :meth:`~ezdxf.entities.MultiLeader.new_acobjprop_field`
 - :meth:`~ezdxf.entities.MultiLeader.new_acexpr_field`
+- ``ACAD_TABLE`` cell helpers:
+  :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_acvar_field`,
+  :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_dwgprops_field`,
+  :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_acobjprop_field`,
+  :meth:`~ezdxf.entities.AcadTableBlockContent.new_cell_acexpr_field`
+- :class:`~ezdxf.entities.Insert` helpers:
+  :meth:`~ezdxf.entities.Insert.add_attrib_acvar_field`,
+  :meth:`~ezdxf.entities.Insert.add_attrib_dwgprops_field`,
+  :meth:`~ezdxf.entities.Insert.add_attrib_acobjprop_field`
 
 Builder-level helpers for MTEXT MULTILEADER content:
 
@@ -226,18 +336,18 @@ Known gaps
 - ``SPLINE.Length`` and ``SPLINE.ArcLength`` did not resolve in AutoCAD during probing.
 - Several intuitive names such as ``ARC.Diameter`` and ``ELLIPSE.Length`` are not supported by AutoCAD in the current probe set.
 
-Validation artifact
--------------------
+Example script
+--------------
 
-For a compact visual smoke test of the currently supported recent additions,
-see:
+For a compact visual smoke test of the current SDK surface, see:
 
-- ``experiments/ezdxf-generated-fields/recent_supported_fields_validation.dxf``
+- ``examples/fields.py``
 
 Notes
 -----
 
-- The generated DXF is accepted by AutoCAD in the current validation matrix.
+- The examples write cached display values; open the DXF in a CAD application to
+  evaluate or refresh the field results.
 - Byte-level parity with UI-authored field graphs is still a work in progress.
 - The automatic inference support is intentionally conservative and will expand
   only when backed by concrete experiments.
