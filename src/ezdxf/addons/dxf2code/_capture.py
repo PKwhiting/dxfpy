@@ -246,6 +246,17 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         _acad_table_geometry_block_names(doc)
         - _raw_dynamic_acad_table_geometry_block_names(doc)
     )
+    table_geometry_block_codes: list[tuple[str, Any]] = []
+    for block in _sort_blocks(
+        [
+            doc.blocks.get(name)
+            for name in _acad_table_geometry_block_names(doc)
+            if doc.blocks.get(name) is not None
+        ]
+    ):
+        code = entities_to_code(block, layout="_table_block")
+        table_geometry_block_codes.append((block.name, code))
+        imports.update(code.imports)
     blocks = _sort_blocks([
         block
         for block in doc.blocks
@@ -750,6 +761,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "paper_layout_dxfattribs": paper_layout_dxfattribs,
         "paper_layout_block_record_names": paper_layout_block_record_names,
         "paper_layout_codes": paper_layout_codes,
+        "table_geometry_block_codes": table_geometry_block_codes,
         "msp_code": msp_code,
         "imports": imports,
         "resource_code": resource_code,

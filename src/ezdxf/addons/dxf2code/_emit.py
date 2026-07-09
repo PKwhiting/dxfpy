@@ -27,6 +27,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     paper_layout_dxfattribs = data["paper_layout_dxfattribs"]
     paper_layout_block_record_names = data["paper_layout_block_record_names"]
     paper_layout_codes = data["paper_layout_codes"]
+    table_geometry_block_codes = data["table_geometry_block_codes"]
     msp_code = data["msp_code"]
     imports = data["imports"]
     resource_code = data["resource_code"]
@@ -350,6 +351,15 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     lines.extend(msp_code.code)
     lines.append("rt.register_entity_map(_entity_map)")
     lines.append("")
+    if table_geometry_block_codes:
+        lines.append("# restore ACAD_TABLE geometry block contents")
+        for block_name, code in table_geometry_block_codes:
+            lines.append(f"_table_block = doc.blocks.get({block_name!r})")
+            lines.append("if _table_block is not None:")
+            lines.append("    _table_block.delete_all_entities()")
+            lines.extend(f"    {line}" for line in code.code)
+            lines.append("    rt.register_entity_map(_entity_map)")
+        lines.append("")
     if group_specs:
         group_data = [
             (

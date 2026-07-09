@@ -955,6 +955,44 @@ def test_replay_cleanup_replaces_dynamic_block_acad_tables_with_blockrefs():
     assert next(entity for entity in normal_block if entity.dxftype() == "ACAD_TABLE") is normal_table
 
 
+def test_document_codegen_restores_table_geometry_block_contents(tmp_path):
+    from ezdxf.addons.dxf2code._capture import capture_document_codegen_inputs
+    from ezdxf.addons.dxf2code._emit import render_document_codegen_script
+
+    source_doc = ezdxf.new("R2018")
+    dyn_block = source_doc.blocks.new("*U900")
+    table = dyn_block.add_table((0, 0), [["A"]])
+    geometry_name = table.dxf.geometry
+    source_path = tmp_path / "source_dynamic_table_geometry.dxf"
+    script_path = tmp_path / "generated_dynamic_table_geometry.py"
+    output_path = tmp_path / "generated_dynamic_table_geometry.dxf"
+    source_doc.saveas(source_path)
+
+    geometry_block = source_doc.blocks.get(geometry_name)
+    geometry_block.delete_all_entities()
+    geometry_block.add_mtext("SOURCE GEOMETRY")
+
+    captured = capture_document_codegen_inputs(source_doc, source_path)
+    script_path.write_text(
+        render_document_codegen_script(captured, output_path), encoding="utf-8"
+    )
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_block = out_doc.blocks.get("*U900")
+    replacement = next(
+        entity
+        for entity in out_block
+        if entity.dxftype() == "INSERT" and entity.dxf.name == geometry_name
+    )
+    out_geometry = out_doc.blocks.get(geometry_name)
+
+    assert replacement.dxf.name == geometry_name
+    assert [(entity.dxftype(), entity.text) for entity in out_geometry] == [
+        ("MTEXT", "SOURCE GEOMETRY")
+    ]
+
+
 def test_dynamic_block_table_raw_restore_remaps_geometry_btr():
     from ezdxf.addons.dxf2code import block_to_code
     from ezdxf.dynblkhelper import (

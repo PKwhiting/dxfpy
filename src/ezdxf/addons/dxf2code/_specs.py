@@ -148,6 +148,7 @@ class DocumentCodegenCapture(TypedDict):
     paper_layout_dxfattribs: dict[str, dict[str, object]]
     paper_layout_block_record_names: dict[str, str]
     paper_layout_codes: list[tuple[str, Code]]
+    table_geometry_block_codes: list[tuple[str, Code]]
     msp_code: Code
     imports: set[str]
     resource_code: Code | None
