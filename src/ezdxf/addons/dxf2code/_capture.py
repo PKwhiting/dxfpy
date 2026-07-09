@@ -218,9 +218,9 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
 
     block_codes = []
     block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]] = {}
-    layout_names = list(doc.layouts.names())
+    layout_dictionary_order = list(doc.layouts.names())
     paper_layout_names = [
-        name for name in layout_names if name not in ("Model", "Model_Space")
+        name for name in layout_dictionary_order if name not in ("Model", "Model_Space")
     ]
     active_paper_layout_name = next(
         (
@@ -247,7 +247,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         _acad_table_geometry_block_names(doc)
         - _raw_dynamic_acad_table_geometry_block_names(doc)
     )
-    table_geometry_block_codes: list[tuple[str, Any]] = []
+    acad_table_geometry_block_codes: list[tuple[str, Any]] = []
     for block in _sort_blocks(
         [
             doc.blocks.get(name)
@@ -256,7 +256,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         ]
     ):
         code = entities_to_code(block, layout="_table_block")
-        table_geometry_block_codes.append((block.name, code))
+        acad_table_geometry_block_codes.append((block.name, code))
         imports.update(code.imports)
     blocks = _sort_blocks([
         block
@@ -757,13 +757,13 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "blocks": blocks,
         "block_codes": block_codes,
         "block_layout_entity_snapshots": block_layout_entity_snapshots,
-        "layout_names": layout_names,
+        "layout_dictionary_order": layout_dictionary_order,
         "paper_layout_names": paper_layout_names,
         "active_paper_layout_name": active_paper_layout_name,
         "paper_layout_dxfattribs": paper_layout_dxfattribs,
         "paper_layout_block_record_names": paper_layout_block_record_names,
         "paper_layout_codes": paper_layout_codes,
-        "table_geometry_block_codes": table_geometry_block_codes,
+        "acad_table_geometry_block_codes": acad_table_geometry_block_codes,
         "msp_code": msp_code,
         "imports": imports,
         "resource_code": resource_code,

@@ -1138,7 +1138,13 @@ def test_document_to_code_file_preserves_layout_dictionary_order(tmp_path):
     source_doc.saveas(source_path)
 
     document_to_code_file(str(source_path), str(script_path), str(output_path))
-    exec(script_path.read_text(encoding="utf-8"), {})
+    script_text = script_path.read_text(encoding="utf-8")
+
+    assert "rt.restore_layout_order" in script_text
+    assert "doc.layouts._dxf_layouts" not in script_text
+    assert "doc.layouts._layouts" not in script_text
+
+    exec(script_text, {})
 
     out_doc = ezdxf.readfile(output_path)
 

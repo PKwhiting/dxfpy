@@ -183,6 +183,18 @@ class DocumentCodegenRuntime:
                 reordered[key] = value
         dictionary._data = reordered
 
+    def restore_layout_order(self, layout_order: list[str]) -> None:
+        layouts = self.doc.layouts
+        self.reorder_dictionary_entries(layouts._dxf_layouts, layout_order)
+        ordered_layouts = {}
+        for layout_name in layout_order:
+            if layout_name in layouts:
+                ordered_layouts[layout_name.upper()] = layouts.get(layout_name)
+        for layout_key, layout in layouts._layouts.items():
+            if layout_key not in ordered_layouts:
+                ordered_layouts[layout_key] = layout
+        layouts._layouts = ordered_layouts
+
     def _register_field_tree_handles(self, objects: Sequence[DXFEntity]) -> None:
         handles = []
         for obj in objects:

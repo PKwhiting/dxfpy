@@ -143,13 +143,13 @@ class DocumentCodegenCapture(TypedDict):
     blocks: list[BlockLayout]
     block_codes: list[Code]
     block_layout_entity_snapshots: dict[str, tuple[RawEntityExportSnapshot, ...]]
-    layout_names: list[str]
+    layout_dictionary_order: list[str]
     paper_layout_names: list[str]
     active_paper_layout_name: str
     paper_layout_dxfattribs: dict[str, dict[str, object]]
     paper_layout_block_record_names: dict[str, str]
     paper_layout_codes: list[tuple[str, Code]]
-    table_geometry_block_codes: list[tuple[str, Code]]
+    acad_table_geometry_block_codes: list[tuple[str, Code]]
     msp_code: Code
     imports: set[str]
     resource_code: Code | None

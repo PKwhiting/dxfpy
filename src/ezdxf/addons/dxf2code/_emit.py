@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ._specs import DocumentCodegenCapture, OwnedObjectSpec, OwnedObjectSpecData
+from ._code import Code
+from ._specs import DocumentCodegenCapture, GroupSpec, OwnedObjectSpec, OwnedObjectSpecData
 
 
 def _owned_object_specs_literal(specs: list[OwnedObjectSpec]) -> list[OwnedObjectSpecData]:
@@ -17,18 +18,196 @@ def _owned_object_specs_literal(specs: list[OwnedObjectSpec]) -> list[OwnedObjec
     ]
 
 
+def _emit_paper_layouts(
+    lines: list[str],
+    *,
+    layout_dictionary_order: list[str],
+    paper_layout_names: list[str],
+    active_paper_layout_name: str,
+    paper_layout_dxfattribs: dict[str, dict[str, object]],
+    paper_layout_block_record_names: dict[str, str],
+    paper_layout_codes: list[tuple[str, Code]],
+) -> None:
+    if not paper_layout_names:
+        return
+
+    lines.append("# paperspace layouts")
+    lines.append(f"_paper_layout_names = {paper_layout_names!r}")
+    lines.append(f"_paper_layout_dxfattribs = {paper_layout_dxfattribs!r}")
+    lines.append(
+        f"_paper_layout_block_record_names = {paper_layout_block_record_names!r}"
+    )
+    lines.append("# viewport_handle is remapped after each layout VIEWPORT is recreated")
+    lines.append("for _layout_name in _paper_layout_names:")
+    lines.append(
+        "    _layout_create_attribs = dict("
+        "_paper_layout_dxfattribs.get(_layout_name, {}))"
+    )
+    lines.append('    _layout_create_attribs.pop("viewport_handle", None)')
+    lines.append("    if _layout_name not in doc.layouts:")
+    lines.append("        doc.new_layout(_layout_name, dxfattribs=_layout_create_attribs)")
+    lines.append("for _layout_name in list(doc.layouts.names()):")
+    lines.append(
+        "    if _layout_name not in ('Model', 'Model_Space') "
+        "and _layout_name not in _paper_layout_names: "
+        "doc.delete_layout(_layout_name)"
+    )
+    lines.append("_layout_block_renames = []")
+    lines.append("for _layout_name, _target_block_name in _paper_layout_block_record_names.items():")
+    lines.append("    if _layout_name not in doc.layouts or not _target_block_name:")
+    lines.append("        continue")
+    lines.append("    _layout = doc.layout(_layout_name)")
+    lines.append("    _current_block_name = _layout.block_record.dxf.name")
+    lines.append("    if _current_block_name == _target_block_name:")
+    lines.append("        continue")
+    lines.append("    _tmp_block_name = f'*DXF2CODE_LAYOUT_TMP_{len(_layout_block_renames)}'")
+    lines.append("    while _tmp_block_name in doc.blocks:")
+    lines.append("        _tmp_block_name += '_'")
+    lines.append("    doc.blocks.rename_block(_current_block_name, _tmp_block_name)")
+    lines.append("    _layout_block_renames.append((_tmp_block_name, _target_block_name))")
+    lines.append("for _tmp_block_name, _target_block_name in _layout_block_renames:")
+    lines.append("    if _target_block_name not in doc.blocks:")
+    lines.append("        doc.blocks.rename_block(_tmp_block_name, _target_block_name)")
+    if active_paper_layout_name:
+        lines.append(
+            f"if {active_paper_layout_name!r} in doc.layouts: "
+            f"doc.layouts.set_active_layout({active_paper_layout_name!r})"
+        )
+    for layout_name in paper_layout_names:
+        lines.append(
+            f"_layout_dxfattribs = _paper_layout_dxfattribs.get({layout_name!r}, {{}})"
+        )
+        lines.append(
+            '_layout_viewport_handle = _layout_dxfattribs.get("viewport_handle", "")'
+        )
+        lines.append(
+            "_layout_update_attribs = {k: v for k, v in "
+            "_layout_dxfattribs.items() if k != 'viewport_handle'}"
+        )
+        lines.append(f"psp = doc.layout({layout_name!r})")
+        lines.append("psp.dxf.update(_layout_update_attribs, ignore_errors=True)")
+        lines.append("psp.delete_all_entities()")
+        for name, code in paper_layout_codes:
+            if name != layout_name:
+                continue
+            lines.extend(code.code)
+            lines.append("rt.register_entity_map(_entity_map)")
+        lines.append("_layout_viewport = _entity_map.get(_layout_viewport_handle)")
+        lines.append("if _layout_viewport is None:")
+        lines.append("    # Minimal or repaired layouts may only expose the recreated VIEWPORT")
+        lines.append(
+            '    _layout_viewport = next((e for e in psp if e.dxftype() == "VIEWPORT"), None)'
+        )
+        lines.append(
+            'if _layout_viewport is not None and _layout_viewport.dxftype() == "VIEWPORT":'
+        )
+        lines.append("    psp.dxf.viewport_handle = _layout_viewport.dxf.handle")
+        lines.append("")
+    lines.append("# restore source ACAD_LAYOUT dictionary order")
+    lines.append(f"rt.restore_layout_order({layout_dictionary_order!r})")
+    lines.append("")
+
+
+def _emit_acad_table_geometry_blocks(
+    lines: list[str], acad_table_geometry_block_codes: list[tuple[str, Code]]
+) -> None:
+    if not acad_table_geometry_block_codes:
+        return
+
+    lines.append("# restore ACAD_TABLE geometry block contents")
+    for block_name, code in acad_table_geometry_block_codes:
+        lines.append(f"_table_block = doc.blocks.get({block_name!r})")
+        lines.append("if _table_block is not None:")
+        lines.append("    _table_block.delete_all_entities()")
+        lines.extend(f"    {line}" for line in code.code)
+        lines.append("    rt.register_entity_map(_entity_map)")
+    lines.append("")
+
+
+def _emit_groups(lines: list[str], group_specs: list[GroupSpec]) -> None:
+    if not group_specs:
+        return
+
+    group_data = [
+        (
+            spec.name,
+            spec.handles,
+            spec.description,
+            spec.selectable,
+            spec.unnamed,
+        )
+        for spec in group_specs
+    ]
+    lines.append("# restore GROUPS")
+    lines.append(f"_group_specs = {group_data!r}")
+    lines.append(
+        "for _group_name, _group_handles, _group_description, _group_selectable, _group_unnamed in _group_specs:"
+    )
+    lines.append(
+        "    _group_entities = [rt.source_entity_map[_handle] "
+        "for _handle in _group_handles if _handle in rt.source_entity_map]"
+    )
+    lines.append("    if not _group_entities: continue")
+    lines.append("    if _group_name in doc.groups: doc.groups.delete(_group_name)")
+    lines.append(
+        "    _group = doc.groups.new(_group_name, description=_group_description, selectable=_group_selectable)"
+    )
+    lines.append("    _group.dxf.unnamed = _group_unnamed")
+    lines.append("    _group.set_data(_group_entities)")
+    lines.append("")
+
+
+def _emit_final_cleanup(
+    lines: list[str],
+    *,
+    doc,
+    header_state,
+    header_custom_vars,
+    material_name,
+    interfere_handles,
+    raw_header_overrides,
+    raw_classes,
+) -> None:
+    lines.append("# restore header state and classes")
+    lines.append(f"doc.encoding = {doc.encoding!r}")
+    lines.append(f"_header_state = {header_state!r}")
+    lines.append("for _name, _value in _header_state.items():")
+    lines.append("    doc.header[_name] = _value")
+    lines.append("doc.header.custom_vars.clear()")
+    for tag, value in header_custom_vars:
+        lines.append(f"doc.header.custom_vars.append({tag!r}, {value!r})")
+    if material_name is not None:
+        lines.append(f"_mat = doc.materials.get({material_name!r})")
+        lines.append("if _mat is not None:")
+        lines.append('    doc.header["$CMATERIAL"] = _mat.dxf.handle')
+    for ref in interfere_handles:
+        lines.append(f"_mapped = rt.mapped_handle({ref.handle!r})")
+        lines.append(f"if _mapped is not None: doc.header[{ref.name!r}] = _mapped")
+    if raw_header_overrides:
+        lines.append(f"restore_raw_header_vars(doc.header, {raw_header_overrides!r})")
+    lines.append(f"restore_raw_classes(doc.classes, {raw_classes!r})")
+    lines.append("sync_raw_acad_table_geometry_btrs(doc)")
+    lines.append("sync_layer_annotation_scale_xrecords(doc)")
+    lines.append("sync_extension_dict_owners(doc)")
+    lines.append("normalize_unresolved_xdata_handles(doc)")
+    lines.append("remove_stale_hatch_associations(doc)")
+    lines.append("replace_dynamic_block_acad_tables_with_blockrefs(doc)")
+    lines.append("ensure_insert_seqends(doc)")
+    lines.append("sync_handseed(doc)")
+
+
 def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path) -> str:
     doc = data["doc"]
     blocks = data["blocks"]
     block_codes = data["block_codes"]
     block_layout_entity_snapshots = data["block_layout_entity_snapshots"]
-    layout_names = data["layout_names"]
+    layout_dictionary_order = data["layout_dictionary_order"]
     paper_layout_names = data["paper_layout_names"]
     active_paper_layout_name = data["active_paper_layout_name"]
     paper_layout_dxfattribs = data["paper_layout_dxfattribs"]
     paper_layout_block_record_names = data["paper_layout_block_record_names"]
     paper_layout_codes = data["paper_layout_codes"]
-    table_geometry_block_codes = data["table_geometry_block_codes"]
+    acad_table_geometry_block_codes = data["acad_table_geometry_block_codes"]
     msp_code = data["msp_code"]
     imports = data["imports"]
     resource_code = data["resource_code"]
@@ -249,88 +428,15 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
             )
     lines.append("")
 
-    if paper_layout_names:
-        lines.append("# paperspace layouts")
-        lines.append(f"_paper_layout_names = {paper_layout_names!r}")
-        lines.append(f"_paper_layout_dxfattribs = {paper_layout_dxfattribs!r}")
-        lines.append(
-            f"_paper_layout_block_record_names = {paper_layout_block_record_names!r}"
-        )
-        lines.append("# viewport_handle is remapped after each layout VIEWPORT is recreated")
-        lines.append("for _layout_name in _paper_layout_names:")
-        lines.append(
-            "    _layout_create_attribs = dict(_paper_layout_dxfattribs.get(_layout_name, {}))"
-        )
-        lines.append('    _layout_create_attribs.pop("viewport_handle", None)')
-        lines.append("    if _layout_name not in doc.layouts:")
-        lines.append(
-            "        doc.new_layout(_layout_name, dxfattribs=_layout_create_attribs)"
-        )
-        lines.append("for _layout_name in list(doc.layouts.names()):")
-        lines.append(
-            "    if _layout_name not in ('Model', 'Model_Space') and _layout_name not in _paper_layout_names: doc.delete_layout(_layout_name)"
-        )
-        lines.append("_layout_block_renames = []")
-        lines.append("for _layout_name, _target_block_name in _paper_layout_block_record_names.items():")
-        lines.append("    if _layout_name not in doc.layouts or not _target_block_name:")
-        lines.append("        continue")
-        lines.append("    _layout = doc.layout(_layout_name)")
-        lines.append("    _current_block_name = _layout.block_record.dxf.name")
-        lines.append("    if _current_block_name == _target_block_name:")
-        lines.append("        continue")
-        lines.append("    _tmp_block_name = f'*DXF2CODE_LAYOUT_TMP_{len(_layout_block_renames)}'")
-        lines.append("    while _tmp_block_name in doc.blocks:")
-        lines.append("        _tmp_block_name += '_'")
-        lines.append("    doc.blocks.rename_block(_current_block_name, _tmp_block_name)")
-        lines.append("    _layout_block_renames.append((_tmp_block_name, _target_block_name))")
-        lines.append("for _tmp_block_name, _target_block_name in _layout_block_renames:")
-        lines.append("    if _target_block_name not in doc.blocks:")
-        lines.append("        doc.blocks.rename_block(_tmp_block_name, _target_block_name)")
-        if active_paper_layout_name:
-            lines.append(
-                f"if {active_paper_layout_name!r} in doc.layouts: doc.layouts.set_active_layout({active_paper_layout_name!r})"
-            )
-        for layout_name in paper_layout_names:
-            lines.append(
-                f"_layout_dxfattribs = _paper_layout_dxfattribs.get({layout_name!r}, {{}})"
-            )
-            lines.append(
-                '_layout_viewport_handle = _layout_dxfattribs.get("viewport_handle", "")'
-            )
-            lines.append(
-                "_layout_update_attribs = {k: v for k, v in _layout_dxfattribs.items() if k != 'viewport_handle'}"
-            )
-            lines.append(f'psp = doc.layout({layout_name!r})')
-            lines.append("psp.dxf.update(_layout_update_attribs, ignore_errors=True)")
-            lines.append("psp.delete_all_entities()")
-            for name, code in paper_layout_codes:
-                if name != layout_name:
-                    continue
-                lines.extend(code.code)
-                lines.append("rt.register_entity_map(_entity_map)")
-            lines.append("_layout_viewport = _entity_map.get(_layout_viewport_handle)")
-            lines.append("if _layout_viewport is None:")
-            lines.append("    # Minimal or repaired layouts may only expose the recreated VIEWPORT")
-            lines.append(
-                '    _layout_viewport = next((e for e in psp if e.dxftype() == "VIEWPORT"), None)'
-            )
-            lines.append(
-                'if _layout_viewport is not None and _layout_viewport.dxftype() == "VIEWPORT":'
-            )
-            lines.append("    psp.dxf.viewport_handle = _layout_viewport.dxf.handle")
-            lines.append("")
-        lines.append("# restore source ACAD_LAYOUT dictionary order")
-        lines.append(f"_layout_order = {layout_names!r}")
-        lines.append("rt.reorder_dictionary_entries(doc.layouts._dxf_layouts, _layout_order)")
-        lines.append("_ordered_layouts = {}")
-        lines.append("for _layout_name in _layout_order:")
-        lines.append("    if _layout_name in doc.layouts:")
-        lines.append("        _ordered_layouts[_layout_name.upper()] = doc.layouts.get(_layout_name)")
-        lines.append("for _layout_key, _layout in doc.layouts._layouts.items():")
-        lines.append("    if _layout_key not in _ordered_layouts:")
-        lines.append("        _ordered_layouts[_layout_key] = _layout")
-        lines.append("doc.layouts._layouts = _ordered_layouts")
-        lines.append("")
+    _emit_paper_layouts(
+        lines,
+        layout_dictionary_order=layout_dictionary_order,
+        paper_layout_names=paper_layout_names,
+        active_paper_layout_name=active_paper_layout_name,
+        paper_layout_dxfattribs=paper_layout_dxfattribs,
+        paper_layout_block_record_names=paper_layout_block_record_names,
+        paper_layout_codes=paper_layout_codes,
+    )
 
     if sortents_by_block:
         for spec in sortents_by_block:
@@ -364,42 +470,8 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     lines.extend(msp_code.code)
     lines.append("rt.register_entity_map(_entity_map)")
     lines.append("")
-    if table_geometry_block_codes:
-        lines.append("# restore ACAD_TABLE geometry block contents")
-        for block_name, code in table_geometry_block_codes:
-            lines.append(f"_table_block = doc.blocks.get({block_name!r})")
-            lines.append("if _table_block is not None:")
-            lines.append("    _table_block.delete_all_entities()")
-            lines.extend(f"    {line}" for line in code.code)
-            lines.append("    rt.register_entity_map(_entity_map)")
-        lines.append("")
-    if group_specs:
-        group_data = [
-            (
-                spec.name,
-                spec.handles,
-                spec.description,
-                spec.selectable,
-                spec.unnamed,
-            )
-            for spec in group_specs
-        ]
-        lines.append("# restore GROUPS")
-        lines.append(f"_group_specs = {group_data!r}")
-        lines.append(
-            "for _group_name, _group_handles, _group_description, _group_selectable, _group_unnamed in _group_specs:"
-        )
-        lines.append(
-            "    _group_entities = [rt.source_entity_map[_handle] for _handle in _group_handles if _handle in rt.source_entity_map]"
-        )
-        lines.append("    if not _group_entities: continue")
-        lines.append("    if _group_name in doc.groups: doc.groups.delete(_group_name)")
-        lines.append(
-            "    _group = doc.groups.new(_group_name, description=_group_description, selectable=_group_selectable)"
-        )
-        lines.append("    _group.dxf.unnamed = _group_unnamed")
-        lines.append("    _group.set_data(_group_entities)")
-        lines.append("")
+    _emit_acad_table_geometry_blocks(lines, acad_table_geometry_block_codes)
+    _emit_groups(lines, group_specs)
     if source_fieldlist_handles:
         lines.append("# restore FIELDLIST")
         lines.append("_field_list = doc.objects.setup_field_list()")
@@ -455,32 +527,16 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         lines.append("# restore MLEADER entity style handles")
         lines.append(f"rt.restore_mleader_entity_styles({mleader_entity_style_refs!r})")
         lines.append("")
-    lines.append("# restore header state and classes")
-    lines.append(f"doc.encoding = {doc.encoding!r}")
-    lines.append(f"_header_state = {header_state!r}")
-    lines.append("for _name, _value in _header_state.items():")
-    lines.append("    doc.header[_name] = _value")
-    lines.append("doc.header.custom_vars.clear()")
-    for tag, value in header_custom_vars:
-        lines.append(f"doc.header.custom_vars.append({tag!r}, {value!r})")
-    if material_name is not None:
-        lines.append(f'_mat = doc.materials.get({material_name!r})')
-        lines.append('if _mat is not None:')
-        lines.append('    doc.header["$CMATERIAL"] = _mat.dxf.handle')
-    for ref in interfere_handles:
-        lines.append(f'_mapped = rt.mapped_handle({ref.handle!r})')
-        lines.append(f'if _mapped is not None: doc.header[{ref.name!r}] = _mapped')
-    if raw_header_overrides:
-        lines.append(f"restore_raw_header_vars(doc.header, {raw_header_overrides!r})")
-    lines.append(f"restore_raw_classes(doc.classes, {raw_classes!r})")
-    lines.append("sync_raw_acad_table_geometry_btrs(doc)")
-    lines.append("sync_layer_annotation_scale_xrecords(doc)")
-    lines.append("sync_extension_dict_owners(doc)")
-    lines.append("normalize_unresolved_xdata_handles(doc)")
-    lines.append("remove_stale_hatch_associations(doc)")
-    lines.append("replace_dynamic_block_acad_tables_with_blockrefs(doc)")
-    lines.append("ensure_insert_seqends(doc)")
-    lines.append("sync_handseed(doc)")
+    _emit_final_cleanup(
+        lines,
+        doc=doc,
+        header_state=header_state,
+        header_custom_vars=header_custom_vars,
+        material_name=material_name,
+        interfere_handles=interfere_handles,
+        raw_header_overrides=raw_header_overrides,
+        raw_classes=raw_classes,
+    )
     lines.append("")
     lines.append("doc.saveas(OUT)")
     lines.append("print(OUT)")
