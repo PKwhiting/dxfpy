@@ -434,11 +434,15 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     selected_styles = _names(doc.styles) - _names(default_doc.styles)
     selected_dimstyles = _names(doc.dimstyles) - _names(default_doc.dimstyles)
     selected_appids = _names(doc.appids) - _names(default_doc.appids)
+    selected_table_styles = set(doc.table_styles.object_dict.keys()) - set(
+        default_doc.table_styles.object_dict.keys()
+    )
     added_layers: set[str] = set()
     added_linetypes: set[str] = set()
     added_styles: set[str] = set()
     added_dimstyles: set[str] = set()
     added_appids: set[str] = set()
+    added_table_styles: set[str] = set()
     resource_code = None
 
     while True:
@@ -469,6 +473,11 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
             if entity is not None:
                 resource_entities.append(entity)
             added_appids.add(name)
+        for name in sorted(selected_table_styles - added_table_styles):
+            entity = doc.table_styles.get(name)
+            if entity is not None:
+                resource_entities.append(entity)
+            added_table_styles.add(name)
 
         resource_code = (
             table_entries_to_code(resource_entities, drawing="doc")

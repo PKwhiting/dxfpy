@@ -37,7 +37,7 @@ if TYPE_CHECKING:
         Spline,
         Wipeout,
     )
-    from ezdxf.entities.acad_table import AcadTableCell
+    from ezdxf.entities.acad_table import AcadTableCell, AcadTableData
     from ezdxf.entities.dxfobj import Field
     from ezdxf.entities.polygon import DXFPolygon
 
@@ -2365,19 +2365,15 @@ class _SourceCodeGenerator:
                 )
 
     def _acad_table(self, entity: DXFEntity) -> None:
+        """Emit replay code for an ``ACAD_TABLE`` entity."""
         data = getattr(entity, "data", None)
-        if data is None:
-            self.add_source_code_line('# unsupported DXF entity "ACAD_TABLE"')
-            return
         profile = _AcadTableReplayClassifier().profile(entity)
         self._emit_acad_table_replay_profile_comment(profile)
 
+        rows, cols = self._acad_table_shape(entity)
         style = getattr(entity, "get_table_style", lambda: None)()
         style_name = style.dxf.name if style is not None else "Standard"
-        if style_name != "Standard":
-            self.add_source_code_line(
-                f"# ACAD_TABLE requires TABLESTYLE {json.dumps(style_name)} in target doc"
-            )
+        self._emit_acad_table_style_setup(style_name)
 
         dxfattribs = _purge_handles(entity.dxfattribs())
         insert = dxfattribs.pop("insert", (0, 0, 0))
@@ -2398,27 +2394,20 @@ class _SourceCodeGenerator:
             dxfattribs.pop(key, None)
         self.add_used_resources(dxfattribs)
 
-        content: list[list[str]] = []
-        for row in data.rows():
-            content.append([
-                (
-                    self._field_display_text(entity.get_cell_primary_field(cell.row, cell.col))
-                    if cell.is_text_cell and cell.field_handle is not None and entity.get_cell_primary_field(cell.row, cell.col) is not None
-                    else cell.text if cell.is_text_cell else ""
-                )
-                for cell in row
-            ])
+        content = self._acad_table_content(entity, data, rows, cols)
 
         self.add_source_code_line(f"e = {self.layout}.add_table(")
         self.add_source_code_line(f"    {self._format_python_value(insert)},")
         self.add_source_code_line(f"    {self._format_python_value(content)},")
         if style_name != "Standard":
             self.add_source_code_line(f"    style_name={json.dumps(style_name)},")
+        row_heights = self._acad_table_row_heights(data, rows)
+        col_widths = self._acad_table_col_widths(data, cols)
         self.add_source_code_line(
-            f"    row_heights={self._format_python_value(data.row_heights)},"
+            f"    row_heights={self._format_python_value(row_heights)},"
         )
         self.add_source_code_line(
-            f"    col_widths={self._format_python_value(data.col_widths)},"
+            f"    col_widths={self._format_python_value(col_widths)},"
         )
         self.add_source_code_line("    dxfattribs={")
         self.add_source_code_lines(_fmt_mapping(dxfattribs, indent=8))
@@ -2427,8 +2416,75 @@ class _SourceCodeGenerator:
 
         self._emit_acad_table_geometry_name(entity)
         self._emit_acad_table_dxf_scalar_state(entity)
-        self._emit_acad_table_mutations(entity)
-        self._schedule_acad_table_fields(entity)
+        if data is not None:
+            self._emit_acad_table_mutations(entity)
+            self._schedule_acad_table_fields(entity)
+
+    def _emit_acad_table_style_setup(self, style_name: str) -> None:
+        """Ensure a custom ``TABLESTYLE`` exists before table replay."""
+        if style_name == "Standard":
+            return
+        name_literal = json.dumps(style_name)
+        self.add_source_code_line(
+            f"# ACAD_TABLE requires TABLESTYLE {name_literal} in target doc"
+        )
+        self.add_source_code_line(
+            f"if {name_literal} not in {self.doc}.table_styles:"
+        )
+        self.add_source_code_line(
+            f"    {self.doc}.table_styles.duplicate_entry('Standard', "
+            f"{name_literal})"
+        )
+
+    @staticmethod
+    def _acad_table_shape(entity: DXFEntity) -> tuple[int, int]:
+        """Return a safe row/column shape for high-level table replay."""
+        rows = int(entity.dxf.get("n_rows", 1) or 1)
+        cols = int(entity.dxf.get("n_cols", 1) or 1)
+        return max(rows, 1), max(cols, 1)
+
+    def _acad_table_content(
+        self, entity: DXFEntity, data: AcadTableData | None, rows: int, cols: int
+    ) -> list[list[str]]:
+        """Return text content for semantic replay or a raw-fallback anchor."""
+        if data is None:
+            return [["" for _ in range(cols)] for _ in range(rows)]
+        return [self._acad_table_row_content(entity, row) for row in data.rows()]
+
+    def _acad_table_row_content(
+        self, entity: DXFEntity, row: Sequence[AcadTableCell]
+    ) -> list[str]:
+        """Return text content for one semantic table row."""
+        return [self._acad_table_cell_content(entity, cell) for cell in row]
+
+    def _acad_table_cell_content(
+        self, entity: DXFEntity, cell: AcadTableCell
+    ) -> str:
+        """Return replay text for one semantic table cell."""
+        if not cell.is_text_cell:
+            return ""
+        if cell.field_handle is None:
+            return cell.text
+        primary = entity.get_cell_primary_field(cell.row, cell.col)
+        return self._field_display_text(primary) if primary is not None else cell.text
+
+    @staticmethod
+    def _acad_table_row_heights(
+        data: AcadTableData | None, rows: int
+    ) -> list[float]:
+        """Return row heights for table replay."""
+        if data is not None:
+            return data.row_heights
+        if rows >= 3:
+            return [11.0, 9.0] + [9.0] * (rows - 2)
+        return [9.0] * rows
+
+    @staticmethod
+    def _acad_table_col_widths(data: AcadTableData | None, cols: int) -> list[float]:
+        """Return column widths for table replay."""
+        if data is not None:
+            return data.col_widths
+        return [63.5] * cols
 
     def _emit_acad_table_replay_profile_comment(
         self, profile: _AcadTableReplayProfile
@@ -3198,6 +3254,27 @@ class _SourceCodeGenerator:
         self.add_source_code_line(f"t = {self.doc}.appids.get({json.dumps(name)})")
         self._emit_entity_xdata(appid, var_name="t")
         self._emit_raw_resource_entry_restore(appid, var_name="t")
+
+    def _tablestyle(self, style: DXFEntity) -> None:
+        """Emit replay code for a root-owned ``TABLESTYLE`` resource."""
+        name = style.dxf.name
+        name_literal = json.dumps(name)
+        if name != "Standard":
+            self.add_source_code_line(
+                f"if {name_literal} not in {self.doc}.table_styles:"
+            )
+            self.add_source_code_line(
+                f"    t = {self.doc}.table_styles.duplicate_entry('Standard', "
+                f"{name_literal})"
+            )
+            self.add_source_code_line("else:")
+            self.add_source_code_line(
+                f"    t = {self.doc}.table_styles.get({name_literal})"
+            )
+        else:
+            self.add_source_code_line(f"t = {self.doc}.table_styles.get('Standard')")
+        self._emit_raw_resource_entry_restore(style, var_name="t")
+        self.add_source_code_line("e = t")
 
     def _vport(self, entity: DXFEntity) -> None:
         dxfattribs = _purge_handles(entity.dxfattribs())

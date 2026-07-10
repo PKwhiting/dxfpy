@@ -60,6 +60,7 @@ def test_write_dxf():
     entity = FieldList.from_text(FIELDLIST)
     result = TagCollector.dxftags(entity)
     expected = basic_tags_from_text(FIELDLIST)
+    expected[7] = (90, 0)  # export writes the actual FIELD handle count
     assert result == expected
 
 

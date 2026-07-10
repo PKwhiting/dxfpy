@@ -596,6 +596,42 @@ def test_acad_table_geometry_block_name_to_code():
     assert new_table.dxf.block_record_handle == geometry_block.block_record_handle
 
 
+def test_acad_table_missing_data_uses_replay_anchor_to_code() -> None:
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A"]])
+    table.data = None
+
+    code = entities_to_code(source_doc.modelspace(), layout="msp")
+    target_doc = ezdxf.new("R2018")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(code, namespace)
+    new_table = next(
+        entity for entity in namespace["msp"] if entity.dxftype() == "ACAD_TABLE"
+    )
+
+    assert "# complex ACAD_TABLE replay profile: missing-table-data" in str(code)
+    assert '# unsupported DXF entity "ACAD_TABLE"' not in str(code)
+    assert new_table.dxf.n_rows == table.dxf.n_rows
+    assert new_table.dxf.n_cols == table.dxf.n_cols
+
+
+def test_acad_table_custom_table_style_to_code_creates_style() -> None:
+    source_doc = ezdxf.new("R2018")
+    source_doc.table_styles.duplicate_entry("Standard", "CustomTable")
+    source_msp = source_doc.modelspace()
+    source_msp.add_table((0, 0), [["A"]], style_name="CustomTable")
+
+    target_doc = ezdxf.new("R2018")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(entities_to_code(source_msp, layout="msp"), namespace)
+    new_table = next(
+        entity for entity in namespace["msp"] if entity.dxftype() == "ACAD_TABLE"
+    )
+
+    assert target_doc.table_styles.get("CustomTable") is not None
+    assert new_table.get_table_style().dxf.name == "CustomTable"
+
+
 def test_acad_table_replay_profile_flags_merged_shape() -> None:
     source_doc = ezdxf.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])

@@ -1075,6 +1075,33 @@ def test_document_to_code_file_preserves_acad_table_geometry_block_name(tmp_path
     assert out_table.dxf.block_record_handle == out_geometry.block_record_handle
 
 
+def test_document_to_code_file_replays_custom_acad_table_style(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    style = source_doc.table_styles.duplicate_entry("Standard", "CustomTable")
+    style.data.horizontal_cell_margin = 4.25
+    source_doc.modelspace().add_table((0, 0), [["A"]], style_name="CustomTable")
+
+    source_path = tmp_path / "source_custom_table_style.dxf"
+    script_path = tmp_path / "generated_custom_table_style.py"
+    output_path = tmp_path / "generated_custom_table_style.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    script_text = script_path.read_text(encoding="utf-8")
+    assert "TABLESTYLE\\n" in script_text
+    assert "4.25" in script_text
+    exec(script_text, {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_table = next(
+        entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE"
+    )
+    out_style = out_doc.table_styles.get("CustomTable")
+
+    assert out_style is not None
+    assert out_table.get_table_style().dxf.name == "CustomTable"
+
+
 def test_document_to_code_file_raw_fallback_preserves_complex_acad_table_shell(tmp_path):
     source_doc = ezdxf.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A", "B"], ["C", "D"]])
