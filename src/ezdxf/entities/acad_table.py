@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     from ezdxf.entities import DXFNamespace
     from ezdxf.lldxf.tagwriter import AbstractTagWriter
     from ezdxf.document import Drawing
+    from ezdxf.layouts import BlockLayout
+    from .mtext import MText
 
 __all__ = [
     "AcadTable",
@@ -1682,26 +1684,57 @@ class AcadTableBlockContent(DXFTagStorage):
                 return str(tag.value)
         return ""
 
-    def _capture_cell_field_state(self, cell: AcadTableCell) -> None:
-        from .dxfobj import Field
-
+    def _cell_primary_field_from_handle(self, cell: AcadTableCell) -> Field | None:
+        """Returns the live primary ``FIELD`` for a table cell."""
         if self.doc is None or cell.field_handle is None:
-            return
+            return None
         wrapper = self.doc.entitydb.get(cell.field_handle)
         if not isinstance(wrapper, Field) or not wrapper.is_alive:
-            return
+            return None
         primary = wrapper
         children = wrapper.get_child_fields()
         if wrapper.is_text_wrapper and len(children):
             primary = children[0]
         if not isinstance(primary, Field) or not primary.is_alive:
-            return
-        if cell.field_tags is None:
+            return None
+        return primary
+
+    def _capture_cell_field_state(
+        self, cell: AcadTableCell, *, force: bool = False
+    ) -> Field | None:
+        """Capture field tags and display text from the live cell field."""
+        primary = self._cell_primary_field_from_handle(cell)
+        if primary is None:
+            return None
+        if force or cell.field_tags is None:
             cell.field_tags = Tags(primary.tags)
         if len(cell.field_display_text) == 0:
             cell.field_display_text = self._extract_field_display_text(primary)
+        return primary
 
-    def _attach_cell_field_to_mtext(self, mtext, cell: AcadTableCell) -> None:
+    def _capture_rebuild_field_state(self) -> set[str]:
+        """Capture field-cell state and return child handles to preserve."""
+        preserved_handles: set[str] = set()
+        assert self.data is not None
+        for cell in self.data.cells:
+            if cell.field_handle is None:
+                continue
+            primary = self._capture_cell_field_state(cell, force=True)
+            if primary is not None:
+                preserved_handles.update(self._field_child_handles(primary))
+        return preserved_handles
+
+    @staticmethod
+    def _field_child_handles(field: Field) -> set[str]:
+        """Returns handles of child ``FIELD`` objects in a field tree."""
+        return {
+            child.dxf.handle
+            for child in field.get_field_tree()[1:]
+            if child.dxf.handle is not None
+        }
+
+    def _attach_cell_field_to_mtext(self, mtext: MText, cell: AcadTableCell) -> None:
+        """Attach a cell ``FIELD`` copy to a geometry MTEXT entity."""
         if self.doc is None:
             return
         if cell.field_tags is None:
@@ -1710,10 +1743,24 @@ class AcadTableBlockContent(DXFTagStorage):
             return
         field = self.doc.objects.add_field(owner="0")
         field.reset(cell.field_tags)
+        self._restore_field_child_ownership(field)
         wrapper = mtext.set_linked_field(field, text=cell.field_display_text)
         cell.field_handle = wrapper.dxf.handle
 
-    def _destroy_geometry_field_support(self, block) -> None:
+    @staticmethod
+    def _restore_field_child_ownership(field: Field) -> None:
+        """Set child ``FIELD`` owners to their parent FIELD handles."""
+        for parent in field.get_field_tree():
+            parent_handle = parent.dxf.handle
+            if parent_handle is None:
+                continue
+            for child in parent.get_child_fields():
+                child.dxf.owner = parent_handle
+
+    def _destroy_geometry_field_support(
+        self, block: BlockLayout, *, exclude_handles: Optional[Iterable[str]] = None
+    ) -> None:
+        """Delete geometry field trees while preserving selected handles."""
         if self.doc is None:
             return
         for mtext in list(block.query("MTEXT")):
@@ -1727,7 +1774,7 @@ class AcadTableBlockContent(DXFTagStorage):
             for key, entry in list(field_dict.items()):
                 if isinstance(entry, Field):
                     field_dict.discard(key)
-                    entry._delete_field_tree()
+                    entry._delete_field_tree(exclude_handles=exclude_handles)
 
     def _add_cell_blockref(self, block, cell: AcadTableCell) -> None:
         assert self.data is not None
@@ -1778,10 +1825,8 @@ class AcadTableBlockContent(DXFTagStorage):
         style = self.get_table_style()
         if style is None:
             raise const.DXFStructureError("ACAD_TABLE requires a valid TABLESTYLE")
-        for cell in self.data.cells:
-            if cell.field_handle is not None and cell.field_tags is None:
-                self._capture_cell_field_state(cell)
-        self._destroy_geometry_field_support(block)
+        preserve_handles = self._capture_rebuild_field_state()
+        self._destroy_geometry_field_support(block, exclude_handles=preserve_handles)
         block.delete_all_entities()
         self._build_text_table_geometry(block, style)
         self._sync_linked_table_content()
@@ -2340,22 +2385,33 @@ class AcadTableBlockContent(DXFTagStorage):
         )
         self.linked_data = table_content.linked_data
 
-    def _delete_table_field_roundtrip_support(self, table_content: TableContent) -> None:
+    def _delete_table_field_roundtrip_support(
+        self,
+        table_content: TableContent,
+        *,
+        exclude_handles: Optional[Iterable[str]] = None,
+    ) -> None:
         """Delete field copies owned by linked ``TABLECONTENT`` metadata."""
         if self.doc is None:
             return
         wrappers = [
             entity
             for entity in self.doc.objects
-            if isinstance(entity, Field) and entity.dxf.owner == table_content.dxf.handle
+            if isinstance(entity, Field)
+            and entity.dxf.owner == table_content.dxf.handle
         ]
         for wrapper in wrappers:
-            wrapper._delete_field_tree()
+            wrapper._delete_field_tree(exclude_handles=exclude_handles)
 
-    def _ensure_table_field_roundtrip_support(self, table_content: TableContent) -> dict[str, str]:
+    def _ensure_table_field_roundtrip_support(
+        self, table_content: TableContent
+    ) -> dict[str, str]:
         if self.doc is None or self.data is None:
             return {}
-        self._delete_table_field_roundtrip_support(table_content)
+        preserve_handles = self._capture_rebuild_field_state()
+        self._delete_table_field_roundtrip_support(
+            table_content, exclude_handles=preserve_handles
+        )
 
         field_list = self.doc.objects.setup_field_list()
         mapping: dict[str, str] = {}

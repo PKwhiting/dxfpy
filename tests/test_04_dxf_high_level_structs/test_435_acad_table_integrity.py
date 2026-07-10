@@ -379,6 +379,45 @@ def test_mixed_field_and_block_table_integrity_survives_roundtrip() -> None:
     loaded_inspector.assert_field_cell(2, 1, "AcExpr", "25.0000")
 
 
+def test_acexpr_field_children_survive_later_table_rebuilds() -> None:
+    doc = ezdxf.new("R2018")
+    msp = doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    circle = msp.add_circle((25, 0), 2.5)
+    table = msp.add_table(
+        (0, 0),
+        [["KIND", "VALUE"], ["Expression", "25.0000"], ["Later", "value"]],
+        col_widths=[30.0, 35.0],
+    )
+    length = Field()
+    length.set_acobjprop(line, "Length", value=10.0, display="10.0000")
+    radius = Field()
+    radius.set_acobjprop(circle, "Radius", value=2.5, display="2.5000")
+    table.new_cell_acexpr_field(
+        1,
+        1,
+        r"(%<\_FldIdx 0>%*%<\_FldIdx 1>%)",
+        [length, radius],
+        value=25.0,
+        text="25.0000",
+        register_field_list=True,
+    )
+
+    table.set_cell_alignment(2, 1, 5)
+
+    assert_acexpr_children(table, 1, 1, [[line.dxf.handle], [circle.dxf.handle]])
+    loaded = roundtrip(doc)
+    loaded_line, loaded_circle = loaded.modelspace().query("LINE CIRCLE")
+    loaded_table = single_modelspace_table(loaded)
+
+    assert_acexpr_children(
+        loaded_table,
+        1,
+        1,
+        [[loaded_line.dxf.handle], [loaded_circle.dxf.handle]],
+    )
+
+
 def test_attributed_block_cell_linked_integrity_survives_roundtrip() -> None:
     doc = ezdxf.new("R2018")
     table = build_mixed_roundtrip_table(doc)
@@ -494,6 +533,41 @@ def content_type(tags: list[DXFTag]) -> int | None:
     for tag in tags:
         if tag.code == 90:
             return int(tag.value)
+    return None
+
+
+def assert_acexpr_children(
+    table: AcadTableBlockContent,
+    row: int,
+    col: int,
+    expected_object_handles: list[list[str]],
+) -> None:
+    """Assert ACAD_TABLE and TABLECONTENT AcExpr child fields."""
+    primary = table.get_cell_primary_field(row, col)
+    assert primary is not None
+    assert primary.evaluator_id == "AcExpr"
+    children = primary.get_child_fields()
+    assert [child.object_handles for child in children] == expected_object_handles
+    linked = linked_field_primary(table, row, col)
+    assert linked is not None
+    assert linked.evaluator_id == "AcExpr"
+    assert linked.get_child_fields() == children
+
+
+def linked_field_primary(
+    table: AcadTableBlockContent, row: int, col: int
+) -> Field | None:
+    """Returns the TABLECONTENT primary FIELD copy for a cell."""
+    linked_cell = table.get_linked_cell(row, col)
+    for content in linked_cell.contents:
+        if content.content_type != 2 or content.block_record_handle is None:
+            continue
+        assert table.doc is not None
+        wrapper = table.doc.entitydb.get(content.block_record_handle)
+        if not isinstance(wrapper, Field):
+            return None
+        children = wrapper.get_child_fields()
+        return children[0] if wrapper.is_text_wrapper and children else wrapper
     return None
 
 
