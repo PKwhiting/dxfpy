@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from ezdxf.dynblkhelper import RawEntityExportSnapshot
     from ezdxf.entities.dxfobj import Field
 
-_RAW_GRAPH_HANDLE_CODES = (330, 331, 332, 333, 340, 360, 1005)
+_RAW_GRAPH_HANDLE_CODES = (330, 331, 332, 333, 340, 360, 361, 1005)
 _RAW_GRAPHIC_RESOURCE_CODES = (
     320,
     330,
@@ -42,6 +42,7 @@ _RAW_GRAPHIC_RESOURCE_CODES = (
     349,
     350,
     360,
+    361,
     390,
     1005,
 )
@@ -251,15 +252,20 @@ class DocumentCodegenRuntime:
         parent.add(key, obj)
         return obj
 
-    @staticmethod
     def _map_raw_graph_value(
-        value, entity_map: dict[str, DXFEntity], object_map: dict[str, DXFEntity]
+        self,
+        value,
+        entity_map: dict[str, DXFEntity],
+        object_map: dict[str, DXFEntity],
     ):
         if isinstance(value, str):
             if value in object_map:
                 return object_map[value].dxf.handle
             if value in entity_map:
                 return entity_map[value].dxf.handle
+            mapped = self.mapped_handle(value)
+            if mapped is not None:
+                return mapped
         return value
 
     def new_raw_graph_object(self, dxftype: str, owner: str):
@@ -508,11 +514,16 @@ class DocumentCodegenRuntime:
         root_subclasses: list[list[tuple[int, object]]],
         owned_specs: Sequence[OwnedObjectSpecData],
         entity_map: dict[str, DXFEntity],
+        *,
+        replace_existing: bool = False,
     ) -> None:
         xdict = host.get_extension_dict() if host.has_extension_dict else host.new_extension_dict()
         if dict_key in xdict.dictionary:
-            self.reorder_dictionary_entries(xdict.dictionary, dict_order)
-            return
+            if replace_existing:
+                self._delete_dictionary_entry_object_tree(xdict.dictionary, dict_key)
+            else:
+                self.reorder_dictionary_entries(xdict.dictionary, dict_order)
+                return
         object_map = {}
         root = self.new_raw_graph_object(root_dxftype, xdict.dictionary.dxf.handle)
         object_map[root_handle] = root
@@ -545,6 +556,50 @@ class DocumentCodegenRuntime:
         self.reorder_dictionary_entries(xdict.dictionary, dict_order)
         self._register_field_tree_handles(list(object_map.values()))
 
+    def replace_entity_xrecord_tree(
+        self,
+        host,
+        dict_key: str,
+        dict_order: list[str],
+        root_handle: str,
+        root_dxftype: str,
+        root_subclasses: list[list[tuple[int, object]]],
+        owned_specs: Sequence[OwnedObjectSpecData],
+        entity_map: dict[str, DXFEntity],
+    ) -> None:
+        """Replace one entity extension XRECORD tree from raw specs."""
+        self.rebuild_entity_xrecord_tree(
+            host,
+            dict_key,
+            dict_order,
+            root_handle,
+            root_dxftype,
+            root_subclasses,
+            owned_specs,
+            entity_map,
+            replace_existing=True,
+        )
+
+    def _delete_dictionary_entry_object_tree(self, dictionary, key: str) -> None:
+        """Delete a dictionary entry and recursively owned OBJECTS entries."""
+        root = dictionary.get(key)
+        dictionary.discard(key)
+        if root is not None:
+            self._delete_owned_object_tree(root)
+
+    def _delete_owned_object_tree(self, root: DXFEntity) -> None:
+        """Delete an OBJECTS-section object and recursively owned children."""
+        handle = root.dxf.get("handle")
+        if handle:
+            for obj in list(self.doc.objects):
+                dxf = getattr(obj, "dxf", None)
+                if dxf is not None and dxf.get("owner") == handle:
+                    self._delete_owned_object_tree(obj)
+        try:
+            self.doc.objects.delete_entity(root)
+        except Exception:
+            return
+
     def swap_raw_graphic_entity(
         self,
         block,
@@ -555,7 +610,11 @@ class DocumentCodegenRuntime:
         raw_tags: list[tuple[int, object]],
         source_xdata: list[list[tuple[int, object]]],
     ) -> None:
-        old = self.source_entity_map[source_handle]
+        if block is None:
+            return
+        old = self.source_entity_map.get(source_handle)
+        if old is None:
+            return
         xdict_handle = ""
         if source_xdict_handle and old.has_extension_dict:
             xdict_handle = old.get_extension_dict().dictionary.dxf.handle
@@ -567,14 +626,15 @@ class DocumentCodegenRuntime:
         mapped = [dxftag(0, old.dxftype()), dxftag(5, old.dxf.handle), dxftag(330, old.dxf.owner)]
         for code, value in raw_tags:
             if code in _RAW_GRAPHIC_RESOURCE_CODES and isinstance(value, str):
-                if value in resource_handle_map:
-                    value = resource_handle_map[value]
-                elif value == source_handle:
-                    value = old.dxf.handle
-                elif value == source_owner:
-                    value = old.dxf.owner
-                elif source_xdict_handle and value == source_xdict_handle and xdict_handle:
-                    value = xdict_handle
+                value = self._map_raw_graphic_entity_handle(
+                    value,
+                    resource_handle_map,
+                    source_handle,
+                    source_owner,
+                    source_xdict_handle,
+                    xdict_handle,
+                    old,
+                )
             if code in _BINARY_DATA_CODES and isinstance(value, str):
                 mapped.append(dxftag(code, bytes.fromhex(value)))
             elif code in _BINARY_DATA_CODES or isinstance(value, (tuple, list)):
@@ -604,7 +664,32 @@ class DocumentCodegenRuntime:
             new.set_xdata(appid, payload)
         if old.has_extension_dict:
             new.extension_dict = old.extension_dict
-        index = block.block_record.entity_space.entities.index(old)
+        try:
+            index = block.block_record.entity_space.entities.index(old)
+        except ValueError:
+            return
         block.block_record.entity_space.entities[index] = new
         self.doc.entitydb._database[old.dxf.handle] = new
         self.source_entity_map[source_handle] = new
+
+    def _map_raw_graphic_entity_handle(
+        self,
+        value: str,
+        resource_handle_map: dict[str, str],
+        source_handle: str,
+        source_owner: str,
+        source_xdict_handle: str,
+        xdict_handle: str,
+        old: DXFEntity,
+    ) -> str:
+        """Map a raw graphic-entity handle value to replay state."""
+        if value in resource_handle_map:
+            return resource_handle_map[value]
+        if value == source_handle:
+            return old.dxf.handle
+        if value == source_owner:
+            return old.dxf.owner
+        if source_xdict_handle and value == source_xdict_handle and xdict_handle:
+            return xdict_handle
+        mapped = self.mapped_handle(value)
+        return mapped if mapped is not None else value

@@ -94,6 +94,15 @@ class RawEntitySwapFallbackSpec:
 
 
 @dataclass(slots=True)
+class AcadTableRawFallbackSpec:
+    layout_kind: str
+    layout_name: str
+    table_handle: str
+    raw_swap: RawEntitySwapFallbackSpec
+    xrecord: EntityXRecordFallbackSpec | None
+
+
+@dataclass(slots=True)
 class VariableDictEntry:
     key: str
     value: str
@@ -189,5 +198,6 @@ class DocumentCodegenCapture(TypedDict):
     block_xdict_orders: dict[str, list[str]]
     group_specs: list[GroupSpec]
     entity_xrecord_fallbacks: dict[str, list[EntityXRecordFallbackSpec]]
+    acad_table_raw_fallbacks: list[AcadTableRawFallbackSpec]
     raw_graph_fallbacks: dict[str, RawGraphFallbackSpec]
     raw_entity_swap_fallbacks: dict[str, list[RawEntitySwapFallbackSpec]]

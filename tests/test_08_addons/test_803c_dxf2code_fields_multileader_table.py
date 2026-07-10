@@ -4,6 +4,8 @@ from io import StringIO
 
 import ezdxf
 from ezdxf.addons.dxf2code import block_to_code, entities_to_code
+from ezdxf.addons.dxf2code._acad_table import _AcadTableReplayClassifier
+from ezdxf.entities.acad_table import AcadTableLinkedCellContent
 from ezdxf.entities.dxfobj import Field
 from ezdxf.lldxf.extendedtags import ExtendedTags
 from ezdxf.lldxf.tagwriter import TagWriter
@@ -594,6 +596,69 @@ def test_acad_table_geometry_block_name_to_code():
     assert new_table.dxf.block_record_handle == geometry_block.block_record_handle
 
 
+def test_acad_table_replay_profile_flags_merged_shape() -> None:
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A"]])
+    cell = table.get_cell(0, 0)
+    cell.merged_value = 1
+    cell.border_width = 2
+
+    profile = _AcadTableReplayClassifier().profile(table)
+
+    assert profile.reasons == ("merged-cells",)
+
+
+def test_acad_table_replay_profile_flags_linked_content_gaps() -> None:
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A"]])
+    cell = table.get_cell(0, 0)
+    cell.linked_cell_contents = [
+        AcadTableLinkedCellContent(content_type=1, text="A"),
+        AcadTableLinkedCellContent(content_type=2, block_record_handle="FF"),
+    ]
+
+    profile = _AcadTableReplayClassifier().profile(table)
+
+    assert profile.reasons == (
+        "unsupported-linked-contents",
+        "unmirrored-linked-field",
+    )
+
+
+def test_acad_table_replay_profile_accepts_generated_linked_content(tmp_path) -> None:
+    source_doc = ezdxf.new("R2018")
+    msp = source_doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    block = source_doc.blocks.new("PROFILE_TABLE_BLOCK", base_point=(0, 0))
+    block.add_attdef("NAME", insert=(0, 0), text="unset")
+    table = msp.add_table((0, 0), [["FIELD", "BLOCK"], ["10.0000", ""]])
+    table.new_cell_acobjprop_field(
+        1, 0, line, "Length", text="10.0000", register_field_list=True
+    )
+    table.set_cell_block(1, 1, block.name, block_scale=1.0, alignment=5)
+    table.set_cell_block_attribs(1, 1, {"NAME": "Widget"})
+    source_path = tmp_path / "profile_linked_content.dxf"
+    source_doc.saveas(source_path)
+
+    loaded = ezdxf.readfile(source_path)
+    loaded_table = next(
+        entity for entity in loaded.modelspace() if entity.dxftype() == "ACAD_TABLE"
+    )
+    profile = _AcadTableReplayClassifier().profile(loaded_table)
+
+    assert profile.is_semantic_safe is True
+
+
+def test_complex_acad_table_to_code_emits_replay_profile_comment() -> None:
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A"]])
+    table.get_cell(0, 0).merged_value = 1
+
+    code = entities_to_code(source_doc.modelspace(), layout="msp")
+
+    assert "# complex ACAD_TABLE replay profile: merged-cells" in str(code)
+
+
 def test_acad_table_minimal_block_cell_to_code():
     source_doc = ezdxf.new("R2018")
     block = source_doc.blocks.new("TABLE_BLOCK_CELL_MIN", base_point=(0, 0))
@@ -656,6 +721,7 @@ def test_acad_table_mixed_field_and_attributed_block_cell_to_code() -> None:
         text="25.0000",
         register_field_list=True,
     )
+    assert _AcadTableReplayClassifier().profile(table).is_semantic_safe is True
 
     target_doc = ezdxf.new("R2018")
     namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}

@@ -15,10 +15,12 @@ from ezdxf.sections.classes import snapshot_raw_classes
 from ezdxf.sections.header import snapshot_raw_header_vars
 
 from ._api import block_to_code, entities_to_code, table_entries_to_code
+from ._acad_table import _AcadTableReplayClassifier
 from ._common import _maybe_get, _names, _sort_blocks
 from ._generator import _SourceCodeGenerator
 from ._specs import (
     AcadTableFieldHandleSpec,
+    AcadTableRawFallbackSpec,
     DocumentCodegenCapture,
     EntityXRecordFallbackSpec,
     ExtensionSnapshot,
@@ -197,6 +199,129 @@ def _owned_object_specs(doc, owner_handle: str) -> list[OwnedObjectSpec]:
             )
         )
         specs.extend(_owned_object_specs(doc, obj.dxf.handle))
+    return specs
+
+
+def _entity_xrecord_fallback_spec(
+    entity, key: str
+) -> EntityXRecordFallbackSpec | None:
+    """Return a raw XRECORD fallback spec for `entity` extension key."""
+    if not getattr(entity, "has_extension_dict", False):
+        return None
+    xdict = entity.get_extension_dict().dictionary
+    value = xdict.get(key)
+    if value is None or value.dxftype() != "XRECORD":
+        return None
+    return EntityXRecordFallbackSpec(
+        entity_handle=entity.dxf.handle,
+        dict_key=str(key),
+        dict_order=[str(name) for name in xdict.keys()],
+        root_handle=value.dxf.handle,
+        root_dxftype=value.dxftype(),
+        root_subclasses=_raw_object_subclasses(value),
+        owned_specs=_owned_object_specs(entity.doc, value.dxf.handle),
+    )
+
+
+def _entity_xrecord_fallback_specs(entity) -> list[EntityXRecordFallbackSpec]:
+    """Return raw XRECORD fallback specs for one entity."""
+    if not getattr(entity, "has_extension_dict", False):
+        return []
+    xdict = entity.get_extension_dict().dictionary
+    specs: list[EntityXRecordFallbackSpec] = []
+    for key, value in xdict.items():
+        if value.dxftype() != "XRECORD":
+            continue
+        specs.append(
+            EntityXRecordFallbackSpec(
+                entity_handle=entity.dxf.handle,
+                dict_key=str(key),
+                dict_order=[str(name) for name in xdict.keys()],
+                root_handle=value.dxf.handle,
+                root_dxftype=value.dxftype(),
+                root_subclasses=_raw_object_subclasses(value),
+                owned_specs=_owned_object_specs(entity.doc, value.dxf.handle),
+            )
+        )
+    return specs
+
+
+def _acad_table_raw_fallback_spec(
+    entity, layout_kind: str, layout_name: str
+) -> AcadTableRawFallbackSpec | None:
+    """Return a complex ACAD_TABLE raw fallback spec for document replay."""
+    if entity.dxftype() != "ACAD_TABLE":
+        return None
+    profile = _AcadTableReplayClassifier().profile(entity)
+    if profile.is_semantic_safe:
+        return None
+    handle = entity.dxf.get("handle")
+    owner = entity.dxf.get("owner")
+    if not handle or not owner:
+        return None
+    raw_swap = RawEntitySwapFallbackSpec(
+        source_handle=str(handle),
+        source_owner=str(owner),
+        source_xdict_handle=_entity_extension_dict_handle(entity),
+        source_resource_handles=_acad_table_resource_handle_refs(entity),
+        raw_tags=_entity_export_tags(entity),
+        xdata=_raw_xdata(entity),
+    )
+    return AcadTableRawFallbackSpec(
+        layout_kind=layout_kind,
+        layout_name=layout_name,
+        table_handle=str(handle),
+        raw_swap=raw_swap,
+        xrecord=_entity_xrecord_fallback_spec(entity, "ACAD_XREC_ROUNDTRIP"),
+    )
+
+
+def _entity_extension_dict_handle(entity) -> str:
+    """Return the extension dictionary handle for `entity`, if present."""
+    if not getattr(entity, "has_extension_dict", False):
+        return ""
+    return str(entity.get_extension_dict().dictionary.dxf.handle)
+
+
+def _acad_table_resource_handle_refs(entity) -> list[ResourceHandleRef]:
+    """Return source handles that can be remapped from replay table state."""
+    refs: list[ResourceHandleRef] = []
+    for key, value in entity.dxfattribs().items():
+        if key not in {"block_record_handle", "table_style_id"}:
+            continue
+        if isinstance(value, str) and value not in {"0", ""}:
+            refs.append(ResourceHandleRef(str(value), key))
+    return refs
+
+
+def _acad_table_raw_fallback_specs(
+    blocks, paper_layout_names: list[str], doc
+) -> list[AcadTableRawFallbackSpec]:
+    """Return raw fallback specs for complex ACAD_TABLE entities."""
+    specs: list[AcadTableRawFallbackSpec] = []
+    specs.extend(
+        _layout_acad_table_raw_fallback_specs(doc.modelspace(), "modelspace", "")
+    )
+    for layout_name in paper_layout_names:
+        specs.extend(
+            _layout_acad_table_raw_fallback_specs(
+                doc.layout(layout_name), "paperspace", layout_name
+            )
+        )
+    for block in blocks:
+        specs.extend(_layout_acad_table_raw_fallback_specs(block, "block", block.name))
+    return specs
+
+
+def _layout_acad_table_raw_fallback_specs(
+    layout, layout_kind: str, layout_name: str
+) -> list[AcadTableRawFallbackSpec]:
+    """Return complex ACAD_TABLE fallback specs for one layout/block."""
+    specs: list[AcadTableRawFallbackSpec] = []
+    for entity in layout:
+        spec = _acad_table_raw_fallback_spec(entity, layout_kind, layout_name)
+        if spec is not None:
+            specs.append(spec)
     return specs
 
 
@@ -628,25 +753,13 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
     for block in blocks:
         specs: list[EntityXRecordFallbackSpec] = []
         for entity in block:
-            if not getattr(entity, "has_extension_dict", False):
-                continue
-            xdict = entity.get_extension_dict().dictionary
-            for key, value in xdict.items():
-                if value.dxftype() != "XRECORD":
-                    continue
-                specs.append(
-                    EntityXRecordFallbackSpec(
-                        entity_handle=entity.dxf.handle,
-                        dict_key=str(key),
-                        dict_order=[str(name) for name in xdict.keys()],
-                        root_handle=value.dxf.handle,
-                        root_dxftype=value.dxftype(),
-                        root_subclasses=_raw_object_subclasses(value),
-                        owned_specs=_owned_object_specs(doc, value.dxf.handle),
-                    )
-                )
+            specs.extend(_entity_xrecord_fallback_specs(entity))
         if specs:
             entity_xrecord_fallbacks[block.name] = specs
+
+    acad_table_raw_fallbacks = _acad_table_raw_fallback_specs(
+        blocks, paper_layout_names, doc
+    )
 
     raw_graph_fallbacks: dict[str, RawGraphFallbackSpec] = {}
     for block in blocks:
@@ -819,6 +932,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "block_xdict_orders": block_xdict_orders,
         "group_specs": group_specs,
         "entity_xrecord_fallbacks": entity_xrecord_fallbacks,
+        "acad_table_raw_fallbacks": acad_table_raw_fallbacks,
         "raw_graph_fallbacks": raw_graph_fallbacks,
         "raw_entity_swap_fallbacks": raw_entity_swap_fallbacks,
     }

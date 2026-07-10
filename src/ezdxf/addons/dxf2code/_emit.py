@@ -5,10 +5,13 @@ from pathlib import Path
 from ._code import Code
 from ._specs import (
     AcadTableFieldHandleSpec,
+    AcadTableRawFallbackSpec,
     DocumentCodegenCapture,
+    EntityXRecordFallbackSpec,
     GroupSpec,
     OwnedObjectSpec,
     OwnedObjectSpecData,
+    RawEntitySwapFallbackSpec,
 )
 
 
@@ -22,6 +25,43 @@ def _owned_object_specs_literal(specs: list[OwnedObjectSpec]) -> list[OwnedObjec
         }
         for spec in specs
     ]
+
+
+def _resource_handle_refs_literal(spec: RawEntitySwapFallbackSpec) -> list[tuple[str, str]]:
+    """Return generated-code literals for raw entity resource handle refs."""
+    return [
+        (ref.source_handle, ref.attrib_name)
+        for ref in spec.source_resource_handles
+    ]
+
+
+def _raw_entity_swap_call(layout_expr: str, spec: RawEntitySwapFallbackSpec) -> str:
+    """Return a generated raw-entity swap call."""
+    return (
+        f"rt.swap_raw_graphic_entity({layout_expr}, {spec.source_handle!r}, "
+        f"{spec.source_owner!r}, {spec.source_xdict_handle!r}, "
+        f"{_resource_handle_refs_literal(spec)!r}, {spec.raw_tags!r}, "
+        f"{spec.xdata!r})"
+    )
+
+
+def _acad_table_fallback_layout_expr(spec: AcadTableRawFallbackSpec) -> str:
+    """Return a generated layout expression for an ACAD_TABLE fallback."""
+    if spec.layout_kind == "modelspace":
+        return "msp"
+    if spec.layout_kind == "paperspace":
+        return f"doc.layout({spec.layout_name!r})"
+    return f"doc.blocks.get({spec.layout_name!r})"
+
+
+def _replace_xrecord_tree_call(spec: EntityXRecordFallbackSpec) -> str:
+    """Return a generated XRECORD tree replacement call."""
+    owned_specs = _owned_object_specs_literal(spec.owned_specs)
+    return (
+        f"rt.replace_entity_xrecord_tree(_table, {spec.dict_key!r}, "
+        f"{spec.dict_order!r}, {spec.root_handle!r}, {spec.root_dxftype!r}, "
+        f"{spec.root_subclasses!r}, {owned_specs!r}, rt.source_entity_map)"
+    )
 
 
 def _emit_paper_layouts(
@@ -150,6 +190,23 @@ def _emit_acad_table_geometry_blocks(
         lines.append("")
 
 
+def _emit_acad_table_raw_fallbacks(
+    lines: list[str], specs: list[AcadTableRawFallbackSpec]
+) -> None:
+    """Emit raw fallback restore calls for complex ACAD_TABLE entities."""
+    if not specs:
+        return
+    lines.append("# restore complex ACAD_TABLE raw fallback")
+    for spec in specs:
+        if spec.xrecord is not None:
+            lines.append(f"_table = rt.source_entity_map.get({spec.table_handle!r})")
+            lines.append("if _table is not None:")
+            lines.append(f"    {_replace_xrecord_tree_call(spec.xrecord)}")
+        layout_expr = _acad_table_fallback_layout_expr(spec)
+        lines.append(_raw_entity_swap_call(layout_expr, spec.raw_swap))
+    lines.append("")
+
+
 def _emit_groups(lines: list[str], group_specs: list[GroupSpec]) -> None:
     if not group_specs:
         return
@@ -267,6 +324,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     block_xdict_orders = data["block_xdict_orders"]
     group_specs = data["group_specs"]
     entity_xrecord_fallbacks = data["entity_xrecord_fallbacks"]
+    acad_table_raw_fallbacks = data["acad_table_raw_fallbacks"]
     raw_graph_fallbacks = data["raw_graph_fallbacks"]
     raw_entity_swap_fallbacks = data["raw_entity_swap_fallbacks"]
     header_state = data["header_state"]
@@ -451,7 +509,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
         raw_specs = raw_entity_swap_fallbacks.get(block.name, [])
         for spec in raw_specs:
             raw_entity_swap_calls.append(
-                f'rt.swap_raw_graphic_entity(doc.blocks.get({block.name!r}), {spec.source_handle!r}, {spec.source_owner!r}, {spec.source_xdict_handle!r}, {[(ref.source_handle, ref.attrib_name) for ref in spec.source_resource_handles]!r}, {spec.raw_tags!r}, {spec.xdata!r})'
+                _raw_entity_swap_call(f"doc.blocks.get({block.name!r})", spec)
             )
     lines.append("")
 
@@ -500,6 +558,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     _emit_acad_table_geometry_blocks(
         lines, acad_table_geometry_block_codes, acad_table_field_handle_specs
     )
+    _emit_acad_table_raw_fallbacks(lines, acad_table_raw_fallbacks)
     _emit_groups(lines, group_specs)
     if source_fieldlist_handles:
         lines.append("# restore FIELDLIST")

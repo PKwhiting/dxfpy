@@ -1075,6 +1075,62 @@ def test_document_to_code_file_preserves_acad_table_geometry_block_name(tmp_path
     assert out_table.dxf.block_record_handle == out_geometry.block_record_handle
 
 
+def test_document_to_code_file_raw_fallback_preserves_complex_acad_table_shell(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    table = source_doc.modelspace().add_table((0, 0), [["A", "B"], ["C", "D"]])
+    cell = table.get_cell(0, 0)
+    cell.merged_value = 1
+    cell.border_width = 2
+    cell.border_height = 2
+    cell.rotation = 15.0
+
+    source_path = tmp_path / "source_complex_table_shell.dxf"
+    script_path = tmp_path / "generated_complex_table_shell.py"
+    output_path = tmp_path / "generated_complex_table_shell.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    script_text = script_path.read_text(encoding="utf-8")
+    assert "# restore complex ACAD_TABLE raw fallback" in script_text
+    exec(script_text, {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_table = next(
+        entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE"
+    )
+    out_cell = out_table.get_cell(0, 0)
+    out_geometry = out_doc.blocks.get(out_table.dxf.geometry)
+
+    assert out_cell.merged_value == 1
+    assert out_cell.border_width == 2
+    assert out_cell.border_height == 2
+    assert out_cell.rotation == 15.0
+    assert out_geometry is not None
+    assert out_table.dxf.block_record_handle == out_geometry.block_record_handle
+    assert out_doc.audit().has_errors is False
+
+
+def test_document_to_code_file_raw_fallback_preserves_paperspace_table(tmp_path):
+    source_doc = ezdxf.new("R2018")
+    layout = source_doc.layout("Layout1")
+    table = layout.add_table((0, 0), [["A"]])
+    table.get_cell(0, 0).merged_value = 1
+
+    source_path = tmp_path / "source_complex_paperspace_table.dxf"
+    script_path = tmp_path / "generated_complex_paperspace_table.py"
+    output_path = tmp_path / "generated_complex_paperspace_table.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    exec(script_path.read_text(encoding="utf-8"), {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_layout = out_doc.layout("Layout1")
+    out_table = next(entity for entity in out_layout if entity.dxftype() == "ACAD_TABLE")
+
+    assert out_table.get_cell(0, 0).merged_value == 1
+
+
 def test_document_to_code_file_replays_mixed_acad_table_fields(tmp_path):
     from ezdxf.entities import Field
 
@@ -1167,6 +1223,94 @@ def test_document_to_code_file_replays_mixed_acad_table_fields(tmp_path):
     assert set(field_list.handles) == live_field_handles
     assert auditor.has_errors is False
     assert auditor.fixes == []
+
+
+def test_document_to_code_file_raw_fallback_preserves_complex_acad_table_links(tmp_path):
+    from ezdxf.entities import Field
+
+    source_doc = ezdxf.new("R2018")
+    msp = source_doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    circle = msp.add_circle((5, 0), radius=2.5)
+    table = msp.add_table(
+        (0, 0),
+        [
+            ["CHECK", "VALUE"],
+            ["Length", "10.0000"],
+            ["Expression", "25.0000"],
+        ],
+        col_widths=[30.0, 38.0],
+    )
+    table.get_cell(0, 0).merged_value = 1
+    table.new_cell_acobjprop_field(
+        1, 1, line, "Length", text="10.0000", register_field_list=True
+    )
+    child1 = Field()
+    child1.set_acobjprop(line, "Length", value=10.0, display="10.0000")
+    child2 = Field()
+    child2.set_acobjprop(circle, "Radius", value=2.5, display="2.5000")
+    table.new_cell_acexpr_field(
+        2,
+        1,
+        "(%<\\_FldIdx 0>%*%<\\_FldIdx 1>%)",
+        [child1, child2],
+        value=25.0,
+        text="25.0000",
+        register_field_list=True,
+    )
+
+    source_path = tmp_path / "source_complex_table_links.dxf"
+    script_path = tmp_path / "generated_complex_table_links.py"
+    output_path = tmp_path / "generated_complex_table_links.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    script_text = script_path.read_text(encoding="utf-8")
+    assert "replace_entity_xrecord_tree" in script_text
+    exec(script_text, {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_line = next(
+        entity for entity in out_doc.modelspace() if entity.dxftype() == "LINE"
+    )
+    out_circle = next(
+        entity for entity in out_doc.modelspace() if entity.dxftype() == "CIRCLE"
+    )
+    out_table = next(
+        entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE"
+    )
+    xrecord = out_table.get_extension_dict().dictionary.get("ACAD_XREC_ROUNDTRIP")
+    table_content = out_doc.entitydb.get(_xrecord_handle(xrecord, 360))
+    table_geometry = out_doc.entitydb.get(_xrecord_handle(xrecord, 361))
+    expr_field = out_table.get_cell_primary_field(2, 1)
+    linked_content = next(
+        content
+        for content in out_table.get_linked_cell(2, 1).contents
+        if content.content_type == 2
+    )
+    linked_wrapper = out_doc.entitydb.get(linked_content.block_record_handle)
+    field_list = out_doc.objects.get_field_list()
+
+    assert table_content is not None and table_content.dxftype() == "TABLECONTENT"
+    assert table_geometry is not None and table_geometry.dxftype() == "TABLEGEOMETRY"
+    assert linked_wrapper is not None and linked_wrapper.dxftype() == "FIELD"
+    assert expr_field is not None
+    expr_children = expr_field.get_child_fields()
+    assert len(expr_children) == 2
+    assert expr_children[0].object_handles == [out_line.dxf.handle]
+    assert expr_children[1].object_handles == [out_circle.dxf.handle]
+    assert field_list is not None
+    assert all(out_doc.entitydb.get(handle) is not None for handle in field_list.handles)
+    auditor = out_doc.audit()
+    assert auditor.has_errors is False
+    assert auditor.fixes == []
+
+
+def _xrecord_handle(xrecord, code: int) -> str:
+    for tag in xrecord.tags:
+        if tag.code == code:
+            return str(tag.value)
+    raise AssertionError(f"XRECORD handle code {code} not found")
 
 
 def test_document_to_code_file_remaps_paper_layout_viewport_handle(tmp_path):

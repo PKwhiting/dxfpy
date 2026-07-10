@@ -11,6 +11,11 @@ from ezdxf.lldxf.types import is_pointer_code
 from ezdxf.render.arrows import ARROWS
 from ezdxf.sections.tables import TABLENAMES
 
+from ._acad_table import (
+    _ACAD_TABLE_FIELD_CONTENT_TYPE,
+    _AcadTableReplayClassifier,
+    _AcadTableReplayProfile,
+)
 from ._code import Code
 from ._format import _fmt_api_call, _fmt_dxf_tags, _fmt_list, _fmt_mapping, _purge_handles
 
@@ -35,9 +40,6 @@ if TYPE_CHECKING:
     from ezdxf.entities.acad_table import AcadTableCell
     from ezdxf.entities.dxfobj import Field
     from ezdxf.entities.polygon import DXFPolygon
-
-
-_ACAD_TABLE_FIELD_CONTENT_TYPE = 2
 
 
 @dataclass(frozen=True)
@@ -2367,6 +2369,8 @@ class _SourceCodeGenerator:
         if data is None:
             self.add_source_code_line('# unsupported DXF entity "ACAD_TABLE"')
             return
+        profile = _AcadTableReplayClassifier().profile(entity)
+        self._emit_acad_table_replay_profile_comment(profile)
 
         style = getattr(entity, "get_table_style", lambda: None)()
         style_name = style.dxf.name if style is not None else "Standard"
@@ -2425,6 +2429,16 @@ class _SourceCodeGenerator:
         self._emit_acad_table_dxf_scalar_state(entity)
         self._emit_acad_table_mutations(entity)
         self._schedule_acad_table_fields(entity)
+
+    def _emit_acad_table_replay_profile_comment(
+        self, profile: _AcadTableReplayProfile
+    ) -> None:
+        """Emit a comment for ACAD_TABLE shapes needing guarded replay."""
+        if profile.is_semantic_safe:
+            return
+        self.add_source_code_line(
+            f"# complex ACAD_TABLE replay profile: {profile.comment_text()}"
+        )
 
     def _emit_acad_table_geometry_name(self, entity: DXFEntity) -> None:
         geometry_name = entity.dxf.get("geometry")

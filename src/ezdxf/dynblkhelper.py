@@ -5924,7 +5924,10 @@ def sync_raw_acad_table_geometry_btrs(doc: Drawing) -> None:
     for entity in list(doc.entitydb.values()):
         if entity is None or not entity.is_alive or entity.dxftype() != "ACAD_TABLE":
             continue
-        geometry_name = entity.dxf.get("geometry")
+        try:
+            geometry_name = entity.dxf.get("geometry")
+        except const.DXFAttributeError:
+            geometry_name = None
         if geometry_name:
             block = doc.blocks.get(geometry_name)
             if block is not None and block.block_record_handle:
@@ -5946,7 +5949,10 @@ def replace_dynamic_block_acad_tables_with_blockrefs(doc: Drawing) -> None:
         for entity in list(block):
             if entity.dxftype() != "ACAD_TABLE":
                 continue
-            geometry_name = entity.dxf.get("geometry")
+            try:
+                geometry_name = entity.dxf.get("geometry")
+            except const.DXFAttributeError:
+                continue
             if not geometry_name or doc.blocks.get(geometry_name) is None:
                 continue
             replacements.append(
