@@ -21,6 +21,7 @@ from ._specs import OwnedObjectSpecData
 
 if TYPE_CHECKING:
     from ezdxf.dynblkhelper import RawEntityExportSnapshot
+    from ezdxf.entities.dxfobj import Field
 
 _RAW_GRAPH_HANDLE_CODES = (330, 331, 332, 333, 340, 360, 1005)
 _RAW_GRAPHIC_RESOURCE_CODES = (
@@ -45,6 +46,7 @@ _RAW_GRAPHIC_RESOURCE_CODES = (
     1005,
 )
 _BINARY_DATA_CODES = (310, 311, 312, 313, 314, 315, 316, 317, 318, 319)
+_ACAD_TABLE_FIELD_CONTENT_TYPE = 2
 
 
 class DocumentCodegenRuntime:
@@ -72,12 +74,18 @@ class DocumentCodegenRuntime:
         """Register source-to-target handles in the document global map."""
         global_mapping = _raw_object_handle_mapping(self.doc)
         for source_handle, entity in handle_map.items():
-            dxf = getattr(entity, "dxf", None)
-            if dxf is None:
-                continue
-            target_handle = dxf.get("handle")
+            target_handle = self._entity_handle(entity)
             if source_handle and target_handle:
                 global_mapping[str(source_handle)] = str(target_handle)
+
+    @staticmethod
+    def _entity_handle(entity: DXFEntity) -> str | None:
+        """Return an entity handle if `entity` exposes a DXF namespace."""
+        dxf = getattr(entity, "dxf", None)
+        if dxf is None:
+            return None
+        handle = dxf.get("handle")
+        return str(handle) if handle else None
 
     def prepare_acad_table_geometry_restore(self, block_name: str) -> None:
         """Delete generated table geometry field trees before block restore.
@@ -168,7 +176,7 @@ class DocumentCodegenRuntime:
         except (AttributeError, IndexError):
             return None
         for content in linked_cell.contents:
-            if getattr(content, "content_type", None) != 2:
+            if getattr(content, "content_type", None) != _ACAD_TABLE_FIELD_CONTENT_TYPE:
                 continue
             handle = getattr(content, "block_record_handle", None)
             if not handle:
@@ -179,7 +187,7 @@ class DocumentCodegenRuntime:
         return None
 
     @staticmethod
-    def _primary_field(wrapper: DXFEntity | None) -> DXFEntity | None:
+    def _primary_field(wrapper: DXFEntity | None) -> Field | None:
         """Return the primary field for a wrapper FIELD object."""
         if wrapper is None or wrapper.dxftype() != "FIELD":
             return None
@@ -189,7 +197,7 @@ class DocumentCodegenRuntime:
         return wrapper
 
     def _sync_content_copy_children(
-        self, content_wrapper: DXFEntity | None, geometry_primary: DXFEntity | None
+        self, content_wrapper: DXFEntity | None, geometry_primary: Field | None
     ) -> None:
         """Point TABLECONTENT AcExpr child handles at geometry children."""
         content_primary = self._primary_field(content_wrapper)
@@ -198,16 +206,26 @@ class DocumentCodegenRuntime:
         if content_primary.evaluator_id != geometry_primary.evaluator_id:
             return
         geometry_children = geometry_primary.get_child_fields()
-        content_child_count = sum(1 for tag in content_primary.tags if tag.code == 360)
+        content_child_count = self._field_child_handle_count(content_primary)
         if not geometry_children or len(geometry_children) != content_child_count:
             return
-        handles = [child.dxf.handle for child in geometry_children if child.dxf.handle]
+        handles = self._field_handles(geometry_children)
         if len(handles) != len(geometry_children):
             return
         self._replace_field_child_handles(content_primary, handles)
 
     @staticmethod
-    def _replace_field_child_handles(field: DXFEntity, handles: list[str]) -> None:
+    def _field_child_handle_count(field: Field) -> int:
+        """Return the number of child handle tags in a FIELD payload."""
+        return sum(1 for tag in field.tags if tag.code == 360)
+
+    @staticmethod
+    def _field_handles(fields: Sequence[Field]) -> list[str]:
+        """Return valid handles for FIELD children."""
+        return [field.dxf.handle for field in fields if field.dxf.handle]
+
+    @staticmethod
+    def _replace_field_child_handles(field: Field, handles: list[str]) -> None:
         """Replace FIELD child handle tags with `handles` in order."""
         index = 0
         for tag_index, tag in enumerate(field.tags):
@@ -402,8 +420,7 @@ class DocumentCodegenRuntime:
         mapped = []
         for handle in handles:
             if handle in self.source_object_map:
-                dxf = getattr(self.source_object_map[handle], "dxf", None)
-                target_handle = dxf.get("handle") if dxf is not None else None
+                target_handle = self._entity_handle(self.source_object_map[handle])
                 mapped.append(target_handle if target_handle else handle)
             elif handle in self.source_entity_map:
                 mapped.append(self.source_entity_map[handle].dxf.handle)
