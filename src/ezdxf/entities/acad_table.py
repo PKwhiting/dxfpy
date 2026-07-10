@@ -2149,7 +2149,21 @@ class AcadTableBlockContent(DXFTagStorage):
             register_field_list=register_field_list,
         )
         current_field = self.get_cell_primary_field(row, col)
-        return current_field if current_field is not None else expr, wrapper
+        if current_field is not None:
+            child_handles = self._transfer_child_fields(expr, current_field)
+            expr._delete_field_tree(exclude_handles=child_handles)
+            return current_field, wrapper
+        return expr, wrapper
+
+    @staticmethod
+    def _transfer_child_fields(source: Field, target: Field) -> list[str]:
+        """Move child ``FIELD`` ownership from source to target."""
+        handles: list[str] = []
+        for child_field in source.get_child_fields():
+            child_field.dxf.owner = target.dxf.handle
+            if child_field.dxf.handle is not None:
+                handles.append(child_field.dxf.handle)
+        return handles
 
     def set_cell_text_style(
         self, row: int, col: int, style_name: Optional[str]
