@@ -1,6 +1,6 @@
 import pathlib
-import ezdxf
-from ezdxf.upright import upright
+import dxfpy
+from dxfpy.upright import upright
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,7 +14,7 @@ POLYLINE_POINTS = [
     (6, 0, 0, 0, 0),
 ]
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 doc.layers.new("original", dxfattribs={"color": 2})
 doc.layers.new("upright", dxfattribs={"color": 6})
 

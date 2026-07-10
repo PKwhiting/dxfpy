@@ -2,19 +2,19 @@
 #  License: MIT License
 from typing import Sequence
 import pathlib
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.render import forms, MeshTransformer
-from ezdxf.addons import meshex, openscad
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.render import forms, MeshTransformer
+from dxfpy.addons import meshex, openscad
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
 # ------------------------------------------------------------------------------
-# This example shows how to utilize OpenSCAD for construction tasks by ezdxf.
+# This example shows how to utilize OpenSCAD for construction tasks by dxfpy.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/openscad.html
+# docs: https://dxfpy.mozman.at/docs/addons/openscad.html
 # ------------------------------------------------------------------------------
 
 
@@ -78,7 +78,7 @@ def walls_by_openscad() -> MeshTransformer:
 
 
 def main(filename: str):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     wall_mesh = walls_by_openscad()
     wall_mesh.render_mesh(msp, dxfattribs={"layer": "WALL_MESH"})

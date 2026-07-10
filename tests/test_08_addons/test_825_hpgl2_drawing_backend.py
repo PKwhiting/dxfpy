@@ -3,11 +3,11 @@
 
 import pytest
 
-from ezdxf.math import Vec2
-from ezdxf.path import Path
-from ezdxf.npshapes import NumpyPath2d
-from ezdxf.addons.drawing import hpgl2, layout
-from ezdxf.addons.drawing.properties import BackendProperties
+from dxfpy.math import Vec2
+from dxfpy.path import Path
+from dxfpy.npshapes import NumpyPath2d
+from dxfpy.addons.drawing import hpgl2, layout
+from dxfpy.addons.drawing.properties import BackendProperties
 
 
 def test_empty_page():

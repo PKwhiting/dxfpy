@@ -2,9 +2,9 @@
 # Copyright (C) 2018-2019, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.lldxf.tagger import internal_tag_compiler
-from ezdxf.lldxf.loader import load_dxf_structure
-from ezdxf.lldxf.const import DXFStructureError
+from dxfpy.lldxf.tagger import internal_tag_compiler
+from dxfpy.lldxf.loader import load_dxf_structure
+from dxfpy.lldxf.const import DXFStructureError
 
 
 def test_loader():

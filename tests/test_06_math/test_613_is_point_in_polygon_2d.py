@@ -1,15 +1,15 @@
 # Copyright (c) 2020-2024, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.math import Vec2, is_convex_polygon_2d
-from ezdxf.math._construct import is_point_in_polygon_2d  # Python version
-from ezdxf.acc import USE_C_EXT
+from dxfpy.math import Vec2, is_convex_polygon_2d
+from dxfpy.math._construct import is_point_in_polygon_2d  # Python version
+from dxfpy.acc import USE_C_EXT
 
 is_point_in_polygon_cy = is_point_in_polygon_2d
 
 if USE_C_EXT:
     try:  # Cython version
-        from ezdxf.acc.construct import is_point_in_polygon_2d as is_point_in_polygon_cy
+        from dxfpy.acc.construct import is_point_in_polygon_2d as is_point_in_polygon_cy
     except ImportError:
         pass
 

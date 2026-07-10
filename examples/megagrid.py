@@ -2,9 +2,9 @@
 # License: MIT License
 import pathlib
 from time import perf_counter
-from ezdxf.addons import r12writer
-from ezdxf.math.perlin import SimplexNoise
-from ezdxf.addons.iterdxf import single_pass_modelspace, opendxf, modelspace
+from dxfpy.addons import r12writer
+from dxfpy.math.perlin import SimplexNoise
+from dxfpy.addons.iterdxf import single_pass_modelspace, opendxf, modelspace
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -17,7 +17,7 @@ if not CWD.exists():
 # - BricsCAD: crashed
 # - Trueview 2023: crashed Windows 11
 #
-# docs: https://ezdxf.mozman.at/docs/addons/iterdxf.html
+# docs: https://dxfpy.mozman.at/docs/addons/iterdxf.html
 # ------------------------------------------------------------------------------
 
 noise = SimplexNoise()

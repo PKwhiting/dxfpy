@@ -3,12 +3,12 @@
 from typing import Optional
 import pathlib
 from pprint import pprint
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.render.forms import gear
-from ezdxf import zoom
-from ezdxf.urecord import UserRecord, BinaryRecord
-from ezdxf.entities import XRecord, DXFEntity
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.render.forms import gear
+from dxfpy import zoom
+from dxfpy.urecord import UserRecord, BinaryRecord
+from dxfpy.entities import XRecord, DXFEntity
 import zlib
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -17,13 +17,13 @@ if not CWD.exists():
 
 # ------------------------------------------------------------------------------
 # This example shows how to store user data in XRECORD entities.
-# docs: https://ezdxf.mozman.at/docs/user_xdata.html#
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/custom_data.html
+# docs: https://dxfpy.mozman.at/docs/user_xdata.html#
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/custom_data.html
 # ------------------------------------------------------------------------------
 
 # XRECORD need DXF version R2000+ and does not work with DXF R12 or older.
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 gear_ = msp.add_lwpolyline(
     gear(16, top_width=1, bottom_width=3, height=2, outside_radius=10),
@@ -103,7 +103,7 @@ doc.saveas(CWD / "gear_with_user_data.dxf")
 # Retrieving data from reloaded DXF file
 # ------------------------------------------------------------------------------
 
-doc = ezdxf.readfile(CWD / "gear_with_user_data.dxf")
+doc = dxfpy.readfile(CWD / "gear_with_user_data.dxf")
 gear_ = doc.entitydb.get(handle)
 entity: Optional[DXFEntity]
 

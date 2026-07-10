@@ -1,7 +1,7 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.tools.binarydata import BitStream, EndOfBufferError
+from dxfpy.tools.binarydata import BitStream, EndOfBufferError
 
 
 def test_read_bit():

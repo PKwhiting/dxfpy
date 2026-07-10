@@ -1,7 +1,7 @@
 # Copyright (c) 2013-2021, Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.enums import TextEntityAlignment
+import dxfpy
+from dxfpy.enums import TextEntityAlignment
 
 
 def create_doc(filename):
@@ -93,7 +93,7 @@ def create_doc(filename):
         for text in msp.query("TEXT"):
             text.dxf.insert += (1, 1)
 
-    doc = ezdxf.new(dxfversion="R2004")
+    doc = dxfpy.new(dxfversion="R2004")
     msp = doc.modelspace()
     add_grid((0, 0), width=10, height=10)
     # shift_insert_point(msp)

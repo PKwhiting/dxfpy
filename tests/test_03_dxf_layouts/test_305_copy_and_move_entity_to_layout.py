@@ -1,12 +1,12 @@
 # Copyright (c) 2011-2019, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_copy_simple_entity(doc):

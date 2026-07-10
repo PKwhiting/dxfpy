@@ -1,18 +1,18 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.entities import Hatch
+import dxfpy
+from dxfpy.entities import Hatch
 
-from ezdxf.tools.analyze import HatchAnalyzer
+from dxfpy.tools.analyze import HatchAnalyzer
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
-FILE = r"C:\Users\manfred\Desktop\Now\ezdxf\573\hatch_text_box_in_hole.dxf"
+FILE = r"C:\Users\manfred\Desktop\Now\dxfpy\573\hatch_text_box_in_hole.dxf"
 
-doc = ezdxf.readfile(FILE)
+doc = dxfpy.readfile(FILE)
 hatch = doc.modelspace().query("HATCH").first
 assert isinstance(hatch, Hatch)
 

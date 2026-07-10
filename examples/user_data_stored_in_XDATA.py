@@ -2,11 +2,11 @@
 #  License: MIT License
 
 import pathlib
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.render.forms import gear
-from ezdxf import zoom
-from ezdxf.entities.xdata import XDataUserDict, XDataUserList
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.render.forms import gear
+from dxfpy import zoom
+from dxfpy.entities.xdata import XDataUserDict, XDataUserList
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,11 +14,11 @@ if not CWD.exists():
 
 # ------------------------------------------------------------------------------
 # This example shows how to store user data in the XDATA section of DXF entities.
-# docs: https://ezdxf.mozman.at/docs/user_xdata.html#
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/custom_data.html
+# docs: https://dxfpy.mozman.at/docs/user_xdata.html#
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/custom_data.html
 # ------------------------------------------------------------------------------
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 gear = msp.add_lwpolyline(
     gear(16, top_width=1, bottom_width=3, height=2, outside_radius=10),
@@ -114,13 +114,13 @@ with XDataUserList.entity(gear, name="AppendedPoints") as user_list:
 # 1002
 # }
 
-# XDATA will be preserved by AutoCAD, BricsCAD and of course ezdxf.
+# XDATA will be preserved by AutoCAD, BricsCAD and of course dxfpy.
 
 zoom.objects(msp, [gear])
 doc.saveas(CWD / "gear_with_xdata.dxf")
 
 # Retrieve data:
-doc2 = ezdxf.readfile(CWD / "gear_with_xdata.dxf")
+doc2 = dxfpy.readfile(CWD / "gear_with_xdata.dxf")
 loaded_gear = doc2.entitydb.get(handle)
 
 

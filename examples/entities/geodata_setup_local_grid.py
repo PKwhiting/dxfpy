@@ -1,8 +1,8 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import units
+import dxfpy
+from dxfpy import units
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,12 +11,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # create a GEODATA object for a local grid
 #
-# docs: https://ezdxf.mozman.at/docs/dxfobjects/geodata.html
+# docs: https://dxfpy.mozman.at/docs/dxfobjects/geodata.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new("R2010", units=units.M)
+    doc = dxfpy.new("R2010", units=units.M)
     msp = doc.modelspace()
     geodata = msp.new_geodata()
     geodata.setup_local_grid(

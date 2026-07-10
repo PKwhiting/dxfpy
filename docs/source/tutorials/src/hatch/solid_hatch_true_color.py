@@ -1,7 +1,7 @@
-import ezdxf
+import dxfpy
 
 # hatch with true color requires DXF R2004 or later
-doc = ezdxf.new("R2004")
+doc = dxfpy.new("R2004")
 msp = doc.modelspace()
 
 # important: major axis >= minor axis (ratio <= 1.)

@@ -1,10 +1,10 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import colors
-from ezdxf.gfxattribs import GfxAttribs
-from ezdxf.render import forms
+import dxfpy
+from dxfpy import colors
+from dxfpy.gfxattribs import GfxAttribs
+from dxfpy.render import forms
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,7 +13,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to use MeshTransformer class.
 #
-# docs: https://ezdxf.mozman.at/docs/render/mesh.html#meshtransformer
+# docs: https://dxfpy.mozman.at/docs/render/mesh.html#meshtransformer
 # ------------------------------------------------------------------------------
 
 
@@ -24,7 +24,7 @@ def main():
         0, 20
     )
 
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     red = GfxAttribs(color=colors.RED)

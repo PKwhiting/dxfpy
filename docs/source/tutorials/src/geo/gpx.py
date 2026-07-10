@@ -4,9 +4,9 @@ from typing import Iterable, Tuple
 from xml.etree import ElementTree as ET
 from pathlib import Path
 import json
-import ezdxf
-from ezdxf.math import Matrix44
-from ezdxf.addons import geo
+import dxfpy
+from dxfpy.math import Matrix44
+from dxfpy.addons import geo
 
 TRACK_DATA = Path(__file__).parent
 GPX_NS = {"gpx": "http://www.topografix.com/GPX/1/1"}
@@ -69,7 +69,7 @@ def export_geojson(entity, m):
 
 
 def main(dxf_path: Path, out_path: Path, tracks):
-    doc = ezdxf.readfile(str(dxf_path))
+    doc = dxfpy.readfile(str(dxf_path))
     msp = doc.modelspace()
     # Load GPX data into DXF
     for index, track_path in enumerate(tracks, 1):

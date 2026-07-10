@@ -2,9 +2,9 @@
 #  License: MIT License
 import time
 
-from ezdxf.math import Vec2
-from ezdxf.math._construct import is_point_in_polygon_2d
-from ezdxf.acc.construct import is_point_in_polygon_2d as is_point_in_polygon_cy
+from dxfpy.math import Vec2
+from dxfpy.math._construct import is_point_in_polygon_2d
+from dxfpy.acc.construct import is_point_in_polygon_2d as is_point_in_polygon_cy
 
 VERTICES = [(1, 1), (5, 1), (5, 3), (3, 3), (3, 5), (5, 5), (5, 7), (1, 7)]
 SHAPE_PY = Vec2.list(VERTICES)

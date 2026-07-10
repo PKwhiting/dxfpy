@@ -2,12 +2,12 @@
 # License: MIT License
 import pytest
 import os
-import ezdxf
-from ezdxf.lldxf.const import LATEST_DXF_VERSION
+import dxfpy
+from dxfpy.lldxf.const import LATEST_DXF_VERSION
 
 
 def test_lwpolyline(tmpdir):
-    dwg = ezdxf.new(LATEST_DXF_VERSION)
+    dwg = dxfpy.new(LATEST_DXF_VERSION)
     msp = dwg.modelspace()
     # point format = (x, y, [start_width, [end_width, [bulge]]])
     points = [
@@ -21,14 +21,14 @@ def test_lwpolyline(tmpdir):
     filename = str(tmpdir.join("lwpolyline.dxf"))
     try:
         dwg.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(
             "DXFError: {0} for DXF version {1}".format(str(e), dwg.dxfversion)
         )
     assert os.path.exists(filename)
 
     del dwg
-    dwg = ezdxf.readfile(filename)
+    dwg = dxfpy.readfile(filename)
     msp = dwg.modelspace()
     lwpolyline = msp.query("LWPOLYLINE")[0]
     assert len(lwpolyline) == 4

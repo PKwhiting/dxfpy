@@ -2,17 +2,17 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.tools.test import load_entities
-from ezdxf.sections.blocks import BlocksSection
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.entities import factory
-from ezdxf.lldxf.const import BLK_NON_CONSTANT_ATTRIBUTES
+import dxfpy
+from dxfpy.tools.test import load_entities
+from dxfpy.sections.blocks import BlocksSection
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.entities import factory
+from dxfpy.lldxf.const import BLK_NON_CONSTANT_ATTRIBUTES
 
 
 @pytest.fixture
 def dxf12():
-    return ezdxf.new("R12")
+    return dxfpy.new("R12")
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def bounded_blocks(dxf12):
 
 @pytest.fixture
 def doc():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.blocks.new("_ARCHTICK")
     doc.blocks.new("_OPEN30")
     return doc
@@ -82,7 +82,7 @@ def test_overwrite_existing_block(blocks):
     block = blocks.new("TEST")
     assert block.dxf.name in blocks
     old_len = len(blocks)
-    with pytest.raises(ezdxf.DXFTableEntryError):
+    with pytest.raises(dxfpy.DXFTableEntryError):
         # can not create block with existing name
         blocks.new("Test")  # block names are case insensitive
     assert len(blocks) == old_len, 'should not create block "TEST"'
@@ -157,7 +157,7 @@ def test_delete_block(bounded_blocks, dxf12):
     ],
 )
 def test_do_not_delete_layouts_and_special_arrow_blocks_in_safe_mode(doc, name):
-    with pytest.raises(ezdxf.DXFBlockInUseError):
+    with pytest.raises(dxfpy.DXFBlockInUseError):
         doc.blocks.delete_block(name, safe=True)
 
 
@@ -190,7 +190,7 @@ def test_rename_block(blocks):
 
 @pytest.fixture(scope="module")
 def dxf2000():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 @pytest.fixture

@@ -2,15 +2,15 @@
 #  License: MIT License
 import pytest
 import pickle
-from ezdxf.math import Vec3, Vec2, Matrix44, close_vectors
+from dxfpy.math import Vec3, Vec2, Matrix44, close_vectors
 
-# Import from 'ezdxf.math._bezier3p' to test Python implementation
-from ezdxf.math._bezier3p import Bezier3P
-from ezdxf.acc import USE_C_EXT
+# Import from 'dxfpy.math._bezier3p' to test Python implementation
+from dxfpy.math._bezier3p import Bezier3P
+from dxfpy.acc import USE_C_EXT
 
 curve_classes = [Bezier3P]
 if USE_C_EXT:
-    from ezdxf.acc.bezier3p import Bezier3P as CBezier3P
+    from dxfpy.acc.bezier3p import Bezier3P as CBezier3P
 
     curve_classes.append(CBezier3P)
 

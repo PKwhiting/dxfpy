@@ -1,15 +1,15 @@
 # Copyright (c) 2010-2022, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf import const
-from ezdxf.enums import MTextEntityAlignment
-from ezdxf.addons import MTextSurrogate
+import dxfpy
+from dxfpy import const
+from dxfpy.enums import MTextEntityAlignment
+from dxfpy.addons import MTextSurrogate
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R12")
+    return dxfpy.new("R12")
 
 
 def test_horiz_top(doc):

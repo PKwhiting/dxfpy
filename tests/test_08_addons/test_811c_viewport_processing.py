@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.addons.drawing.frontend import _draw_viewports
-from ezdxf.entities import Viewport
+from dxfpy.addons.drawing.frontend import _draw_viewports
+from dxfpy.entities import Viewport
 
 
 # The "id" attribute is not evaluated in the current implementation of VIEWPORT

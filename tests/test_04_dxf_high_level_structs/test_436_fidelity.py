@@ -1,16 +1,16 @@
 from io import StringIO
 
-import ezdxf
-from ezdxf.dynblkhelper import (
+import dxfpy
+from dxfpy.dynblkhelper import (
     restore_dictionary_key_order,
     snapshot_object_handle_order,
     snapshot_raw_extension_subtree,
 )
-from ezdxf.fidelity import finalize_document_fidelity, prepare_document_fidelity
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.lldxf.types import is_pointer_code
-from ezdxf.sections.classes import snapshot_raw_classes
-from ezdxf.sections.header import snapshot_raw_header_vars
+from dxfpy.fidelity import finalize_document_fidelity, prepare_document_fidelity
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.lldxf.types import is_pointer_code
+from dxfpy.sections.classes import snapshot_raw_classes
+from dxfpy.sections.header import snapshot_raw_header_vars
 
 
 def _normalize_handle_refs_in_text(text: str) -> str:
@@ -44,7 +44,7 @@ def _export_text(entity, dxfversion: str) -> str:
 
 
 def test_prepare_document_fidelity_restores_rootdict_entries_and_order():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_doc.rootdict.get_required_dict("ZZZ_CUSTOM")
     source_doc.rootdict.get_required_dict("AAA_CUSTOM")
     restore_dictionary_key_order(
@@ -53,7 +53,7 @@ def test_prepare_document_fidelity_restores_rootdict_entries_and_order():
     )
     source_order = tuple(source_doc.rootdict.keys())
 
-    target_doc = ezdxf.new("R2018")
+    target_doc = dxfpy.new("R2018")
     prepare_document_fidelity(source_doc, target_doc)
 
     assert tuple(target_doc.rootdict.keys()) == source_order
@@ -62,7 +62,7 @@ def test_prepare_document_fidelity_restores_rootdict_entries_and_order():
 
 
 def test_prepare_document_fidelity_restores_layer_extension_subtrees_with_external_handle_remap():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     ref_layer = source_doc.layers.new("U-MISC")
     annotated_layer = source_doc.layers.new("U-MISC @ 1")
     material = source_doc.materials.get("Global")
@@ -80,7 +80,7 @@ def test_prepare_document_fidelity_restores_layer_extension_subtrees_with_extern
         ]
     )
 
-    target_doc = ezdxf.new("R2018")
+    target_doc = dxfpy.new("R2018")
     target_doc.layers.new("U-MISC")
     target_doc.layers.new("U-MISC @ 1")
     prepare_document_fidelity(source_doc, target_doc)
@@ -99,7 +99,7 @@ def test_prepare_document_fidelity_restores_layer_extension_subtrees_with_extern
 
 
 def test_prepare_document_fidelity_restores_mleader_style_extension_subtrees():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_layer = source_doc.layers.new("MLEADER_LAYER")
     style = source_doc.mleader_styles.new("TEST_STYLE")
     xdict = style.new_extension_dict().dictionary
@@ -107,7 +107,7 @@ def test_prepare_document_fidelity_restores_mleader_style_extension_subtrees():
     xrecord.set_reactors([xdict.dxf.handle])
     xrecord.reset([(340, source_layer.dxf.handle)])
 
-    target_doc = ezdxf.new("R2018")
+    target_doc = dxfpy.new("R2018")
     target_doc.layers.new("MLEADER_LAYER")
     prepare_document_fidelity(source_doc, target_doc)
 
@@ -123,7 +123,7 @@ def test_prepare_document_fidelity_restores_mleader_style_extension_subtrees():
 
 
 def test_prepare_document_fidelity_restores_table_style_extension_subtrees():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_layer = source_doc.layers.new("TABLE_LAYER")
     style = source_doc.table_styles.duplicate_entry("Standard", "TEST_TABLE_STYLE")
     xdict = style.new_extension_dict().dictionary
@@ -131,7 +131,7 @@ def test_prepare_document_fidelity_restores_table_style_extension_subtrees():
     xrecord.set_reactors([xdict.dxf.handle])
     xrecord.reset([(340, source_layer.dxf.handle)])
 
-    target_doc = ezdxf.new("R2018")
+    target_doc = dxfpy.new("R2018")
     target_doc.layers.new("TABLE_LAYER")
     prepare_document_fidelity(source_doc, target_doc)
 
@@ -147,7 +147,7 @@ def test_prepare_document_fidelity_restores_table_style_extension_subtrees():
 
 
 def test_finalize_document_fidelity_restores_dimstyle_raw_export():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.styles.new("DIM_TXT", dxfattribs={"font": "txt"})
     ltype = source_doc.linetypes.new("DIM_LT", dxfattribs={"description": "DIM_LT"})
     ltype.setup_pattern([0.2, 0.1, -0.1])
@@ -162,7 +162,7 @@ def test_finalize_document_fidelity_restores_dimstyle_raw_export():
     dimstyle.dxf.dimltex2 = "DIM_LT"
     dimstyle.set_xdata("ACAD_DSTYLE_DIMBREAK", [(1070, 391), (1040, 0.125)])
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     target_doc.styles.new("DIM_TXT", dxfattribs={"font": "txt"})
     target_ltype = target_doc.linetypes.new(
         "DIM_LT", dxfattribs={"description": "DIM_LT"}
@@ -183,13 +183,13 @@ def test_finalize_document_fidelity_restores_dimstyle_raw_export():
 
 
 def test_finalize_document_fidelity_copies_header_state_and_custom_vars():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.encoding = "cp1252"
     source_doc.header["$LASTSAVEDBY"] = "fidelity"
     source_doc.header["$LTSCALE"] = 2.5
     source_doc.header.custom_vars.append("CustomTag", "CustomValue")
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     prepare_document_fidelity(source_doc, target_doc)
     finalize_document_fidelity(source_doc, target_doc)
 
@@ -200,14 +200,14 @@ def test_finalize_document_fidelity_copies_header_state_and_custom_vars():
 
 
 def test_finalize_document_fidelity_restores_raw_header_overrides(tmp_path):
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.header["$PEXTMIN"] = (1.0, 2.0, 3.0)
     source_doc.header["$PEXTMAX"] = (4.0, 5.0, 6.0)
     filename = tmp_path / "source_header_overrides.dxf"
     source_doc.saveas(filename)
     raw_snapshot = dict(snapshot_raw_header_vars(str(filename), ("$PEXTMIN", "$PEXTMAX")))
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     prepare_document_fidelity(source_doc, target_doc)
     finalize_document_fidelity(source_doc, target_doc)
 
@@ -220,12 +220,12 @@ def test_finalize_document_fidelity_restores_raw_header_overrides(tmp_path):
 
 
 def test_finalize_document_fidelity_restores_raw_classes():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.classes.add_class("WIPEOUT")
     source_doc.classes.add_class("MULTILEADER")
     snapshot = snapshot_raw_classes(source_doc.classes)
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     prepare_document_fidelity(source_doc, target_doc)
     finalize_document_fidelity(source_doc, target_doc)
 
@@ -237,11 +237,11 @@ def test_finalize_document_fidelity_restores_raw_classes():
 
 
 def test_finalize_document_fidelity_reorders_objects_by_source_order():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_doc.rootdict.get_required_dict("ZZZ_CUSTOM")
     source_order = snapshot_object_handle_order(source_doc)
 
-    target_doc = ezdxf.new("R2018")
+    target_doc = dxfpy.new("R2018")
     prepare_document_fidelity(source_doc, target_doc)
     target_doc.objects._entity_space.entities = list(reversed(list(target_doc.objects)))
     pre_finalize_order = snapshot_object_handle_order(target_doc)
@@ -268,14 +268,14 @@ def test_finalize_document_fidelity_reorders_objects_by_source_order():
 
 
 def test_finalize_document_fidelity_restores_rootdict_xrecord_handles_after_entity_creation():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     line = source_doc.modelspace().add_line((0, 0), (1, 0))
     xrecord = source_doc.objects.add_xrecord(owner=source_doc.rootdict.dxf.handle)
     xrecord.set_reactors([source_doc.rootdict.dxf.handle])
     xrecord.tags.extend([(90, 1), (330, line.dxf.handle)])
     source_doc.rootdict.add("TEST_REFS", xrecord)
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     prepare_document_fidelity(source_doc, target_doc)
     target_line = target_doc.modelspace().add_line((0, 0), (1, 0))
     finalize_document_fidelity(source_doc, target_doc)

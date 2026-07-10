@@ -4,8 +4,8 @@ import math
 
 import pytest
 import numpy as np
-from ezdxf.math import Vec3, BSpline, close_vectors
-from ezdxf.math.bspline import normalize_knots, subdivide_params, round_knots
+from dxfpy.math import Vec3, BSpline, close_vectors
+from dxfpy.math.bspline import normalize_knots, subdivide_params, round_knots
 
 DEFPOINTS = [
     (0.0, 0.0, 0.0),
@@ -199,7 +199,7 @@ class TestInsertKnotRational:
 
 
 def test_transform_interface():
-    from ezdxf.math import Matrix44
+    from dxfpy.math import Matrix44
 
     spline = BSpline(control_points=[(1, 0, 0), (3, 3, 0), (6, 0, 1)], order=3)
     new_spline = spline.transform(Matrix44.translate(1, 2, 3))

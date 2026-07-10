@@ -2,9 +2,9 @@
 #  License: MIT License
 import pathlib
 
-import ezdxf
-from ezdxf.render import forms
-from ezdxf import path
+import dxfpy
+from dxfpy.render import forms
+from dxfpy import path
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,7 +13,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how sweep a profile along a helix to create a MESH entity.
 #
-# docs: https://ezdxf.mozman.at/docs/render/forms.html#d-form-builder
+# docs: https://dxfpy.mozman.at/docs/render/forms.html#d-form-builder
 # ------------------------------------------------------------------------------
 
 
@@ -22,9 +22,9 @@ def make_bspline_tool(helix: path.Path):
 
 
 def main(filepath):
-    doc = ezdxf.new()
-    doc.layers.add("MESH", color=ezdxf.colors.YELLOW)
-    doc.layers.add("SPLINE", color=ezdxf.colors.MAGENTA)
+    doc = dxfpy.new()
+    doc.layers.add("MESH", color=dxfpy.colors.YELLOW)
+    doc.layers.add("SPLINE", color=dxfpy.colors.MAGENTA)
     msp = doc.modelspace()
     # sweeping a gear-profile
     gear = forms.gear(

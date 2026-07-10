@@ -1,12 +1,12 @@
 # Copyright (c) 2026, Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.entities.dxfobj import Field
-from ezdxf.math import Vec2
+import dxfpy
+from dxfpy.entities.dxfobj import Field
+from dxfpy.math import Vec2
 
 
 def test_text_new_acvar_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     txt = doc.modelspace().add_text("TEXT")
     child, wrapper = txt.new_acvar_field("Author", text="----", register_field_list=True)
 
@@ -18,7 +18,7 @@ def test_text_new_acvar_field_creates_object_backed_field():
 
 
 def test_graphicsfactory_add_text_acobjprop_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     txt = msp.add_text_acobjprop_field(line, "Length", register_field_list=True)
@@ -31,7 +31,7 @@ def test_graphicsfactory_add_text_acobjprop_field():
 
 
 def test_text_new_dwgprops_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     txt = doc.modelspace().add_text("TEXT")
     child, wrapper = txt.new_dwgprops_field(
         "ProjectCode", text="VALUE-123", register_field_list=True
@@ -45,7 +45,7 @@ def test_text_new_dwgprops_field_creates_object_backed_field():
 
 
 def test_graphicsfactory_add_text_dwgprops_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     txt = doc.modelspace().add_text_dwgprops_field(
         "ProjectCode",
         text="VALUE-123",
@@ -59,7 +59,7 @@ def test_graphicsfactory_add_text_dwgprops_field():
 
 
 def test_graphicsfactory_add_text_acexpr_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     circle = msp.add_circle((5, 0), radius=2.5)
@@ -88,7 +88,7 @@ def test_graphicsfactory_add_text_acexpr_field():
 
 
 def test_multileader_new_acvar_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     builder = msp.add_multileader_mtext("Standard")
     builder.set_content("TEXT")
@@ -105,7 +105,7 @@ def test_multileader_new_acvar_field_creates_object_backed_field():
 
 
 def test_multileader_new_acobjprop_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     builder = msp.add_multileader_mtext("Standard")
@@ -126,7 +126,7 @@ def test_multileader_new_acobjprop_field_creates_object_backed_field():
 
 
 def test_multileader_new_dwgprops_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     builder = msp.add_multileader_mtext("Standard")
     builder.set_content("TEXT")
@@ -146,7 +146,7 @@ def test_multileader_new_dwgprops_field_creates_object_backed_field():
 
 
 def test_multileader_new_acexpr_field_creates_nested_expression_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     circle = msp.add_circle((5, 0), radius=2.5)

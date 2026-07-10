@@ -2,8 +2,8 @@
 # License: MIT License
 from typing import cast
 import pytest
-import ezdxf
-from ezdxf.entities import Insert, Point, Attrib
+import dxfpy
+from dxfpy.entities import Insert, Point, Attrib
 
 
 def test_mcount_property():
@@ -25,7 +25,7 @@ class TestSimpleBlock:
     # without ATTRIB, no rotation, no extrusion
     @pytest.fixture(scope="class")
     def doc(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         blk = doc.blocks.new("POINT")
         blk.add_point(location=(0, 0))
         return doc
@@ -88,7 +88,7 @@ class TestSimpleBlock:
 class TestInsertAttributes:
     @pytest.fixture(scope="class")
     def doc(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         blk = doc.blocks.new("POINT")
         blk.add_point(location=(0, 0))
         return doc
@@ -133,7 +133,7 @@ class TestRotatedInsert:
 
     @pytest.fixture(scope="class")
     def insert(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         blk = doc.blocks.new("POINT")
         blk.add_point(location=(0, 0))
         msp = doc.modelspace()

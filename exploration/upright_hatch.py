@@ -1,9 +1,9 @@
 import pathlib
-import ezdxf
-from ezdxf.entities import Hatch
-from ezdxf.upright import upright
-from ezdxf import path
-from ezdxf.math import Vec2
+import dxfpy
+from dxfpy.entities import Hatch
+from dxfpy.upright import upright
+from dxfpy import path
+from dxfpy.math import Vec2
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -84,7 +84,7 @@ def all_edge_types_hatch(elevation, extrusion):
     return hatch
 
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 hatch = all_edge_types_hatch(elevation=4, extrusion=(0, 0, -1))
 msp.add_entity(hatch)

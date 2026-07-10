@@ -2,9 +2,9 @@
 # License: MIT License
 import pathlib
 from math import radians
-import ezdxf
-from ezdxf.render.forms import ellipse
-from ezdxf.math import basic_transformation
+import dxfpy
+from dxfpy.render.forms import ellipse
+from dxfpy.math import basic_transformation
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,8 +15,8 @@ if not CWD.exists():
 # the ELLIPSE entity.
 #
 # docs:
-# ellipse: https://ezdxf.mozman.at/docs/render/forms.html#ezdxf.render.forms.ellipse
-# basic_transformation: https://ezdxf.mozman.at/docs/math/core.html#ezdxf.math.basic_transformation
+# ellipse: https://dxfpy.mozman.at/docs/render/forms.html#dxfpy.render.forms.ellipse
+# basic_transformation: https://dxfpy.mozman.at/docs/math/core.html#dxfpy.math.basic_transformation
 # ------------------------------------------------------------------------------
 
 
@@ -30,7 +30,7 @@ def tmatrix(x, y, angle):
 
 def main():
 
-    doc = ezdxf.new("R12", setup=True)
+    doc = dxfpy.new("R12", setup=True)
     msp = doc.modelspace()
 
     for axis in [0.5, 0.75, 1.0, 1.5, 2.0, 3.0]:

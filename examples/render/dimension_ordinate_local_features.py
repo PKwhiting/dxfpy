@@ -2,14 +2,14 @@
 # License: MIT License
 
 import pathlib
-from ezdxf.math import Vec3, UCS
-import ezdxf
-from ezdxf.render import forms
+from dxfpy.math import Vec3, UCS
+import dxfpy
+from dxfpy.render import forms
 
 # ------------------------------------------------------------------------------
 # This example shows how to use ordinate dimension in UCS.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/ordinate_dimension.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/ordinate_dimension.html
 # ------------------------------------------------------------------------------
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -17,7 +17,7 @@ if not CWD.exists():
     CWD = pathlib.Path(".")
 
 
-doc = ezdxf.new(setup=True)
+doc = dxfpy.new(setup=True)
 msp = doc.modelspace()
 
 # Create a special DIMSTYLE for "vertical" centered measurement text:

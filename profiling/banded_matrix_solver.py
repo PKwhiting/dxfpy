@@ -4,7 +4,7 @@ import time
 import random
 import csv
 import pathlib
-from ezdxf.math.linalg import (
+from dxfpy.math.linalg import (
     Matrix,
     BandedMatrixLU,
     banded_matrix,

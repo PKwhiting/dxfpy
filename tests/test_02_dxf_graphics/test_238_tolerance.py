@@ -1,9 +1,9 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.entities.tolerance import Tolerance
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+import dxfpy
+from dxfpy.entities.tolerance import Tolerance
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 TOLERANCE = """0
 TOLERANCE
@@ -42,7 +42,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "TOLERANCE" in ENTITY_CLASSES
 
@@ -94,7 +94,7 @@ def test_write_dxf():
 
 
 def test_add_tolerance():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     light = msp.new_entity("TOLERANCE", {})
     assert light.dxftype() == "TOLERANCE"

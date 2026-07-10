@@ -2,9 +2,9 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.acis.api import load, export_sat, export_sab, ExportError
-from ezdxf.acis import sat, sab, entities, hdr, const, mesh
-from ezdxf.math import Matrix44
+from dxfpy.acis.api import load, export_sat, export_sab, ExportError
+from dxfpy.acis import sat, sab, entities, hdr, const, mesh
+from dxfpy.math import Matrix44
 import math
 
 
@@ -138,7 +138,7 @@ class TestFace:
 class TestPolyhedronFaceBuilder:
     @pytest.fixture(scope="class")
     def cube(self):
-        from ezdxf.render.forms import cube
+        from dxfpy.render.forms import cube
         return mesh.PolyhedronFaceBuilder(cube())
 
     def test_creates_six_faces(self, cube):

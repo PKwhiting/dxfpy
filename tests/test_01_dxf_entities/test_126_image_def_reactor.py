@@ -3,8 +3,8 @@
 # created 2019-02-15
 import pytest
 
-from ezdxf.entities.image import ImageDefReactor
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.image import ImageDefReactor
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 IMAGEDEF_REACTOR = """0
 IMAGEDEF_REACTOR
@@ -27,7 +27,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "IMAGEDEF_REACTOR" in ENTITY_CLASSES
 

@@ -1,19 +1,19 @@
-import ezdxf
-from ezdxf._fidelity_compare import (
+import dxfpy
+from dxfpy._fidelity_compare import (
     ReplayComparison,
     compare_replay_documents,
     format_replay_comparison,
 )
-from ezdxf.math import Vec2
-from ezdxf.render.mleader import ConnectionSide
+from dxfpy.math import Vec2
+from dxfpy.render.mleader import ConnectionSide
 
 
 def test_compare_replay_documents_reports_replay_issues():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_doc.layout("Layout1").dxf.page_setup_name = "Source Setup"
     source_table = source_doc.layout("Layout1").add_table((0, 0), [["A"]])
     source_table.dxf.override_flag = 0
-    replay_doc = ezdxf.new("R2018")
+    replay_doc = dxfpy.new("R2018")
     replay_doc.appids.new("TEST_APP")
     replay_doc.layout("Layout1").dxf.viewport_handle = "DEADCAFE"
     replay_table = replay_doc.layout("Layout1").add_table((0, 0), [["A"]])
@@ -97,14 +97,14 @@ def test_replay_comparison_can_ignore_layout_order():
 
 
 def test_replay_comparison_accepts_dynamic_table_insert_replacements():
-    from ezdxf.dynblkhelper import replace_dynamic_block_acad_tables_with_blockrefs
+    from dxfpy.dynblkhelper import replace_dynamic_block_acad_tables_with_blockrefs
 
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_block = source_doc.blocks.new("*U900")
     source_table = source_block.add_table((0, 0), [["A"]])
     source_geometry = source_table.dxf.geometry
 
-    replay_doc = ezdxf.new("R2018")
+    replay_doc = dxfpy.new("R2018")
     replay_block = replay_doc.blocks.new("*U900")
     replay_table = replay_block.add_table((0, 0), [["A"]])
     if replay_table.dxf.geometry != source_geometry:

@@ -1,8 +1,8 @@
 from pathlib import Path
-import ezdxf
+import dxfpy
 
 DIR = Path("~/Desktop/Outbox").expanduser()
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 hatch = msp.add_hatch(color=1)
@@ -16,10 +16,10 @@ hatch.paths.add_polyline_path(
         (240, 0, 0),
     ],
     is_closed=1,
-    flags=ezdxf.const.BOUNDARY_PATH_EXTERNAL,
+    flags=dxfpy.const.BOUNDARY_PATH_EXTERNAL,
 )
 # 2. edge path
-edge_path = hatch.paths.add_edge_path(flags=ezdxf.const.BOUNDARY_PATH_OUTERMOST)
+edge_path = hatch.paths.add_edge_path(flags=dxfpy.const.BOUNDARY_PATH_OUTERMOST)
 edge_path.add_spline(
     control_points=[
         (126.658105895725, 177.0823706957212),

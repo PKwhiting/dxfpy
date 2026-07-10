@@ -6,12 +6,12 @@ import random
 import math
 import numpy as np
 
-from ezdxf.entities import Circle, Arc, Ellipse, Insert
-from ezdxf.math import Matrix44, Vec3, X_AXIS, Y_AXIS, Z_AXIS
-import ezdxf
+from dxfpy.entities import Circle, Arc, Ellipse, Insert
+from dxfpy.math import Matrix44, Vec3, X_AXIS, Y_AXIS, Z_AXIS
+import dxfpy
 
 if TYPE_CHECKING:
-    from ezdxf.document import Drawing
+    from dxfpy.document import Drawing
 
 UNIFORM_SCALING = [
     (2, 2, 2),
@@ -224,7 +224,7 @@ def test_random_ellipse_transformations(sx, sy, sz, start, end):
 
 @pytest.fixture(scope="module")
 def doc1() -> "Drawing":
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     blk = doc.blocks.new("AXIS")
     blk.add_line((0, 0, 0), X_AXIS, dxfattribs={"color": 1})
     blk.add_line((0, 0, 0), Y_AXIS, dxfattribs={"color": 3})

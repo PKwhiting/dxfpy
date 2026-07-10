@@ -1,7 +1,7 @@
 # Copyright (c) 2016-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,7 +11,7 @@ if not CWD.exists():
 # This example shows how to create a MESH entity by adding faces as list of
 # vertices.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/mesh.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/mesh.html
 # ------------------------------------------------------------------------------
 
 # 8 corner vertices
@@ -27,7 +27,7 @@ p = [
 ]
 
 # The MESH entity requires the DXF R2000 or newer format.
-doc = ezdxf.new("R2000")
+doc = dxfpy.new("R2000")
 msp = doc.modelspace()
 mesh = msp.add_mesh()
 

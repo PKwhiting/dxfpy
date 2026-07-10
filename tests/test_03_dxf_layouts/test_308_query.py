@@ -1,12 +1,12 @@
 # Copyright (c) 2013-2022, Manfred Moitzi
 # License: MIT-License
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.query import EntityQuery, name_query
-from ezdxf.entities import Text, Line, Circle, Arc, MText
-from ezdxf.math import Vec3
-from ezdxf import colors
+from dxfpy.query import EntityQuery, name_query
+from dxfpy.entities import Text, Line, Circle, Arc, MText
+from dxfpy.math import Vec3
+from dxfpy import colors
 
 
 class TestNameQuery:
@@ -34,7 +34,7 @@ def test_remove_supports_virtual_entities():
 
 @pytest.fixture(scope="module")
 def modelspace():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     modelspace = doc.modelspace()
     modelspace.add_line((0, 0), (10, 0), {"layer": "lay_lines", "color": 7})
     modelspace.add_polyline2d(
@@ -71,14 +71,14 @@ def test_last(modelspace):
 
 
 def test_new_query_select_all(modelspace):
-    result = ezdxf.query.new(modelspace, "*")
+    result = dxfpy.query.new(modelspace, "*")
     # 1xLINE, 1xPOLYLINE, 0xVERTEX, 0xSEQEND, 1x TEXT, 1x CIRCLE
     assert len(result.entities) == 4
     assert len(result) == 4
 
 
 def test_new_empty_query():
-    result = ezdxf.query.new()
+    result = dxfpy.query.new()
     assert len(result.entities) == 0
     assert len(result) == 0
 

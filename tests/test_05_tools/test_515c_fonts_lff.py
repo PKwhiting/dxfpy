@@ -2,8 +2,8 @@
 #  License: MIT License
 import pytest
 
-from ezdxf import path
-from ezdxf.fonts import fonts
+from dxfpy import path
+from dxfpy.fonts import fonts
 
 FONT = "standard.lff"
 

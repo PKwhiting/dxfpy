@@ -4,15 +4,15 @@ from __future__ import annotations
 from typing import cast
 import pytest
 
-from ezdxf.lldxf.tags import Tags
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.entities import Hatch, LWPolyline
-from ezdxf.proxygraphic import (
+from dxfpy.lldxf.tags import Tags
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.entities import Hatch, LWPolyline
+from dxfpy.proxygraphic import (
     load_proxy_graphic,
     export_proxy_graphic,
     ProxyGraphic,
 )
-from ezdxf.protocols import SupportsVirtualEntities, query_virtual_entities
+from dxfpy.protocols import SupportsVirtualEntities, query_virtual_entities
 
 
 def test_load_proxy_graphic():

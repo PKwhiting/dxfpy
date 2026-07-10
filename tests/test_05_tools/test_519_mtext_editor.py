@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.tools.text import MTextEditor
+from dxfpy.tools.text import MTextEditor
 
 
 def test_append_text():

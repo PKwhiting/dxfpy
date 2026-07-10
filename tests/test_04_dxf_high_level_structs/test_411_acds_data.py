@@ -2,11 +2,11 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.sections.acdsdata import AcDsDataSection
-from ezdxf import DXFKeyError
-from ezdxf.lldxf.tags import internal_tag_compiler, group_tags
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+import dxfpy
+from dxfpy.sections.acdsdata import AcDsDataSection
+from dxfpy import DXFKeyError
+from dxfpy.lldxf.tags import internal_tag_compiler, group_tags
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 HANDLE = "339"
 
@@ -54,7 +54,7 @@ def test_write_dxf(section):
 
 
 def test_empty_acds_section_will_not_be_exported():
-    doc = ezdxf.new("R2013")
+    doc = dxfpy.new("R2013")
     result = TagCollector.dxftags(doc.acdsdata)
     assert len(result) == 0
 

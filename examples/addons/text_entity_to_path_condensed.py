@@ -1,11 +1,11 @@
 # Copyright (c) 2021-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.addons import text2path
-from ezdxf.math import Vec3
-from ezdxf import zoom
+import dxfpy
+from dxfpy.enums import TextEntityAlignment
+from dxfpy.addons import text2path
+from dxfpy.math import Vec3
+from dxfpy import zoom
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,12 +14,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to convert TEXT entities to outline paths.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/text2path.html
+# docs: https://dxfpy.mozman.at/docs/addons/text2path.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new(setup=["styles"])
+    doc = dxfpy.new(setup=["styles"])
     arial_narrow = doc.styles.add("NARROW", font="ArialN.ttf")
     # Extended font data is required for "Arial Narrow", why? - ask Autodesk!
     arial_narrow.set_extended_font_data("Arial Narrow")

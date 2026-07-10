@@ -2,15 +2,15 @@
 # License: MIT License
 import pytest
 import math
-import ezdxf
-from ezdxf.layouts import VirtualLayout
+import dxfpy
+from dxfpy.layouts import VirtualLayout
 
 POINTS = [(0, 0), (1, 0, 1), (2, 0), (3, 0)]
 
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     return doc.modelspace()
 
 
@@ -200,7 +200,7 @@ def test_closed_polymesh(polymesh):
 
 
 def test_polyface_virtual_entities():
-    from ezdxf.render.forms import cube
+    from dxfpy.render.forms import cube
 
     msp = VirtualLayout()
     polyface = cube().render_polyface(msp)

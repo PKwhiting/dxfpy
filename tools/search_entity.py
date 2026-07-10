@@ -1,8 +1,8 @@
 # Copyright (c) 2018-2022 Manfred Moitzi
 # License: MIT License
 
-import ezdxf
-from ezdxf import recover
+import dxfpy
+from dxfpy import recover
 from pathlib import Path
 
 DXF_ENTITY = "SUNSTUDY"
@@ -10,14 +10,14 @@ DXF_ENTITY = "SUNSTUDY"
 
 def has_dxf_entity(filename, entity_name):
     try:
-        doc = ezdxf.readfile(filename)
+        doc = dxfpy.readfile(filename)
     except IOError:
         return False
-    except ezdxf.DXFError:
+    except dxfpy.DXFError:
         try:
             print("Using recover mode.")
             doc, auditor = recover.readfile(filename)
-        except ezdxf.DXFStructureError:
+        except dxfpy.DXFStructureError:
             print(f"DXF structure error!")
             return False
 
@@ -40,4 +40,4 @@ def process_dir(folder: Path):
                 print("*" * 40 + "\n")
 
 
-process_dir(ezdxf.options.test_files_path)
+process_dir(dxfpy.options.test_files_path)

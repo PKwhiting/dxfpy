@@ -1,7 +1,7 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 
-from ezdxf.tools import suppress_zeros
+from dxfpy.tools import suppress_zeros
 
 
 def test_leading_zeros():

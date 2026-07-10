@@ -3,7 +3,7 @@
 from typing import Iterable, List
 import pytest
 from itertools import permutations
-import ezdxf.tools.text_layout as tl
+import dxfpy.tools.text_layout as tl
 
 
 @pytest.mark.parametrize(

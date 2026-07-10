@@ -1,21 +1,21 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.render import forms
-from ezdxf.addons import MengerSponge, openscad
+import dxfpy
+from dxfpy.render import forms
+from dxfpy.addons import MengerSponge, openscad
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
 # ------------------------------------------------------------------------------
-# This example shows how to utilize OpenSCAD for construction tasks by ezdxf.
+# This example shows how to utilize OpenSCAD for construction tasks by dxfpy.
 # Shows the usage of the 'meshex' add-on to export/import meshes to/from OpenSCAD.
 #
 # docs:
-# openscad: https://ezdxf.mozman.at/docs/addons/openscad.html
-# meshex: https://ezdxf.mozman.at/docs/addons/meshex.html
+# openscad: https://dxfpy.mozman.at/docs/addons/openscad.html
+# meshex: https://dxfpy.mozman.at/docs/addons/meshex.html
 # ------------------------------------------------------------------------------
 
 POLYHEDRON = str(CWD / "OpenSCAD_polyhedron.dxf")
@@ -23,7 +23,7 @@ POLYGON = str(CWD / "OpenSCAD_polygon.dxf")
 
 
 def polygon(filename):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("NORMALS", color=3)
     msp = doc.modelspace()
     exterior = list(forms.square(10, center=True))
@@ -53,7 +53,7 @@ def polygon(filename):
 
 
 def polyhedron(filename: str):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("NORMALS", color=3)
     msp = doc.modelspace()
 

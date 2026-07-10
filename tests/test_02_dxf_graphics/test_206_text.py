@@ -3,12 +3,12 @@
 import pytest
 import math
 
-import ezdxf
-from ezdxf.entities.text import Text
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.lldxf.const import DXF12, DXF2000
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Vec3, Matrix44
+import dxfpy
+from dxfpy.entities.text import Text
+from dxfpy.enums import TextEntityAlignment
+from dxfpy.lldxf.const import DXF12, DXF2000
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Vec3, Matrix44
 
 TEST_CLASS = Text
 TEST_TYPE = "TEXT"
@@ -100,7 +100,7 @@ AcDbText
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 @pytest.fixture(params=[ENTITY_R12, ENTITY_R2000])
@@ -109,7 +109,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert TEST_TYPE in ENTITY_CLASSES
 

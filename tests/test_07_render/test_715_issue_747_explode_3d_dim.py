@@ -2,14 +2,14 @@
 #  License: MIT License
 import math
 import pytest
-import ezdxf
-from ezdxf.math import UCS, Vec3
-from ezdxf.layouts import Modelspace
+import dxfpy
+from dxfpy.math import UCS, Vec3
+from dxfpy.layouts import Modelspace
 
 
 @pytest.fixture(scope="module")
 def msp() -> Modelspace:
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     base = Vec3(0, 5)
     p1 = Vec3(-4, 3)

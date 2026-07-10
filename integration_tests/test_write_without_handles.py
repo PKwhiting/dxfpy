@@ -2,9 +2,9 @@
 #  License: MIT License
 import os
 import pytest
-import ezdxf
-from ezdxf.lldxf.tagger import ascii_tags_loader
-from ezdxf.lldxf.loader import load_dxf_structure
+import dxfpy
+from dxfpy.lldxf.tagger import ascii_tags_loader
+from dxfpy.lldxf.loader import load_dxf_structure
 
 BASEDIR = os.path.dirname(__file__)
 DATADIR = "data"
@@ -19,29 +19,29 @@ def filename(request):
 
 
 def test_check_R12_has_handles(filename):
-    dwg = ezdxf.readfile(filename)
+    dwg = dxfpy.readfile(filename)
     assert dwg.header["$HANDLING"] > 0
     for entity in dwg.modelspace():
         assert int(entity.dxf.handle, 16) > 0
 
 
 def test_write_R12_without_handles(filename, tmpdir):
-    dwg = ezdxf.readfile(filename)
+    dwg = dxfpy.readfile(filename)
     dwg.header["$HANDLING"] = 0
     export_path = str(tmpdir.join("dxf_r12_without_handles.dxf"))
     dwg.saveas(export_path)
 
-    # can't check with ezdxf.readfile(), because handles automatically enabled
+    # can't check with dxfpy.readfile(), because handles automatically enabled
     with open(export_path) as f:
         tagger = ascii_tags_loader(f)
         sections = load_dxf_structure(tagger)
         for entity in sections["ENTITIES"]:
-            with pytest.raises(ezdxf.DXFValueError):  # has no handles
+            with pytest.raises(dxfpy.DXFValueError):  # has no handles
                 entity.get_handle()
 
         for entity in sections["TABLES"]:
             if entity[0] != (0, "DIMSTYLE"):
-                with pytest.raises(ezdxf.DXFValueError):  # has no handles
+                with pytest.raises(dxfpy.DXFValueError):  # has no handles
                     entity.get_handle()
             else:  # special DIMSTYLE entity
                 assert (

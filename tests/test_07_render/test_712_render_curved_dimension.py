@@ -3,15 +3,15 @@
 import math
 
 import pytest
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.math import Vec2, arc_angle_span_deg
-from ezdxf.render.dim_curved import detect_closer_defpoint, _CurvedDimensionLine
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.math import Vec2, arc_angle_span_deg
+from dxfpy.render.dim_curved import detect_closer_defpoint, _CurvedDimensionLine
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new(setup=True)
+    return dxfpy.new(setup=True)
 
 
 class TestDetectCloserDefpoints:

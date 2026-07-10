@@ -1,13 +1,13 @@
 # Copyright (c) 2020 Manfred Moitzi
 # License: MIT License
 import math
-import ezdxf
-from ezdxf.math import UCS, Vec3
+import dxfpy
+from dxfpy.math import UCS, Vec3
 from pathlib import Path
 
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
-doc = ezdxf.new('R2010')
+doc = dxfpy.new('R2010')
 msp = doc.modelspace()
 
 ucs = UCS(origin=(0, 2, 2)).rotate_local_x(math.radians(-45))

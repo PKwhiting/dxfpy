@@ -2,13 +2,13 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf import appsettings
+import dxfpy
+from dxfpy import appsettings
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_set_current_layer(doc):
@@ -17,7 +17,7 @@ def test_set_current_layer(doc):
 
 
 def test_invalid_layer_raises_exception(doc):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         appsettings.set_current_layer(doc, "INVALID")
 
 
@@ -27,7 +27,7 @@ def test_set_current_aci_color(doc):
 
 
 def test_invalid_aci_color_raises_exception(doc):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         appsettings.set_current_color(doc, 300)
 
 
@@ -38,7 +38,7 @@ def test_set_current_linetype(doc):
 
 
 def test_invalid_linetype_raises_exception(doc):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         appsettings.set_current_linetype(doc, "INVALID")
 
 
@@ -48,7 +48,7 @@ def test_set_current_lineweight(doc):
 
 
 def test_invalid_lineweight_raises_exception(doc):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         appsettings.set_current_lineweight(doc, 300)
 
 
@@ -58,7 +58,7 @@ def test_set_current_linetype_scale(doc):
 
 
 def test_invalid_linetype_scale_raises_exception(doc):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         appsettings.set_current_linetype_scale(doc, 0)
 
 
@@ -69,7 +69,7 @@ def test_set_current_textstyle(doc):
 
 
 def test_invalid_textstyle_raises_exception(doc):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         appsettings.set_current_textstyle(doc, "INVALID")
 
 
@@ -80,7 +80,7 @@ def test_set_current_dimstyle(doc):
 
 
 def test_invalid_dimstyle_raises_exception(doc):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         appsettings.set_current_dimstyle(doc, "INVALID")
 
 

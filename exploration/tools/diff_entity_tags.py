@@ -3,10 +3,10 @@
 from typing import Optional, Iterable, Tuple
 import sys
 
-from ezdxf.lldxf.tags import Tags
-from ezdxf.lldxf.tagger import tag_compiler
-from ezdxf.tools.rawloader import raw_structure_loader
-from ezdxf.tools.difftags import diff_tags, print_diff
+from dxfpy.lldxf.tags import Tags
+from dxfpy.lldxf.tagger import tag_compiler
+from dxfpy.tools.rawloader import raw_structure_loader
+from dxfpy.tools.difftags import diff_tags, print_diff
 
 
 def main(filename1: str, filename2: str, handle: str):

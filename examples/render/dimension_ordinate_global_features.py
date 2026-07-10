@@ -2,14 +2,14 @@
 # License: MIT License
 
 import pathlib
-from ezdxf.math import Vec3
-import ezdxf
-from ezdxf.render import forms
+from dxfpy.math import Vec3
+import dxfpy
+from dxfpy.render import forms
 
 # ------------------------------------------------------------------------------
 # This example shows how to use ordinate dimension in WCS.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/ordinate_dimension.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/ordinate_dimension.html
 # ------------------------------------------------------------------------------
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -18,7 +18,7 @@ if not CWD.exists():
 
 
 # Use argument setup=True to setup the default dimension styles.
-doc = ezdxf.new(setup=True)
+doc = dxfpy.new(setup=True)
 
 # Add new entities to the modelspace:
 msp = doc.modelspace()

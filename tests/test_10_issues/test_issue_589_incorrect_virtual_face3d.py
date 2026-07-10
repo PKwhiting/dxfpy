@@ -3,15 +3,15 @@
 
 import pytest
 import io
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf import bbox
-from ezdxf.render import MeshBuilder
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy import bbox
+from dxfpy.render import MeshBuilder
 
 
 @pytest.fixture(scope="module")
 def triangle_mesh():
-    doc = ezdxf.read(io.StringIO(POLYMESH))
+    doc = dxfpy.read(io.StringIO(POLYMESH))
     msp = doc.modelspace()
     return msp[0]
 

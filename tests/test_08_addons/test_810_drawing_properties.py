@@ -2,17 +2,17 @@
 # License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.addons.drawing.properties import RenderContext, is_valid_color
-from ezdxf.addons.acadctb import ColorDependentPlotStyles
-from ezdxf import colors
-from ezdxf.entities import Layer, factory
-from ezdxf.lldxf import const
+import dxfpy
+from dxfpy.addons.drawing.properties import RenderContext, is_valid_color
+from dxfpy.addons.acadctb import ColorDependentPlotStyles
+from dxfpy import colors
+from dxfpy.entities import Layer, factory
+from dxfpy.lldxf import const
 
 
 @pytest.fixture(scope="module")
 def doc():
-    d = ezdxf.new(setup=True)
+    d = dxfpy.new(setup=True)
     d.layers.add("Test", color=5, linetype="DOT", lineweight=70)
     msp = d.modelspace()
     msp.add_line(
@@ -99,7 +99,7 @@ def test_new_ctb(doc):
 
 
 def test_resolve_entity_visibility():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     layout = doc.modelspace()
     doc.layers.new(name="visible", dxfattribs={"color": 0})
     doc.layers.new(name="invisible", dxfattribs={"color": -1})  # color < 0 => invisible
@@ -143,7 +143,7 @@ def test_resolve_entity_visibility():
 
 
 def test_resolve_attrib_visibility():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     layout = doc.modelspace()
     block = doc.blocks.new(name="block")
     doc.layers.new(name="invisible", dxfattribs={"color": -1})  # color < 0 => invisible
@@ -252,10 +252,10 @@ class TestResolveLayerACIColor7:
 
     @pytest.fixture(scope="class")
     def ctx(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.layers.new(
             "TrueColor",
-            dxfattribs={"true_color": ezdxf.rgb2int((0xB0, 0xB0, 0xB0))},
+            dxfattribs={"true_color": dxfpy.rgb2int((0xB0, 0xB0, 0xB0))},
         )
         context = RenderContext(doc)
         context.set_current_layout(doc.modelspace())
@@ -345,7 +345,7 @@ def test_is_valid_color_value_length(color, result):
 
 
 def test_resolve_transparency_from_layer():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("Layer_T50", color=1, transparency=0.50)
     msp = doc.modelspace()
     line = msp.add_line(
@@ -363,7 +363,7 @@ def test_resolve_transparency_from_layer():
 
 
 def test_bylayer_linetype_properties():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.linetypes.add(
         name="CUSTOM_DASH",
         pattern=[1, 12.0, -3.0],

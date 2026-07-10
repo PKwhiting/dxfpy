@@ -2,7 +2,7 @@
 # License: MIT License
 from __future__ import annotations
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -10,7 +10,7 @@ if not CWD.exists():
 
 
 def block_definition_with_multiline_attdef():
-    doc = ezdxf.new(dxfversion="R2018")
+    doc = dxfpy.new(dxfversion="R2018")
     block = doc.blocks.new(name="MY_BLOCK")
 
     # Text, location and height not needed, because copied from MTEXT entity
@@ -40,7 +40,7 @@ def block_definition_with_multiline_attdef():
 
 
 def attach_multiline_attrib_to_block_reference():
-    doc = ezdxf.new(dxfversion="R2018")
+    doc = dxfpy.new(dxfversion="R2018")
     # create a new block definition:
     block = doc.blocks.new("TEST")
     block.add_circle((0, 0), 1)

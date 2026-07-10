@@ -3,9 +3,9 @@
 
 import pytest
 
-from ezdxf.lldxf.tags import Tags
-from ezdxf.proxygraphic import ProxyGraphic
-from ezdxf.query import EntityQuery
+from dxfpy.lldxf.tags import Tags
+from dxfpy.proxygraphic import ProxyGraphic
+from dxfpy.query import EntityQuery
 
 @pytest.fixture(scope="module")
 def proxy_graphic() -> bytes:

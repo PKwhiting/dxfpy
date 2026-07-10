@@ -3,9 +3,9 @@
 import pytest
 import math
 
-from ezdxf.tools.clipping_portal import ClippingRect
-from ezdxf.math import Vec2
-from ezdxf import npshapes
+from dxfpy.tools.clipping_portal import ClippingRect
+from dxfpy.math import Vec2
+from dxfpy import npshapes
 
 
 class TestClippingRect:

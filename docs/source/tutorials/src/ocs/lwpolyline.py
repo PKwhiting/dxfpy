@@ -1,12 +1,12 @@
 # Copyright (c) 2018-2020 Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.math import Vec3, UCS
+import dxfpy
+from dxfpy.math import Vec3, UCS
 from pathlib import Path
 
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
-doc = ezdxf.new('R2010')
+doc = dxfpy.new('R2010')
 msp = doc.modelspace()
 
 # The center of the pentagon should be (0, 2, 2), and the shape is
@@ -36,7 +36,7 @@ msp.add_lwpolyline(
         'color': 1,
     })
 
-from ezdxf.math import OCS
+from dxfpy.math import OCS
 
 OCS(ucs.uz).render_axis(msp)
 ucs.render_axis(msp)

@@ -3,14 +3,14 @@
 from __future__ import annotations
 import pytest
 
-import ezdxf
-from ezdxf.layouts import Modelspace
-from ezdxf import select
+import dxfpy
+from dxfpy.layouts import Modelspace
+from dxfpy import select
 
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp_ = doc.modelspace()
 
     msp_.add_point((0, 1))
@@ -310,7 +310,7 @@ def test_point_selects_all(msp: Modelspace):
 
 
 def test_all_entities_chained_by_bounding_boxes():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     for x in range(10):
         msp.add_line((x, 0), (x + 1.01, 1))

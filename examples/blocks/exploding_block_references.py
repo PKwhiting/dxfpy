@@ -2,7 +2,7 @@
 # License: MIT License
 import pathlib
 from typing import cast
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,12 +11,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to explode block references (INSERT entities).
 #
-# https://ezdxf.mozman.at/docs/tutorials/blocks.html
+# https://dxfpy.mozman.at/docs/tutorials/blocks.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     msp = doc.modelspace()
 
     block = doc.blocks.new(name="TEST")

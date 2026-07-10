@@ -2,11 +2,11 @@
 # License: MIT License
 
 import pytest
-import ezdxf
+import dxfpy
 
 
 def test_set_redraw_order():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     p1 = msp.add_point((0, 0))
     p2 = msp.add_point((0, 0))

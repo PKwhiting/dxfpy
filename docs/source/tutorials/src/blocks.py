@@ -1,4 +1,4 @@
-import ezdxf
+import dxfpy
 import random  # needed for random placing points
 
 
@@ -10,7 +10,7 @@ def get_random_point():
 
 
 # Create a new drawing in the DXF format of AutoCAD 2010
-doc = ezdxf.new('R2010')
+doc = dxfpy.new('R2010')
 
 # Create a block with the name 'FLAG'
 flag = doc.blocks.new(name='FLAG')

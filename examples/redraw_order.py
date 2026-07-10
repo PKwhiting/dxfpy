@@ -2,9 +2,9 @@
 # License: MIT License
 import random
 import pathlib
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.enums import SortEntities
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.enums import SortEntities
 
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -16,8 +16,8 @@ if not CWD.exists():
 # This example shows how to change the redraw-order of DXF entities.
 #
 # docs:
-# Baselayout: https://ezdxf.mozman.at/docs/layouts/layouts.html#baselayout
-# reorder module: https://ezdxf.mozman.at/docs/reorder.html
+# Baselayout: https://dxfpy.mozman.at/docs/layouts/layouts.html#baselayout
+# reorder module: https://dxfpy.mozman.at/docs/reorder.html
 # ------------------------------------------------------------------------------
 
 def random_in_range(a, b):
@@ -95,7 +95,7 @@ def remove_solids(msp, color=6):
 
 
 def main():
-    doc = ezdxf.new("R2004")  # does not work with AC1015/R2000, but it should
+    doc = dxfpy.new("R2004")  # does not work with AC1015/R2000, but it should
     doc.header["$SORTENTS"] = SortEntities.REGEN
     msp = doc.modelspace()
 

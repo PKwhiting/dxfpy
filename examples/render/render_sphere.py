@@ -1,8 +1,8 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.render.forms import sphere
+import dxfpy
+from dxfpy.render.forms import sphere
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,12 +13,12 @@ if not CWD.exists():
 # face-normals show if the face-orientation follows the usual count-clockwise
 # order to build outside pointing faces.
 #
-# docs: https://ezdxf.mozman.at/docs/render/forms.html#
+# docs: https://dxfpy.mozman.at/docs/render/forms.html#
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("mesh", dxfattribs={"color": 5})
     doc.layers.new("normals", dxfattribs={"color": 6})
 

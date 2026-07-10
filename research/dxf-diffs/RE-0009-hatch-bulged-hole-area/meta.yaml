@@ -9,11 +9,11 @@ field_type: Object property field - hatch area
 source_artifacts:
   baseline_before_dxf: experiments/field-hatch-bulged-hole/generated/after.dxf
   edited_after_dxf: experiments/field-hatch-bulged-hole/manual/after-ui-hatch.dxf
-  probe_dxf: experiments/ezdxf-generated-fields/probe-ui-authored-hatch-area.dxf
-  validation_before_dxf: experiments/ezdxf-generated-fields/validate-probe-ui-authored-hatch-area/before.dxf
-target_ezdxf_modules:
-  - src/ezdxf/entities/mtext.py
-  - src/ezdxf/entities/boundary_paths.py
+  probe_dxf: experiments/dxfpy-generated-fields/probe-ui-authored-hatch-area.dxf
+  validation_before_dxf: experiments/dxfpy-generated-fields/validate-probe-ui-authored-hatch-area/before.dxf
+target_dxfpy_modules:
+  - src/dxfpy/entities/mtext.py
+  - src/dxfpy/entities/boundary_paths.py
 notes:
   - The UI-authored hatch was created manually in AutoCAD inside a region bounded by one outer rectangle and one inner bulged loop.
   - AutoCAD rewrote the hatch into a single polyline boundary path representing the filled region directly.

@@ -3,9 +3,9 @@
 from __future__ import annotations
 import pytest
 
-from ezdxf.math import Vec2, BoundingBox2d, is_point_in_polygon_2d
-from ezdxf.math.clipping import InvertedClippingPolygon2d as ICP
-from ezdxf.math.clipping import (
+from dxfpy.math import Vec2, BoundingBox2d, is_point_in_polygon_2d
+from dxfpy.math.clipping import InvertedClippingPolygon2d as ICP
+from dxfpy.math.clipping import (
     find_closest_vertices,
     make_inverted_clipping_polygon,
 )
@@ -179,7 +179,7 @@ class TestLineClipping:
         There are two clipping lines 4->0 and 4<-0. The zero-length segment between the
         real segments should not be returned.
 
-        inside, inside: #1101 <https://github.com/mozman/ezdxf/issues/1101>
+        inside, inside: #1101 <https://github.com/mozman/dxfpy/issues/1101>
         """
         # 5  .|.|..|.|.
         # 4  .|.|..|.|.

@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 import math
-import ezdxf
-from ezdxf.entities.lwpolyline import LWPolyline
+import dxfpy
+from dxfpy.entities.lwpolyline import LWPolyline
 
 POINTS = [(0, 0), (1, 0, 1), (2, 0), (3, 0)]
 
@@ -17,7 +17,7 @@ def lwpolyline():
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     return doc.modelspace()
 
 

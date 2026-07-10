@@ -1,13 +1,13 @@
 # Copyright (c) 2026, Manfred Moitzi
 # License: MIT License
-import ezdxf
+import dxfpy
 import pytest
 from io import StringIO
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.lldxf import const
-from ezdxf.lldxf.tagger import ascii_tags_loader
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.lldxf import const
+from dxfpy.lldxf.tagger import ascii_tags_loader
 
-from ezdxf.entities.acad_table import (
+from dxfpy.entities.acad_table import (
     AcadTableBlockAttributeValue,
     AcadTableBlockContent,
     AcadTableCell,
@@ -17,9 +17,9 @@ from ezdxf.entities.acad_table import (
     TableStyle,
     read_acad_table_content,
 )
-from ezdxf.entities import factory
-from ezdxf.entities.dxfobj import Field
-from ezdxf.lldxf.tags import Tags
+from dxfpy.entities import factory
+from dxfpy.entities.dxfobj import Field
+from dxfpy.lldxf.tags import Tags
 
 
 def get_geometry_block_cell_mtext(doc, table, row: int, col: int):
@@ -924,7 +924,7 @@ def test_reads_local_fill_true_color_override_tags():
 
 
 def test_reads_ui_authored_attributed_block_cell_wrapper_metadata():
-    doc = ezdxf.readfile(
+    doc = dxfpy.readfile(
         r"C:\Users\solar\Desktop\CAD_TESTING\experiments\acad-table-diffs\acad_table_014_true_block_cell_with_attribs_ui_minimal.dxf"
     )
     table = doc.modelspace().query("ACAD_TABLE")[0]
@@ -941,7 +941,7 @@ def test_reads_ui_authored_attributed_block_cell_wrapper_metadata():
 
 
 def test_resolves_saved_attributed_block_cell_values_from_wrapper_geometry():
-    doc = ezdxf.readfile(
+    doc = dxfpy.readfile(
         r"C:\Users\solar\Desktop\CAD_TESTING\experiments\acad-table-diffs\validate-ezdxf-text-table-validation-block-cell-attribs-v15\before.dxf"
     )
     table = doc.modelspace().query("ACAD_TABLE")[4]
@@ -1000,7 +1000,7 @@ def test_merges_linked_block_cell_attributes_into_table_cell():
 
 
 def test_resolves_block_attribute_tag_names_and_values():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("TABLE_BLOCK_CELL_ATTRIB")
     attdef1 = block.add_attdef("TAG1", insert=(0, 0), text="A")
     attdef2 = block.add_attdef("TAG2", insert=(1, 1), text="B")
@@ -1029,7 +1029,7 @@ def test_resolves_block_attribute_tag_names_and_values():
 
 
 def test_resolves_direct_cell_field_handle():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     field = doc.objects.add_field(owner="0")
     field.set_acvar("Author", display="----")
     table = AcadTableBlockContent.from_text(
@@ -1043,7 +1043,7 @@ def test_resolves_direct_cell_field_handle():
 
 
 def test_resolves_wrapped_cell_field_to_primary_child():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     child = doc.objects.add_field(owner="0")
     child.set_acvar("Author", display="----")
     wrapper = doc.objects.add_field(owner="0")
@@ -1060,7 +1060,7 @@ def test_resolves_wrapped_cell_field_to_primary_child():
 
 
 def test_new_cell_acvar_field_sets_shell_handle_and_resolves_field():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
 
     field, wrapper = table.new_cell_acvar_field(0, 0, "Author", text="----")
@@ -1091,7 +1091,7 @@ def test_new_cell_acvar_field_sets_shell_handle_and_resolves_field():
 
 
 def test_new_cell_acobjprop_field_sets_shell_handle_and_resolves_field():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     line = doc.modelspace().add_line((0, 0), (3, 4))
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
 
@@ -1123,7 +1123,7 @@ def test_new_cell_acobjprop_field_sets_shell_handle_and_resolves_field():
 
 
 def test_new_cell_acexpr_field_sets_shell_handle_and_resolves_children():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     line = doc.modelspace().add_line((0, 0), (10, 0))
     circle = doc.modelspace().add_circle((5, 0), radius=2.5)
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["25.0000"]])
@@ -1164,7 +1164,7 @@ def test_new_cell_acexpr_field_sets_shell_handle_and_resolves_children():
 
 
 def test_set_cell_text_clears_linked_field_reference():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
 
     _, wrapper = table.new_cell_acvar_field(0, 0, "Author", text="----")
@@ -1183,7 +1183,7 @@ def test_set_cell_text_clears_linked_field_reference():
 
 
 def test_new_cell_acvar_field_registers_field_list_handles():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
 
     _, wrapper = table.new_cell_acvar_field(
@@ -1199,7 +1199,7 @@ def test_new_cell_acvar_field_registers_field_list_handles():
 
 
 def test_authored_table_fields_roundtrip_to_shell_and_geometry_fields():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (3, 4))
     circle = msp.add_circle((25, 0), radius=2.5)
@@ -1221,7 +1221,7 @@ def test_authored_table_fields_roundtrip_to_shell_and_geometry_fields():
 
     stream = StringIO()
     doc.write(stream)
-    loaded = ezdxf.read(StringIO(stream.getvalue()))
+    loaded = dxfpy.read(StringIO(stream.getvalue()))
     loaded_table = list(loaded.modelspace().query("ACAD_TABLE"))[0]
     loaded_field_list = loaded.objects.get_field_list()
 
@@ -1249,7 +1249,7 @@ def test_authored_table_fields_roundtrip_to_shell_and_geometry_fields():
 
 
 def test_authored_table_fields_do_not_leave_stale_field_objects():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (3, 4))
     circle = msp.add_circle((25, 0), radius=2.5)
@@ -1279,7 +1279,7 @@ def test_authored_table_fields_do_not_leave_stale_field_objects():
 
 
 def test_modelspace_add_table_creates_text_only_acad_table():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((1, 2), [["T"], ["H"], ["D"]])
 
     assert table.dxftype() == "ACAD_TABLE"
@@ -1299,7 +1299,7 @@ def test_modelspace_add_table_creates_text_only_acad_table():
 
 
 def test_exports_created_text_only_acad_table():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     style = doc.table_styles.get("Standard")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
 
@@ -1318,14 +1318,14 @@ def test_exports_created_text_only_acad_table():
 
 
 def test_add_table_requires_dxf_r2007():
-    doc = ezdxf.new("R2004")
+    doc = dxfpy.new("R2004")
 
     with pytest.raises(const.DXFVersionError):
         doc.modelspace().add_table((0, 0), [["D"]])
 
 
 def test_add_table_two_rows_suppresses_title_and_keeps_explicit_sizes():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table(
         (0, 0),
         [["H1", "H2"], ["D1", "D2"]],
@@ -1342,7 +1342,7 @@ def test_add_table_two_rows_suppresses_title_and_keeps_explicit_sizes():
 
 
 def test_add_table_one_row_suppresses_title_and_header():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["D1", "D2", "D3"]])
 
     assert table.data is not None
@@ -1353,7 +1353,7 @@ def test_add_table_one_row_suppresses_title_and_header():
 
 
 def test_exports_authored_text_height_override_and_uses_it_for_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.set_row_height(0, 29.66666666666667)
     table.set_cell_text_height(0, 0, 20.0)
@@ -1372,7 +1372,7 @@ def test_exports_authored_text_height_override_and_uses_it_for_geometry():
 
 
 def test_exports_authored_alignment_override_and_uses_it_for_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.set_cell_alignment(0, 0, 4)
 
@@ -1391,7 +1391,7 @@ def test_exports_authored_alignment_override_and_uses_it_for_geometry():
 
 
 def test_exports_authored_inline_content_color_and_rebuilds_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.set_cell_content_color(0, 0, 215, 10507177)
 
@@ -1410,7 +1410,7 @@ def test_exports_authored_inline_content_color_and_rebuilds_geometry():
 
 
 def test_set_cell_text_updates_export_and_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.set_cell_text(0, 0, "TITLE-LONG")
 
@@ -1428,7 +1428,7 @@ def test_set_cell_text_updates_export_and_geometry():
 
 
 def test_exports_authored_local_fill_override_and_rebuilds_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.set_cell_fill_color(0, 0, 217, 9643919)
 
@@ -1449,7 +1449,7 @@ def test_exports_authored_local_fill_override_and_rebuilds_geometry():
 
 
 def test_exports_disabled_fill_state():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.clear_cell_fill(0, 0)
 
@@ -1469,7 +1469,7 @@ def test_exports_disabled_fill_state():
 
 
 def test_can_disable_fill_after_setting_fill_color():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.set_cell_fill_color(0, 0, 177, 3811732)
     table.set_cell_fill_enabled(0, 0, False)
@@ -1483,7 +1483,7 @@ def test_can_disable_fill_after_setting_fill_color():
 
 
 def test_can_not_enable_fill_without_fill_color():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
 
     with pytest.raises(const.DXFValueError):
@@ -1491,7 +1491,7 @@ def test_can_not_enable_fill_without_fill_color():
 
 
 def test_exports_authored_text_style_override_and_rebuilds_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     doc.styles.new("TABLE_ALT", dxfattribs={"font": "arial.ttf"})
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.set_cell_text_style(0, 0, "TABLE_ALT")
@@ -1510,7 +1510,7 @@ def test_exports_authored_text_style_override_and_rebuilds_geometry():
 
 
 def test_exports_minimal_block_cell_and_rebuilds_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("TABLE_BLOCK_CELL_MIN", base_point=(0, 0))
     block.add_lwpolyline([(0, 0), (2, 0), (2, 2), (0, 2)], close=True)
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], [""]])
@@ -1535,7 +1535,7 @@ def test_exports_minimal_block_cell_and_rebuilds_geometry():
 
 
 def test_block_cell_attribs_create_authored_linked_tablecontent():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("TABLE_BLOCK_CELL_ATTRIB_UI", base_point=(0, 0))
     block.add_lwpolyline([(0, 0), (6, 0), (6, 3), (0, 3)], close=True)
     block.add_attdef("TAG1", insert=(0.5, 0.5), text="A")
@@ -1632,7 +1632,7 @@ def test_block_cell_attribs_create_authored_linked_tablecontent():
 
 
 def test_add_table_sets_layout_owner():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
 
     table = msp.add_table((0, 0), [["T"], ["H"], ["D"]])
@@ -1642,7 +1642,7 @@ def test_add_table_sets_layout_owner():
 
 
 def test_set_col_width_updates_export_and_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T", "H"], ["D", "E"]])
     table.set_col_width(1, 30.0)
 
@@ -1659,7 +1659,7 @@ def test_set_col_width_updates_export_and_geometry():
 
 
 def test_set_row_height_updates_export_and_geometry():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     table.set_row_height(0, 29.66666666666667)
 
@@ -1676,7 +1676,7 @@ def test_set_row_height_updates_export_and_geometry():
 
 
 def test_set_title_suppressed_changes_style_bucket_mapping():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     style = doc.table_styles.get("Standard")
 
@@ -1689,7 +1689,7 @@ def test_set_title_suppressed_changes_style_bucket_mapping():
 
 
 def test_set_column_header_suppressed_changes_style_bucket_mapping():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["T"], ["H"], ["D"]])
     style = doc.table_styles.get("Standard")
 
@@ -1724,7 +1724,7 @@ def test_reads_table_style_cell_buckets():
 
 
 def test_document_exposes_table_style_manager():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
 
     assert doc.table_styles is not None
     assert doc.table_styles.object_type == "TABLESTYLE"
@@ -1735,7 +1735,7 @@ def test_document_exposes_table_style_manager():
 
 
 def test_exports_created_standard_table_style():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     style = doc.table_styles.get("Standard")
 
     assert style is not None
@@ -1758,7 +1758,7 @@ def bind_object(doc, entity):
 
 
 def test_resolves_table_style_and_default_row_buckets():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     style = bind_object(doc, TableStyle.from_text(TABLESTYLE_TEXT, doc=doc))
     table = load_table(TEXT_TABLE)
     table.doc = doc
@@ -1772,7 +1772,7 @@ def test_resolves_table_style_and_default_row_buckets():
 
 
 def test_row_bucket_mapping_respects_suppressed_title():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     style = bind_object(doc, TableStyle.from_text(TABLESTYLE_TEXT, doc=doc))
     table = load_table(TEXT_TABLE)
     table.doc = doc

@@ -1,8 +1,8 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 
-from ezdxf.lldxf.const import BYBLOCK, BYLAYER
-from ezdxf import colors as clr
+from dxfpy.lldxf.const import BYBLOCK, BYLAYER
+from dxfpy import colors as clr
 
 
 def test_decode_by_block():

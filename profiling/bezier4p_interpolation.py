@@ -1,11 +1,11 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import time
-import ezdxf
+import dxfpy
 import pathlib
 import math
-from ezdxf.math import cubic_bezier_interpolation, BoundingBox
-from ezdxf.render import random_3d_path
+from dxfpy.math import cubic_bezier_interpolation, BoundingBox
+from dxfpy.render import random_3d_path
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -25,7 +25,7 @@ def profile(text, func, *args):
 
 
 def export_path(path):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     bbox = BoundingBox(path)
     msp.add_polyline3d(path, dxfattribs={"layer": "Path", "color": 2})

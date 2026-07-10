@@ -1,11 +1,11 @@
 #  Copyright (c) 2021-2023, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import path, zoom
-from ezdxf.math import Matrix44
-from ezdxf.fonts import fonts
-from ezdxf.addons import text2path
+import dxfpy
+from dxfpy import path, zoom
+from dxfpy.math import Matrix44
+from dxfpy.fonts import fonts
+from dxfpy.addons import text2path
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,12 +15,12 @@ if not CWD.exists():
 # This example shows how create outline paths from a text and fit them into a
 # specified rectangle.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/text2path.html
+# docs: https://dxfpy.mozman.at/docs/addons/text2path.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     ff = fonts.FontFace(family="Arial")

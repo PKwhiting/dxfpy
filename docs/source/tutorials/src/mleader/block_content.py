@@ -3,17 +3,17 @@
 from typing import TYPE_CHECKING
 import pathlib
 
-import ezdxf
-from ezdxf import colors
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.gfxattribs import GfxAttribs
-from ezdxf.math import Vec2, NULLVEC, ConstructionBox
-from ezdxf.render import forms
-from ezdxf.render import mleader
+import dxfpy
+from dxfpy import colors
+from dxfpy.enums import TextEntityAlignment
+from dxfpy.gfxattribs import GfxAttribs
+from dxfpy.math import Vec2, NULLVEC, ConstructionBox
+from dxfpy.render import forms
+from dxfpy.render import mleader
 
 if TYPE_CHECKING:
-    from ezdxf.document import Drawing
-    from ezdxf.layouts import BlockLayout
+    from dxfpy.document import Drawing
+    from dxfpy.layouts import BlockLayout
 
 # reserved for further imports, line numbers have to be preserved for
 # .. literalinclude::
@@ -67,7 +67,7 @@ def block_content_horizontal(filename: str):
     x1, y1, x2, y2 = -20, -20, 40, 20
     construction_box = ConstructionBox.from_points((x1, y1), (x2, y2))
 
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     block = create_square_block(
         doc, size=8.0, margin=0.25, base_point=base_point
@@ -99,7 +99,7 @@ def block_content_vertical(filename: str):
     x1, y1, x2, y2 = -20, -20, 40, 20
     construction_box = ConstructionBox.from_points((x1, y1), (x2, y2))
 
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     block = create_square_block(
         doc, size=8.0, margin=0.25, base_point=base_point

@@ -1,7 +1,7 @@
 # Copyright (c) 2020-2022 Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.math import intersection_line_line_2d, Vec2
+from dxfpy.math import intersection_line_line_2d, Vec2
 
 
 def vec2(x, y):
@@ -103,7 +103,7 @@ def test_issue_128():
 
 
 def test_issue_664():
-    from ezdxf.math import ConstructionLine
+    from dxfpy.math import ConstructionLine
     p1 = Vec2(16399619.87946683, -199438.8133075837)
     p2 = Vec2(16399700.34999472, -199438.8133075837)
     p3 = Vec2(16399659.76235549, -199423.8133075837)

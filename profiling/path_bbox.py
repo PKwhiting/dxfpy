@@ -2,17 +2,17 @@
 # License: MIT License
 import time
 import math
-from ezdxf.math import BoundingBox, Vec3
-from ezdxf.render.forms import circle
-import ezdxf.path
+from dxfpy.math import BoundingBox, Vec3
+from dxfpy.render.forms import circle
+import dxfpy.path
 
-LARGE_PATH = ezdxf.path.from_vertices(circle(100, radius=10))
+LARGE_PATH = dxfpy.path.from_vertices(circle(100, radius=10))
 
 def current_fast_bbox():
-    ezdxf.path.bbox((LARGE_PATH, ), fast=True)
+    dxfpy.path.bbox((LARGE_PATH, ), fast=True)
 
 def current_precise_bbox():
-    ezdxf.path.bbox((LARGE_PATH, ), fast=False)
+    dxfpy.path.bbox((LARGE_PATH, ), fast=False)
 
 def new_fast_bbox():
     fast_bbox(LARGE_PATH)

@@ -1,10 +1,10 @@
 # Copyright (c) 2026, Manfred Moitzi
 # License: MIT License
-import ezdxf
+import dxfpy
 
 
 def test_attdef_new_dwgprops_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     block = doc.blocks.new("TEST")
     attdef = block.add_attdef("TAG1", insert=(0, 0), text="TEXT")
 
@@ -20,7 +20,7 @@ def test_attdef_new_dwgprops_field_creates_object_backed_field():
 
 
 def test_attrib_new_dwgprops_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     block = doc.blocks.new("TEST")
     blockref = doc.modelspace().add_blockref("TEST", insert=(0, 0))
     attrib = blockref.add_attrib("TAG1", "TEXT", insert=(0, 0))
@@ -37,7 +37,7 @@ def test_attrib_new_dwgprops_field_creates_object_backed_field():
 
 
 def test_add_attdef_acvar_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     block = doc.blocks.new("TEST")
     attdef = block.add_attdef_acvar_field(
         "TAG1",
@@ -53,7 +53,7 @@ def test_add_attdef_acvar_field():
 
 
 def test_add_attdef_dwgprops_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     block = doc.blocks.new("TEST")
     attdef = block.add_attdef_dwgprops_field(
         "TAG1",
@@ -69,7 +69,7 @@ def test_add_attdef_dwgprops_field():
 
 
 def test_add_attdef_acobjprop_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     block = doc.blocks.new("TEST")
     line = doc.modelspace().add_line((0, 0), (10, 0))
     attdef = block.add_attdef_acobjprop_field(

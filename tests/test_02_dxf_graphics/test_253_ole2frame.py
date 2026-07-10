@@ -3,8 +3,8 @@
 
 import pytest
 
-from ezdxf.entities import OLE2Frame
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities import OLE2Frame
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 from binascii import unhexlify
 
 

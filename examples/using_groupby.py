@@ -4,7 +4,7 @@
 import os
 import glob
 import math
-import ezdxf
+import dxfpy
 
 
 def outname(fname):
@@ -27,7 +27,7 @@ def calc(dxffile):
     def group_key(entity):  # group entities by (dxftype, layer)
         return entity.dxftype(), entity.dxf.layer
 
-    doc = ezdxf.readfile(dxffile)
+    doc = dxfpy.readfile(dxffile)
     msp = doc.modelspace()
     groups = msp.groupby(key=group_key)
     # using get(): returns None if key does not exist

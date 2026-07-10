@@ -2,9 +2,9 @@
 #  License: MIT License
 from __future__ import annotations
 import pathlib
-import ezdxf
-from ezdxf import zoom, colors
-from ezdxf.math import (
+import dxfpy
+from dxfpy import zoom, colors
+from dxfpy.math import (
     Vec3,
     estimate_tangents,
     estimate_end_tangent_magnitude,
@@ -14,7 +14,7 @@ from ezdxf.math import (
     fit_points_to_cad_cv,
     fit_points_to_cubic_bezier,
 )
-from ezdxf.render import random_2d_path
+from dxfpy.render import random_2d_path
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -26,7 +26,7 @@ closed_points.append(points[0])
 
 
 def setup():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_lwpolyline(points, dxfattribs={"color": colors.BLUE, "layer": "frame"})
     for p in points:
@@ -177,7 +177,7 @@ def open_spline_from_fit_points_with_end_tangents():
     msp.add_spline(
         dxfattribs={
             "color": colors.CYAN,
-            "layer": "SPLINE from control vertices by ezdxf",
+            "layer": "SPLINE from control vertices by dxfpy",
         }
     ).apply_construction_tool(s)
 
@@ -235,7 +235,7 @@ def spline_by_cubic_bezier_interpolation():
 # This is the visual check for that:
 # ----------------------------------------------------------------------------
 def check_visually_fit_points_to_cad_cv():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("CAD", color=colors.RED)
     doc.layers.add("EZDXF", color=colors.YELLOW)
     msp = doc.modelspace()
@@ -320,7 +320,7 @@ def closed_spline_from_fit_points_with_tangent():
 # Random walk open SPLINE from fit points
 # ------------------------------------------------------------------------------
 def random_walk_open_spline():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     walk = list(random_2d_path(10))
 

@@ -3,16 +3,16 @@
 from typing import cast, Union, List
 
 import pytest
-import ezdxf
+import dxfpy
 import math
 
-from ezdxf.entities import Ellipse, Point, Arc, DXFEntity, Insert
-from ezdxf.math import Vec3
+from dxfpy.entities import Ellipse, Point, Arc, DXFEntity, Insert
+from dxfpy.math import Vec3
 
 
 @pytest.fixture(scope="module")
 def doc():
-    d = ezdxf.new()
+    d = dxfpy.new()
     blk = d.blocks.new("Test1")
     blk.add_line((0, 0), (1, 0))
     blk.add_line((0, 0), (0, 1))
@@ -227,7 +227,7 @@ def test_skipped_entities_callback(doc, msp):
 def _get_transformed_curve(
     scale_factors: Vec3, rotation: float, is_arc: bool
 ) -> Union[Ellipse, Arc]:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     blk = doc.blocks.new("block")
     if is_arc:
         blk.add_arc(
@@ -416,7 +416,7 @@ def test_explode_xref(doc, msp):
 class TestSourceBlockReferenceFromNestedBlockReferences:
     @pytest.fixture(scope="class")
     def doc(self):
-        doc_ = ezdxf.new()
+        doc_ = dxfpy.new()
         blk0 = doc_.blocks.new("BLK0")
         blk1 = doc_.blocks.new("BLK1")
         blk2 = doc_.blocks.new("BLK2")
@@ -474,7 +474,7 @@ class TestSourceBlockReferenceFromNestedBlockReferences:
 class TestEntitiesInRedrawOrder:
     @pytest.fixture(scope="class")
     def blk(self):
-        d = ezdxf.new()
+        d = dxfpy.new()
         blk = d.blocks.new("BLK0")
         line0 = blk.add_line((0, 0), (1, 0))
         line1 = blk.add_line((0, 0), (0, 1))

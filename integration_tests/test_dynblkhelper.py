@@ -3,16 +3,16 @@
 
 import pytest
 import pathlib
-import ezdxf
-from ezdxf.entities import Insert
-from ezdxf import dynblkhelper
+import dxfpy
+from dxfpy.entities import Insert
+from dxfpy import dynblkhelper
 
 BASEDIR = pathlib.Path(__file__)
 DYN_BLOCKS = BASEDIR.parent / "data" / "dynblks.zip"
 
 
 def test_direct_dynamic_block_references():
-    doc = ezdxf.readzip(DYN_BLOCKS, "dynblk0.dxf")
+    doc = dxfpy.readzip(DYN_BLOCKS, "dynblk0.dxf")
     msp = doc.modelspace()
 
     references = msp.query("INSERT")
@@ -27,7 +27,7 @@ def test_direct_dynamic_block_references():
 
 
 def test_indirect_dynamic_block_references():
-    doc = ezdxf.readzip(DYN_BLOCKS, "dynblk1.dxf")
+    doc = dxfpy.readzip(DYN_BLOCKS, "dynblk1.dxf")
     msp = doc.modelspace()
 
     references = msp.query("INSERT")

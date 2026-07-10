@@ -1,14 +1,14 @@
 # Copyright (c) 2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.render.forms import gear, translate
-from ezdxf.math.clipping import (
+import dxfpy
+from dxfpy.render.forms import gear, translate
+from dxfpy.math.clipping import (
     greiner_hormann_union,
     greiner_hormann_difference,
     greiner_hormann_intersection,
 )
-from ezdxf import zoom
+from dxfpy import zoom
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -18,7 +18,7 @@ if not CWD.exists():
 # This example shows how to execute boolean operations (union, intersection,
 # difference) by the Greiner-Hormann clipping algorithm on 2D polygons.
 #
-# docs: https://ezdxf.mozman.at/docs/math/clipping.html
+# docs: https://dxfpy.mozman.at/docs/math/clipping.html
 # ------------------------------------------------------------------------------
 
 PATCH = [
@@ -40,7 +40,7 @@ SQUARE2 = [(10, 5), (20, 5), (20, 15), (10, 15), (10, 5)]
 
 
 def export(polygons, name):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     for color, polygon in enumerate(polygons):
         msp.add_lwpolyline(polygon, dxfattribs={"color": color + 1})

@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import intersection_line_polygon_3d, Vec3
+from dxfpy.math import intersection_line_polygon_3d, Vec3
 
 
 @pytest.fixture(scope="module")

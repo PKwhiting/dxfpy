@@ -1,12 +1,12 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
 
-import ezdxf
-from ezdxf.addons.drawing import Frontend, RenderContext, hpgl2, layout
+import dxfpy
+from dxfpy.addons.drawing import Frontend, RenderContext, hpgl2, layout
 
 
 def example_doc():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     x0, y0, x1, y1 = 0, 0, 10, 10
     start = (x0, y0)

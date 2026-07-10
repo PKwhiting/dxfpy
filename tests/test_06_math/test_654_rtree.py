@@ -3,9 +3,9 @@
 
 import pytest
 
-from ezdxf.math import Vec2, Vec3, BoundingBox, spherical_envelope
-from ezdxf.math import rtree
-from ezdxf.math.rtree import RTree
+from dxfpy.math import Vec2, Vec3, BoundingBox, spherical_envelope
+from dxfpy.math import rtree
+from dxfpy.math.rtree import RTree
 
 
 def test_can_not_build_empty_tree():
@@ -154,7 +154,7 @@ def test_avg_methods_return_0_for_too_small_trees():
 
 
 def test_spherical_envelope():
-    from ezdxf.render.forms import cube
+    from dxfpy.render.forms import cube
 
     center, radius = spherical_envelope(cube(center=True).vertices)
     assert center.isclose((0, 0, 0))

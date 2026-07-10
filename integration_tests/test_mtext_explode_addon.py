@@ -1,8 +1,8 @@
 #  Copyright (c) 2021, Manfred Moitzi
 #  License: MIT License
 import pytest
-import ezdxf
-from ezdxf.addons import MTextExplode
+import dxfpy
+from dxfpy.addons import MTextExplode
 
 LOREM_IPSUM = (
     r"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam "
@@ -18,7 +18,7 @@ JUSTIFIED = r"\pi1,qj;" + LOREM_IPSUM + "\n\n"
 
 
 def new_doc(content: str, width: float = 30):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     mtext = msp.add_mtext(
         content,
@@ -28,7 +28,7 @@ def new_doc(content: str, width: float = 30):
             "char_height": 1,
             "color": 7,
             "style": "OpenSans",
-            "line_spacing_style": ezdxf.const.MTEXT_EXACT,
+            "line_spacing_style": dxfpy.const.MTEXT_EXACT,
         },
     )
     mtext.set_bg_color(None, text_frame=True)
@@ -45,9 +45,9 @@ def explode_mtext(doc, destroy=False):
 
 
 def test_created_text_styles_exists():
-    from ezdxf.tools.text import MTextEditor
+    from dxfpy.tools.text import MTextEditor
 
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     editor = MTextEditor()
     editor.append("LINE0\n")

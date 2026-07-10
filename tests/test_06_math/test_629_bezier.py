@@ -1,7 +1,7 @@
 # Copyright (c) 2010-2020 Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.math import Bezier, Matrix44
+from dxfpy.math import Bezier, Matrix44
 
 DEFPOINTS2D = [
     (0.0, 0.0, 0.0),

@@ -1,7 +1,7 @@
 # Copyright (c) 2014-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,13 +11,13 @@ if not CWD.exists():
 # create custom HEADER variables
 #
 # for more information about custom HEADER variables see:
-# https://ezdxf.mozman.at/docs/tutorials/custom_data.html#custom-document-properties
+# https://dxfpy.mozman.at/docs/tutorials/custom_data.html#custom-document-properties
 # ------------------------------------------------------------------------------
 
 
 def main():
     # this feature requires DXF R2000 or later
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     msp = doc.modelspace()
 
     # create some content

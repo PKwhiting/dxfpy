@@ -6,21 +6,21 @@ import sys
 
 import matplotlib.pyplot as plt
 
-import ezdxf
-from ezdxf import recover
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
-from ezdxf.addons.drawing.config import Configuration
+import dxfpy
+from dxfpy import recover
+from dxfpy.addons.drawing import RenderContext, Frontend
+from dxfpy.addons.drawing.matplotlib import MatplotlibBackend
+from dxfpy.addons.drawing.config import Configuration
 
 # ------------------------------------------------------------------------------
-# The "draw_cad.py" viewer can be executed by the new ezdxf command line
+# The "draw_cad.py" viewer can be executed by the new dxfpy command line
 # launcher:
 #
-# C:\> ezdxf draw FILE
+# C:\> dxfpy draw FILE
 #
 # This file remains as an example for the usage of the Matplotlib backend.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 
@@ -49,14 +49,14 @@ def _main():
         sys.exit(1)
 
     try:
-        doc = ezdxf.readfile(args.cad_file)
+        doc = dxfpy.readfile(args.cad_file)
     except IOError:
         print(f"Not a DXF file or a generic I/O error.")
         sys.exit(2)
-    except ezdxf.DXFError:
+    except dxfpy.DXFError:
         try:
             doc, auditor = recover.readfile(args.cad_file)
-        except ezdxf.DXFStructureError:
+        except dxfpy.DXFStructureError:
             print(f"Invalid or corrupted DXF file: {args.cad_file}")
             sys.exit(3)
     else:

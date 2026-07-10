@@ -2,13 +2,13 @@
 #  License: MIT License
 from __future__ import annotations
 import pytest
-from ezdxf.math import Vec2, BoundingBox2d
-from ezdxf.math.clipping import (
+from dxfpy.math import Vec2, BoundingBox2d
+from dxfpy.math.clipping import (
     ConvexClippingPolygon2d,
     ClippingRect2d,
     Clipping,
 )
-from ezdxf.render.forms import circle
+from dxfpy.render.forms import circle
 
 
 class TestClipSingleLineAtConvexBoundary:

@@ -1,11 +1,11 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import odafc
-from ezdxf.document import Drawing
-from ezdxf import xref, units, colors
-from ezdxf.render import forms
+import dxfpy
+from dxfpy.addons import odafc
+from dxfpy.document import Drawing
+from dxfpy import xref, units, colors
+from dxfpy.render import forms
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -19,7 +19,7 @@ if not CWD.exists():
 
 def make_dxf_xref_document(name: str, dxfversion="R2013") -> Drawing:
     # AutoCAD does not accept DXF R12 files as XREF :(
-    ref_doc = ezdxf.new(dxfversion, units=units.M)
+    ref_doc = dxfpy.new(dxfversion, units=units.M)
     ref_doc.layers.add("GEAR", color=colors.YELLOW)
     msp = ref_doc.modelspace()
     gear = forms.gear(
@@ -34,7 +34,7 @@ def make_dxf_xref_document(name: str, dxfversion="R2013") -> Drawing:
 
 
 # AutoCAD accepts DXF files (>DXF12) as XREFs, but is unwilling to resolve the
-# DXF files created by ezdxf, which opened for itself is a total valid DXF
+# DXF files created by dxfpy, which opened for itself is a total valid DXF
 # document.
 #
 # It seems that AutoCAD does not resolve any DXF file as an XREF file, no matter what
@@ -42,7 +42,7 @@ def make_dxf_xref_document(name: str, dxfversion="R2013") -> Drawing:
 # The much more friendly BricsCAD has no problem to resolve the DXF files as XREFs.
 #
 # Export the DXF document as DWG file by the odafc addon, for more information
-# see the docs: https://ezdxf.mozman.at/docs/addons/odafc.html
+# see the docs: https://dxfpy.mozman.at/docs/addons/odafc.html
 # At least the DWG file is accepted by AutoCAD.
 
 
@@ -60,8 +60,8 @@ def create_xrefs(dxf_name, dwg_name, dxfversion):
 
 
 def use_add_xref_def(dxf_name: str, dwg_name: str, dxfversion: str) -> None:
-    # The method before ezdxf v1.1 which will continue to work in the future:
-    host_doc = ezdxf.new(dxfversion, units=units.M)
+    # The method before dxfpy v1.1 which will continue to work in the future:
+    host_doc = dxfpy.new(dxfversion, units=units.M)
     msp = host_doc.modelspace()
 
     # create external reference definitions
@@ -78,9 +78,9 @@ def use_add_xref_def(dxf_name: str, dwg_name: str, dxfversion: str) -> None:
 
 
 def use_xref_attach(dxf_name: str, dwg_name: str, dxfversion: str) -> None:
-    # The new ezdxf.xref module in v1.1 bundles all XREF relates tasks into a single
+    # The new dxfpy.xref module in v1.1 bundles all XREF relates tasks into a single
     # module.
-    host_doc = ezdxf.new(dxfversion, units=units.M)
+    host_doc = dxfpy.new(dxfversion, units=units.M)
 
     # create the external reference definition and a default block reference for it:
     xref.attach(host_doc, block_name="dxf_xref", filename=dxf_name)
@@ -98,9 +98,9 @@ def main():
     create_xrefs(dxf_name, dwg_name, dxfversion)
 
     # both function do the same:
-    # 1. uses the method before ezdxf v1.1
+    # 1. uses the method before dxfpy v1.1
     use_add_xref_def(dxf_name, dwg_name, dxfversion)
-    # 2. uses the new xref module in ezdxf v1.1
+    # 2. uses the new xref module in dxfpy v1.1
     use_xref_attach(dxf_name, dwg_name, dxfversion)
 
 

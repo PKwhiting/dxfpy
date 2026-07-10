@@ -1,7 +1,7 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 from argparse import ArgumentParser
-from ezdxf.acis import api as acis
+from dxfpy.acis import api as acis
 
 
 def main():

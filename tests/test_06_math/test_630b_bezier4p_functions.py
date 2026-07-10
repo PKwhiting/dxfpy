@@ -3,7 +3,7 @@
 import pytest
 import random
 
-from ezdxf.math import (
+from dxfpy.math import (
     cubic_bezier_interpolation,
     Vec3,
     Vec2,

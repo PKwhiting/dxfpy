@@ -1,9 +1,9 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import meshex
-from ezdxf.render.forms import cylinder, sphere
+import dxfpy
+from dxfpy.addons import meshex
+from dxfpy.render.forms import cylinder, sphere
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,7 +13,7 @@ if not CWD.exists():
 # This example shows how to export MeshBuilder instances as 3D file formats:
 # STL, OBJ, PLY and IFC4
 #
-# docs: https://ezdxf.mozman.at/docs/addons/meshex.html
+# docs: https://dxfpy.mozman.at/docs/addons/meshex.html
 # ------------------------------------------------------------------------------
 
 SIDES = 16
@@ -81,7 +81,7 @@ def export_ifc4_open_cylinder(filename, kind):
 
 
 def export_dxf(filename):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     mesh = make_mesh(SIDES)
     mesh.render_mesh(doc.modelspace())
     doc.saveas(filename)

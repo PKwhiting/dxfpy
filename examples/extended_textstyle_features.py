@@ -2,13 +2,13 @@
 # License: MIT License
 
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 doc.styles.add("Arial", font="Arial.ttf")
 text_style = doc.styles.add("ArialItalic", font="Arial.ttf")
 text_style.set_extended_font_data(family='Arial', italic=True, bold=False)

@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.attrib import AttDef
-from ezdxf.lldxf import const
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.attrib import AttDef
+from dxfpy.lldxf import const
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 
 TEST_CLASS = AttDef
@@ -115,7 +115,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert TEST_TYPE in ENTITY_CLASSES
 

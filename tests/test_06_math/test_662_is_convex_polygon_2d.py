@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.render import forms
-from ezdxf.math import Vec2, is_convex_polygon_2d
+from dxfpy.render import forms
+from dxfpy.math import Vec2, is_convex_polygon_2d
 
 
 def test_open_triangle():

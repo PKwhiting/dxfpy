@@ -3,7 +3,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.appid import AppID
+from dxfpy.entities.appid import AppID
 
 
 @pytest.fixture

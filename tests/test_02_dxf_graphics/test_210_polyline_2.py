@@ -1,17 +1,17 @@
 # Copyright (c) 2011-2024, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.lldxf.const import VTX_3D_POLYLINE_VERTEX
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.tools.test import load_entities
-from ezdxf.sections.entities import EntitySection
-from ezdxf.entities import factory, Polyline
+import dxfpy
+from dxfpy.lldxf.const import VTX_3D_POLYLINE_VERTEX
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.tools.test import load_entities
+from dxfpy.sections.entities import EntitySection
+from dxfpy.entities import factory, Polyline
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 @pytest.fixture(scope="module")
@@ -50,7 +50,7 @@ def test_add_new_sub_entities_to_entity_database(layout, doc):
 
 
 def test_export_sub_entities_to_dxf(layout, doc):
-    from ezdxf.lldxf.tagwriter import TagCollector
+    from dxfpy.lldxf.tagwriter import TagCollector
 
     layout.add_polyline2d([(0, 0), (1, 1)])
     writer = TagCollector()
@@ -184,7 +184,7 @@ def test_polymesh_mesh_cache(layout):
     cache[pos] = (1, 2, 3)
     vertex = mesh.get_mesh_vertex(pos)
     assert vertex.dxf.location == cache[pos]
-    with pytest.raises(ezdxf.DXFIndexError):
+    with pytest.raises(dxfpy.DXFIndexError):
         cache[4, 0]
 
 
@@ -336,7 +336,7 @@ def test_internals_polyface(layout):
 
 
 def test_new_style_polyface_face_count():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     section = EntitySection(doc, load_entities(NEW_STYLE_POLYFACE, "ENTITIES"))
     entities = list(section)
     polyface = entities[0]

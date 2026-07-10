@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.dwginfo import dwg_info
+from dxfpy.dwginfo import dwg_info
 
 R12 = "41 43 31 30 30 39"
 R2000 = "41 43 31 30 31 35"

@@ -5,16 +5,16 @@ from typing import TYPE_CHECKING
 import pathlib
 import logging
 
-import ezdxf
-from ezdxf import colors
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.gfxattribs import GfxAttribs
-from ezdxf.math import Vec2, UCS, NULLVEC, ConstructionBox
-from ezdxf.render import forms, mleader
+import dxfpy
+from dxfpy import colors
+from dxfpy.enums import TextEntityAlignment
+from dxfpy.gfxattribs import GfxAttribs
+from dxfpy.math import Vec2, UCS, NULLVEC, ConstructionBox
+from dxfpy.render import forms, mleader
 
 if TYPE_CHECKING:
-    from ezdxf.document import Drawing
-    from ezdxf.eztypes import BlockLayout
+    from dxfpy.document import Drawing
+    from dxfpy.eztypes import BlockLayout
 
 # ========================================
 # Setup logging
@@ -31,15 +31,15 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to create MULTILEADER entities.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/mleader.html
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/mleader.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/mleader.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/mleader.html
 # ------------------------------------------------------------------------------
 
 DXFVERSION = "R2013"
 
 
 def simple_mtext_content_horizontal(name: str):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content("Line1\nLine2", style="OpenSans")
@@ -62,7 +62,7 @@ def simple_mtext_content_horizontal(name: str):
 
 
 def all_mtext_content_horizontal(name: str):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     attribs = GfxAttribs(color=colors.RED)
     for direction in range(9):
@@ -126,7 +126,7 @@ def all_mtext_content_horizontal(name: str):
 
 
 def simple_mtext_content_vertical(name: str):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content("Line1\nLine2", style="OpenSans")
@@ -156,7 +156,7 @@ def simple_mtext_content_vertical(name: str):
 
 
 def quick_mtext_horizontal(name: str):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     mleaderstyle = doc.mleader_styles.duplicate_entry("Standard", "EZDXF")
     mleaderstyle.set_mtext_style("OpenSans")
     msp = doc.modelspace()
@@ -178,7 +178,7 @@ def quick_mtext_horizontal(name: str):
 
 
 def quick_mtext_vertical(name: str):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     mleaderstyle = doc.mleader_styles.duplicate_entry("Standard", "EZDXF")
     mleaderstyle.set_mtext_style("OpenSans")
     msp = doc.modelspace()
@@ -240,7 +240,7 @@ def block_content_horizontal(
     x1, y1, x2, y2 = -40, -40, 60, 40
     construction_box = ConstructionBox.from_points((x1, y1), (x2, y2))
 
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     block = create_block(doc, size=8.0, margin=0.25, base_point=base_point)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_block(style="Standard")
@@ -284,7 +284,7 @@ def block_content_vertical(
     x1, y1, x2, y2 = -30, -30, 30, 30
     construction_box = ConstructionBox.from_points((x1, y1), (x2, y2))
 
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     block = create_block(doc, size=8.0, margin=0.25, base_point=base_point)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_block(style="Standard")
@@ -314,7 +314,7 @@ def block_content_vertical(
 
 
 def make_template(name: str):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     create_block(doc, size=8.0, margin=0.25)
     doc.saveas(CWD / f"{name}_{DXFVERSION}.dxf")
 

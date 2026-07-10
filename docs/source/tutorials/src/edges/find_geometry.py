@@ -4,15 +4,15 @@ from __future__ import annotations
 import pathlib
 
 import random
-import ezdxf
-from ezdxf import edgeminer, edgesmith, colors
+import dxfpy
+from dxfpy import edgeminer, edgesmith, colors
 
 OUTBOX = pathlib.Path("~/Desktop/Outbox").expanduser()
 CWD = pathlib.Path(__file__).parent
 
 
 def new_doc():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.header["$LWDISPLAY"] = 1
     return doc, doc.modelspace()
 
@@ -68,7 +68,7 @@ def basics():
 
 
 def flatten_3d_entities():
-    doc = ezdxf.readfile(CWD / "edges_3d.dxf")
+    doc = dxfpy.readfile(CWD / "edges_3d.dxf")
     msp = doc.modelspace()
 
     # create edges and search index
@@ -84,14 +84,14 @@ def flatten_3d_entities():
 
 
 def find_all_simple_chains():
-    doc = ezdxf.readfile(CWD / "junctions.dxf")
+    doc = dxfpy.readfile(CWD / "junctions.dxf")
     msp = doc.modelspace()
     lines = msp.query("LINE")
     edges = list(edgesmith.edges_from_entities_2d(lines))
     deposit = edgeminer.Deposit(edges)
     chains = edgeminer.find_all_simple_chains(deposit)
 
-    out = ezdxf.new()
+    out = dxfpy.new()
     msp = out.modelspace()
     color = 1
     for chain in chains:
@@ -102,7 +102,7 @@ def find_all_simple_chains():
 
 
 def find_all_loops():
-    doc = ezdxf.readfile(CWD / "junctions.dxf")
+    doc = dxfpy.readfile(CWD / "junctions.dxf")
     msp = doc.modelspace()
     lines = msp.query("LINE")
     edges = list(edgesmith.edges_from_entities_2d(lines))
@@ -110,7 +110,7 @@ def find_all_loops():
     print(deposit.degree_counter())
     loops = edgeminer.find_all_loops(deposit)
     print(f"Found {len(loops)} loops.")
-    out = ezdxf.new()
+    out = dxfpy.new()
     msp = out.modelspace()
     color = 1
     for loop in loops:
@@ -124,7 +124,7 @@ def find_all_loops():
 
 
 def find_loop_by_edge():
-    doc = ezdxf.readfile(CWD / "junctions.dxf")
+    doc = dxfpy.readfile(CWD / "junctions.dxf")
     msp = doc.modelspace()
     lines = msp.query("LINE")
     edges = list(edgesmith.edges_from_entities_2d(lines))
@@ -133,7 +133,7 @@ def find_loop_by_edge():
     start = edges[0]
     loop1 = edgeminer.find_loop_by_edge(deposit, start, clockwise=True)
     loop2 = edgeminer.find_loop_by_edge(deposit, start, clockwise=False)
-    out = ezdxf.new()
+    out = dxfpy.new()
     msp = out.modelspace()
     color = 1
     for loop in [loop1, loop2]:
@@ -147,7 +147,7 @@ def find_loop_by_edge():
 
 
 def find_loop_by_pick_point():
-    doc = ezdxf.readfile(CWD / "junctions.dxf")
+    doc = dxfpy.readfile(CWD / "junctions.dxf")
     msp = doc.modelspace()
     lines = msp.query("LINE")
     edges = list(edgesmith.edges_from_entities_2d(lines))

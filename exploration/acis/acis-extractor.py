@@ -3,8 +3,8 @@
 import sys
 from pathlib import Path
 from argparse import ArgumentParser
-import ezdxf
-from ezdxf.entities import Body
+import dxfpy
+from dxfpy.entities import Body
 
 DIR = Path("~/Desktop/Outbox").expanduser()
 if not DIR.exists():
@@ -30,7 +30,7 @@ def export_acis(entity: Body, folder: Path):
 def extract_acis(filepath: Path):
     print(f"processing file: {filepath}")
     try:
-        doc = ezdxf.readfile(filepath)
+        doc = dxfpy.readfile(filepath)
     except IOError as e:
         print(str(e))
         sys.exit(1)

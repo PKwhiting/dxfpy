@@ -5,17 +5,17 @@ from pathlib import Path
 from collections import Counter
 
 import pytest
-import ezdxf
-from ezdxf.entities.dxfobj import Field
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.addons.dxf2code import (
+import dxfpy
+from dxfpy.entities.dxfobj import Field
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.addons.dxf2code import (
     document_to_code_file,
     entities_to_code,
     block_to_code,
 )
-from ezdxf._fidelity_compare import compare_replay_documents
-from ezdxf.dynblkhelper import (
+from dxfpy._fidelity_compare import compare_replay_documents
+from dxfpy.dynblkhelper import (
     DynamicBlockBasePointParameter,
     DynamicBlockLinearParameter,
     DynamicBlockLookupAction,
@@ -54,11 +54,11 @@ from ezdxf.dynblkhelper import (
 )
 
 
-import ezdxf.entities
-from ezdxf.lldxf.types import dxftag
-from ezdxf.lldxf.tags import Tags  # required by exec() or eval()
-from ezdxf.entities.ltype import LinetypePattern  # required by exec() or eval()
-from ezdxf.math import Vec2, Vec3
+import dxfpy.entities
+from dxfpy.lldxf.types import dxftag
+from dxfpy.lldxf.tags import Tags  # required by exec() or eval()
+from dxfpy.entities.ltype import LinetypePattern  # required by exec() or eval()
+from dxfpy.math import Vec2, Vec3
 from tests.test_08_addons.dxf2code_support import (
     block_dependencies as _block_dependencies,
     execute_code_in_namespace,
@@ -66,7 +66,7 @@ from tests.test_08_addons.dxf2code_support import (
     sort_blocks as _sort_blocks,
 )
 
-doc = ezdxf.new("R2010")
+doc = dxfpy.new("R2010")
 msp = doc.modelspace()
 NESTED_WORKING_ORACLE = Path(__file__).parent / "autocad_nested_working_minimal_v1_edited.dxf"
 NESTED_RICHER_CHILD_ORACLE = Path(__file__).parent / "autocad_nested_richer_child_gen2_v1.dxf"
@@ -79,7 +79,7 @@ def translate_to_code_and_execute(entity):
     return msp[-1]
 
 
-def _dynamic_block_by_public_name(doc: ezdxf.document.Drawing, public_name: str):
+def _dynamic_block_by_public_name(doc: dxfpy.document.Drawing, public_name: str):
     for block in doc.blocks:
         block_record = block.block_record
         if block_record.has_xdata("AcDbDynamicBlockTrueName") and (
@@ -110,8 +110,8 @@ def _add_supported_linear_visibility_reference_block(doc, base):
     return anon
 
 
-def build_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
-    source_doc = ezdxf.new("R2018")
+def build_supported_linear_visibility_replay_doc() -> tuple[dxfpy.document.Drawing, str]:
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     base = source_doc.blocks.new_anonymous_block(type_char="U")
     public_name = "DYN_PROP_BASEPOINT_LINEAR_REPLAY"
@@ -207,12 +207,12 @@ def build_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawi
     return source_doc, public_name
 
 
-def build_basepoint_only_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
-    source_doc = ezdxf.new("R2018")
+def build_basepoint_only_replay_doc() -> tuple[dxfpy.document.Drawing, str]:
+    source_doc = dxfpy.new("R2018")
     base = source_doc.blocks.new("DYN_BASEPOINT_ONLY_REPLAY")
     base.add_line((0, 0), (24, 0))
     public_name = "DYN_BASEPOINT_ONLY_REPLAY"
-    from ezdxf.dynblkhelper import set_dynamic_block_definition_metadata
+    from dxfpy.dynblkhelper import set_dynamic_block_definition_metadata
 
     set_dynamic_block_definition_metadata(
         base,
@@ -233,7 +233,7 @@ def build_basepoint_only_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
     return source_doc, public_name
 
 
-def build_plain_wrapper_nested_dynamic_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+def build_plain_wrapper_nested_dynamic_replay_doc() -> tuple[dxfpy.document.Drawing, str]:
     source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
     child_base = next(
         block
@@ -249,7 +249,7 @@ def build_plain_wrapper_nested_dynamic_replay_doc() -> tuple[ezdxf.document.Draw
     return source_doc, wrapper.name
 
 
-def assert_supported_linear_visibility_replay_doc(doc: ezdxf.document.Drawing, public_name: str) -> None:
+def assert_supported_linear_visibility_replay_doc(doc: dxfpy.document.Drawing, public_name: str) -> None:
     new_inserts = list(doc.modelspace().query("INSERT"))
 
     assert len(new_inserts) == 2
@@ -298,7 +298,7 @@ def assert_supported_linear_visibility_replay_doc(doc: ezdxf.document.Drawing, p
         assert history is not None
 
 
-def build_nested_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+def build_nested_supported_linear_visibility_replay_doc() -> tuple[dxfpy.document.Drawing, str]:
     source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
     child_base = next(
         block
@@ -339,7 +339,7 @@ def build_nested_supported_linear_visibility_replay_doc() -> tuple[ezdxf.documen
     return source_doc, child_public_name
 
 
-def build_multi_nested_supported_linear_visibility_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+def build_multi_nested_supported_linear_visibility_replay_doc() -> tuple[dxfpy.document.Drawing, str]:
     source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
     child_base = next(
         block
@@ -397,7 +397,7 @@ def build_multi_nested_supported_linear_visibility_replay_doc() -> tuple[ezdxf.d
     return source_doc, child_public_name
 
 
-def build_multi_nested_mixed_state_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+def build_multi_nested_mixed_state_replay_doc() -> tuple[dxfpy.document.Drawing, str]:
     source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
     child_base = next(
         block
@@ -456,7 +456,7 @@ def build_multi_nested_mixed_state_replay_doc() -> tuple[ezdxf.document.Drawing,
     return source_doc, child_public_name
 
 
-def build_three_level_nested_mixed_state_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+def build_three_level_nested_mixed_state_replay_doc() -> tuple[dxfpy.document.Drawing, str]:
     source_doc, child_public_name = build_multi_nested_mixed_state_replay_doc()
     source_msp = source_doc.modelspace()
     middle_insert = next(
@@ -513,7 +513,7 @@ def build_three_level_nested_mixed_state_replay_doc() -> tuple[ezdxf.document.Dr
     return source_doc, child_public_name
 
 
-def build_multi_richer_child_mixed_state_replay_doc() -> tuple[ezdxf.document.Drawing, str]:
+def build_multi_richer_child_mixed_state_replay_doc() -> tuple[dxfpy.document.Drawing, str]:
     source_doc, child_public_name = build_supported_linear_visibility_replay_doc()
     child_base = next(
         block
@@ -573,7 +573,7 @@ def build_multi_richer_child_mixed_state_replay_doc() -> tuple[ezdxf.document.Dr
 
 
 def assert_nested_parent_insert_states(
-    doc: ezdxf.document.Drawing,
+    doc: dxfpy.document.Drawing,
     *,
     insert_x: float,
     outer_state: str,
@@ -615,7 +615,7 @@ def assert_nested_parent_insert_states(
 
 
 def assert_nested_parent_insert_mixed_states(
-    doc: ezdxf.document.Drawing,
+    doc: dxfpy.document.Drawing,
     *,
     insert_x: float,
     outer_state: str,
@@ -655,7 +655,7 @@ def assert_nested_parent_insert_mixed_states(
 
 
 def assert_three_level_nested_parent_insert_mixed_states(
-    doc: ezdxf.document.Drawing,
+    doc: dxfpy.document.Drawing,
     *,
     insert_x: float,
     child_public_name: str,
@@ -704,7 +704,7 @@ def assert_three_level_nested_parent_insert_mixed_states(
     assert len(set(refs)) == 2
 
 
-def assert_nested_working_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+def assert_nested_working_oracle_replay_doc(doc: dxfpy.document.Drawing) -> None:
     inner_base = doc.blocks.get("*U0")
     outer_base = doc.blocks.get("*U2")
     inner_ref = doc.blocks.get("*U15")
@@ -746,7 +746,7 @@ def assert_nested_working_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None
     assert get_dynamic_block_visibility_state(outer_model_insert) == "STATE_A"
 
 
-def assert_nested_richer_child_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+def assert_nested_richer_child_oracle_replay_doc(doc: dxfpy.document.Drawing) -> None:
     assert_nested_parent_insert_states(
         doc,
         insert_x=200.0,
@@ -757,7 +757,7 @@ def assert_nested_richer_child_oracle_replay_doc(doc: ezdxf.document.Drawing) ->
     )
 
 
-def assert_nested_two_children_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+def assert_nested_two_children_oracle_replay_doc(doc: dxfpy.document.Drawing) -> None:
     assert_nested_parent_insert_states(
         doc,
         insert_x=260.0,
@@ -768,7 +768,7 @@ def assert_nested_two_children_oracle_replay_doc(doc: ezdxf.document.Drawing) ->
     )
 
 
-def assert_nested_two_children_mixed_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+def assert_nested_two_children_mixed_oracle_replay_doc(doc: dxfpy.document.Drawing) -> None:
     assert_nested_parent_insert_mixed_states(
         doc,
         insert_x=340.0,
@@ -778,7 +778,7 @@ def assert_nested_two_children_mixed_oracle_replay_doc(doc: ezdxf.document.Drawi
     )
 
 
-def assert_nested_three_level_mixed_oracle_replay_doc(doc: ezdxf.document.Drawing) -> None:
+def assert_nested_three_level_mixed_oracle_replay_doc(doc: dxfpy.document.Drawing) -> None:
     assert_three_level_nested_parent_insert_mixed_states(
         doc,
         insert_x=420.0,
@@ -817,7 +817,7 @@ def nested_oracle_cases():
 
 
 def test_dynamic_visibility_blocks_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     base = source_doc.blocks.new("DYN_VIS_DXF2CODE")
     common1 = base.add_line((0, 0), (1, 0))
@@ -869,8 +869,8 @@ def test_dynamic_visibility_blocks_to_code():
     insert_a = add_reference_block_and_insert("STATE_A", (0, 0))
     insert_c = add_reference_block_and_insert("STATE_C", (3, 0))
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(base, drawing="doc"), namespace)
     execute_code_in_namespace(
         block_to_code(get_dynamic_block_reference(insert_a), drawing="doc"),
@@ -902,7 +902,7 @@ def test_dynamic_visibility_blocks_to_code():
 
 
 def test_dynamic_visibility_blocks_to_code_preserves_sparse_rep_indices():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     base = source_doc.blocks.new("DYN_VIS_SPARSE_REP")
     common1 = base.add_line((0, 0), (1, 0))
@@ -945,8 +945,8 @@ def test_dynamic_visibility_blocks_to_code_preserves_sparse_rep_indices():
     insert = source_msp.add_blockref(anon.name, (0, 0))
     set_dynamic_block_visibility_state(insert, base, state="STATE_A")
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(base, drawing="doc"), namespace)
     execute_code_in_namespace(block_to_code(anon, drawing="doc"), namespace)
     execute_code_in_namespace(entities_to_code([insert], layout="msp"), namespace)
@@ -966,7 +966,7 @@ def test_dynamic_visibility_blocks_to_code_preserves_sparse_rep_indices():
 
 
 def test_dynamic_block_properties_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     base = source_doc.blocks.new("DYN_PROP_DXF2CODE")
     common1 = base.add_line((0, 0), (1, 0))
@@ -1037,8 +1037,8 @@ def test_dynamic_block_properties_to_code():
     insert_a = add_reference_block_and_insert("STATE_A", (0, 0))
     insert_c = add_reference_block_and_insert("STATE_C", (3, 0))
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(base, drawing="doc"), namespace)
     execute_code_in_namespace(
         block_to_code(get_dynamic_block_reference(insert_a), drawing="doc"),
@@ -1072,7 +1072,7 @@ def test_dynamic_block_properties_to_code():
 
 
 def test_dynamic_block_linear_parameter_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     base = source_doc.blocks.new("DYN_PROP_LINEAR_DXF2CODE")
     common1 = base.add_line((0, 0), (1, 0))
@@ -1181,8 +1181,8 @@ def test_dynamic_block_linear_parameter_to_code():
     insert_a = add_reference_block_and_insert("STATE_A", (0, 0))
     insert_c = add_reference_block_and_insert("STATE_C", (3, 0))
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(base, drawing="doc"), namespace)
     execute_code_in_namespace(
         block_to_code(get_dynamic_block_reference(insert_a), drawing="doc"),
@@ -1278,7 +1278,7 @@ def test_plain_wrapper_nested_dynamic_replay_preserves_blkref_handles():
 
 
 def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     child = source_doc.blocks.new("RAW_LAYOUT_CHILD")
     child.add_line((0, 0), (1, 0))
     base = source_doc.blocks.new("RAW_LAYOUT_UNSUPPORTED")
@@ -1388,13 +1388,13 @@ def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    generated_doc = ezdxf.readfile(output_path)
+    generated_doc = dxfpy.readfile(output_path)
     comparison = compare_replay_documents(source_doc, generated_doc)
     assert comparison.replay_bad_acad_table_btrs == ()
 
 
 def test_dynamic_block_visibility_unresolved_state_handle_uses_raw_layout_fallback():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     base = source_doc.blocks.new("RAW_LAYOUT_UNRESOLVED_VISIBILITY")
     line = base.add_line((0, 0), (1, 0))
     set_dynamic_block_visibility_parameter(
@@ -1423,9 +1423,9 @@ def test_dynamic_block_visibility_unresolved_state_handle_uses_raw_layout_fallba
 
 
 def test_dynamic_block_rep_etag_dangling_handle_emits_null_handle():
-    from ezdxf.dynblkhelper import set_dynamic_block_definition_metadata
+    from dxfpy.dynblkhelper import set_dynamic_block_definition_metadata
 
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     base = source_doc.blocks.new("DYN_DANGLING_REP_HANDLE")
     line = base.add_line((0, 0), (1, 0))
     set_dynamic_block_definition_metadata(
@@ -1514,7 +1514,7 @@ def test_dynamic_block_basepoint_linear_nested_replay_survives_write_read_cycle(
     stream = StringIO()
     replayed_doc.write(stream)
     stream.seek(0)
-    reloaded_doc = ezdxf.read(stream)
+    reloaded_doc = dxfpy.read(stream)
 
     parent_insert = next(
         insert
@@ -1568,7 +1568,7 @@ def test_dynamic_block_basepoint_linear_multi_nested_replay_survives_write_read_
     stream = StringIO()
     replayed_doc.write(stream)
     stream.seek(0)
-    reloaded_doc = ezdxf.read(stream)
+    reloaded_doc = dxfpy.read(stream)
 
     assert_nested_parent_insert_states(
         reloaded_doc,
@@ -1599,7 +1599,7 @@ def test_dynamic_block_basepoint_linear_multi_nested_mixed_state_replay_survives
     stream = StringIO()
     replayed_doc.write(stream)
     stream.seek(0)
-    reloaded_doc = ezdxf.read(stream)
+    reloaded_doc = dxfpy.read(stream)
 
     assert_nested_parent_insert_mixed_states(
         reloaded_doc,
@@ -1627,7 +1627,7 @@ def test_dynamic_block_basepoint_linear_three_level_nested_mixed_state_replay_su
     stream = StringIO()
     replayed_doc.write(stream)
     stream.seek(0)
-    reloaded_doc = ezdxf.read(stream)
+    reloaded_doc = dxfpy.read(stream)
 
     assert_three_level_nested_parent_insert_mixed_states(
         reloaded_doc,
@@ -1655,7 +1655,7 @@ def test_dynamic_block_basepoint_linear_multi_richer_child_mixed_state_replay_su
     stream = StringIO()
     replayed_doc.write(stream)
     stream.seek(0)
-    reloaded_doc = ezdxf.read(stream)
+    reloaded_doc = dxfpy.read(stream)
 
     assert_nested_parent_insert_mixed_states(
         reloaded_doc,
@@ -1668,12 +1668,12 @@ def test_dynamic_block_basepoint_linear_multi_richer_child_mixed_state_replay_su
 
 @pytest.mark.parametrize("oracle, checker", nested_oracle_cases())
 def test_autocad_nested_oracle_replay_survives_write_read_cycle(oracle, checker):
-    source_doc = ezdxf.readfile(oracle)
+    source_doc = dxfpy.readfile(oracle)
     replayed_doc = replay_doc_to_new_doc(source_doc)
     stream = StringIO()
     replayed_doc.write(stream)
     stream.seek(0)
-    reloaded_doc = ezdxf.read(stream)
+    reloaded_doc = dxfpy.read(stream)
 
     checker(reloaded_doc)
 
@@ -1682,7 +1682,7 @@ def test_autocad_nested_oracle_replay_survives_write_read_cycle(oracle, checker)
 def test_autocad_nested_oracle_two_generation_replay_survives_write_read_cycle(
     oracle, checker
 ):
-    source_doc = ezdxf.readfile(oracle)
+    source_doc = dxfpy.readfile(oracle)
     gen1_doc = replay_doc_to_new_doc(source_doc)
     gen2_doc = replay_doc_to_new_doc(gen1_doc)
 
@@ -1690,12 +1690,12 @@ def test_autocad_nested_oracle_two_generation_replay_survives_write_read_cycle(
         stream = StringIO()
         doc.write(stream)
         stream.seek(0)
-        reloaded_doc = ezdxf.read(stream)
+        reloaded_doc = dxfpy.read(stream)
         checker(reloaded_doc)
 
 
 def test_autocad_nested_working_oracle_block_dependencies_include_dynamic_reference_targets():
-    source_doc = ezdxf.readfile(NESTED_WORKING_ORACLE)
+    source_doc = dxfpy.readfile(NESTED_WORKING_ORACLE)
     blocks = [block for block in source_doc.blocks if not block.is_any_layout]
 
     dependencies = _block_dependencies(blocks)
@@ -1706,7 +1706,7 @@ def test_autocad_nested_working_oracle_block_dependencies_include_dynamic_refere
 
 
 def test_autocad_nested_working_oracle_sort_blocks_orders_dynamic_bases_before_refs():
-    source_doc = ezdxf.readfile(NESTED_WORKING_ORACLE)
+    source_doc = dxfpy.readfile(NESTED_WORKING_ORACLE)
     ordered = _sort_blocks([block for block in source_doc.blocks if not block.is_any_layout])
     order = {block.name: index for index, block in enumerate(ordered)}
 
@@ -1768,7 +1768,7 @@ def test_dynamic_block_linear_descendant_authoring_is_rejected():
     )
     attdef = next(entity for entity in base if entity.dxftype() == "ATTDEF" and entity.dxf.tag == "PARAM_1")
     with pytest.raises(
-        ezdxf.lldxf.const.DXFValueError,
+        dxfpy.lldxf.const.DXFValueError,
         match="nested dynamic block linear descendant targets are not supported",
     ):
         set_dynamic_block_linear_parameter(
@@ -1804,7 +1804,7 @@ def test_dynamic_block_linear_descendant_authoring_is_rejected():
 
 
 def test_dynamic_block_lookup_parameter_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     base = source_doc.blocks.new("DYN_PROP_LOOKUP_DXF2CODE")
     common1 = base.add_line((0, 0), (1, 0))
@@ -1977,8 +1977,8 @@ def test_dynamic_block_lookup_parameter_to_code():
     insert_a = add_reference_block_and_insert("STATE_A", (0, 0))
     insert_c = add_reference_block_and_insert("STATE_C", (3, 0))
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(base, drawing="doc"), namespace)
     execute_code_in_namespace(
         block_to_code(get_dynamic_block_reference(insert_a), drawing="doc"),
@@ -2009,7 +2009,7 @@ def test_dynamic_block_lookup_parameter_to_code():
 
 
 def test_reference_block_to_code_preserves_attdef_reactors_per_entity():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     base = source_doc.blocks.new("ATTDEF_REACTOR_BASE")
     line = base.add_line((0, 0), (1, 0))
     attdef_a = base.add_attdef("PARAM_A", insert=(0, 0), text="A")
@@ -2048,8 +2048,8 @@ def test_reference_block_to_code_preserves_attdef_reactors_per_entity():
     assert len(ref_attdefs) == 2
     ref_attdefs[1].set_reactors([])
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(base, drawing="doc"), namespace)
     execute_code_in_namespace(block_to_code(ref, drawing="doc"), namespace)
 

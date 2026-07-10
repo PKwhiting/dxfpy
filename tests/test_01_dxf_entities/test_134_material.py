@@ -1,12 +1,12 @@
 # Copyright (c) 2018-2021 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2010")
+    return dxfpy.new("R2010")
 
 
 def test_material_manager(doc):
@@ -22,9 +22,9 @@ def test_material_manager(doc):
 
 
 def test_export_matrix():
-    from ezdxf.math import Matrix44
-    from ezdxf.lldxf.tagwriter import TagCollector
-    from ezdxf.entities.material import export_matrix
+    from dxfpy.math import Matrix44
+    from dxfpy.lldxf.tagwriter import TagCollector
+    from dxfpy.entities.material import export_matrix
 
     m = Matrix44()
     tc = TagCollector()

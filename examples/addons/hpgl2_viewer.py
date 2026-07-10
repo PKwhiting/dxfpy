@@ -2,14 +2,14 @@
 #  License: MIT License
 from __future__ import annotations
 try:
-    from ezdxf.addons.xqt import QtWidgets
+    from dxfpy.addons.xqt import QtWidgets
 except ImportError as e:
     print(str(e))
     exit(1)
 import sys
 import pathlib
 import signal
-from ezdxf.addons.hpgl2.viewer import HPGL2Viewer
+from dxfpy.addons.hpgl2.viewer import HPGL2Viewer
 
 HPGL2_EXAMPLES = pathlib.Path(__file__).parent.parent.parent / "examples_hpgl2"
 

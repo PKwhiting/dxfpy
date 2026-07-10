@@ -1,14 +1,14 @@
 # Copyright (c) 2014-2024, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.entities.acis import tags2textlines, textlines2tags
+from dxfpy.entities.acis import tags2textlines, textlines2tags
 
 
 @pytest.fixture(scope="module")
 def layout():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     return doc.modelspace()
 
 

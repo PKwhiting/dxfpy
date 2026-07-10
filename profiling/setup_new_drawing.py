@@ -1,7 +1,7 @@
 # Copyright (c) 2019-2022 Manfred Moitzi
 # License: MIT License
 from timeit import Timer
-import ezdxf
+import dxfpy
 
 SETUP = """
 from __main__ import setup_drawing
@@ -9,7 +9,7 @@ from __main__ import setup_drawing
 
 
 def setup_drawing():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     _ = doc.dxfversion
 
 

@@ -4,7 +4,7 @@ import pytest
 
 import os
 import math
-from ezdxf.addons.acadctb import *
+from dxfpy.addons.acadctb import *
 
 
 class TestPlotStyle:
@@ -203,14 +203,14 @@ class TestNamedPlotStyles:
         return NamedPlotStyles(description="TestCase")
 
     def test_set_style(self, stb):
-        style = stb.new_style("ezdxf", dict(description="TestCase"))
+        style = stb.new_style("dxfpy", dict(description="TestCase"))
         assert style.named_color is True
         assert style.color_type is None
         assert style.description == "TestCase"
 
     def test_get_style(self, stb):
-        stb.new_style("mozman", dict(description="ezdxf comment"))
-        assert stb["mozman"].description == "ezdxf comment"
+        stb.new_style("mozman", dict(description="dxfpy comment"))
+        assert stb["mozman"].description == "dxfpy comment"
 
     def test_get_color(self, stb):
         style = stb.new_style("mozman2")

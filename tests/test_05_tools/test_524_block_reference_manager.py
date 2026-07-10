@@ -3,19 +3,19 @@
 
 import pytest
 
-import ezdxf
-from ezdxf.blkrefs import BlockReferenceCounter, find_unreferenced_blocks
+import dxfpy
+from dxfpy.blkrefs import BlockReferenceCounter, find_unreferenced_blocks
 
 
 def test_non_exiting_handles_return_0():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     ref_counter = BlockReferenceCounter(doc)
     assert ref_counter.by_handle("xyz") == 0, "not existing handles should return 0"
     assert ref_counter.by_name("xyz") == 0, "not existing block name should return 0"
 
 
 def test_access_interface():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     block = doc.blocks.new("First")
     msp.add_blockref("First", (0, 0))
@@ -26,7 +26,7 @@ def test_access_interface():
 
 def test_count_simple_references():
     count = 10
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.blocks.new("First")
     msp = doc.modelspace()
     psp = doc.layout()
@@ -39,7 +39,7 @@ def test_count_simple_references():
 
 def test_count_nested_block_references():
     count = 10
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     block1 = doc.blocks.new("First")
     block2 = doc.blocks.new("Second")
     block1.add_blockref(block2.dxf.name, (0, 0))
@@ -53,33 +53,33 @@ def test_count_nested_block_references():
 
 
 def test_count_references_used_in_xdata():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     block = doc.blocks.new("First")
     handle = block.block_record.dxf.handle
     line = msp.add_line((0, 0), (1, 0))
 
     # attach XDATA handle to block reference
-    line.set_xdata("ezdxf", [(1005, handle)])
+    line.set_xdata("dxfpy", [(1005, handle)])
     ref_counter = BlockReferenceCounter(doc)
     assert ref_counter.by_handle(handle) == 1
 
 
 def test_count_references_used_in_app_data():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     block = doc.blocks.new("First")
     handle = block.block_record.dxf.handle
     line = msp.add_line((0, 0), (1, 0))
 
     # attach XDATA handle to block reference
-    line.set_app_data("ezdxf", [(320, handle), (480, handle)])
+    line.set_app_data("dxfpy", [(320, handle), (480, handle)])
     ref_counter = BlockReferenceCounter(doc)
     assert ref_counter.by_handle(handle) == 2
 
 
 def test_count_references_used_in_xrecord():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     block = doc.blocks.new("First")
     handle = block.block_record.dxf.handle
     xrecord = doc.rootdict.add_xrecord("Test")
@@ -90,7 +90,7 @@ def test_count_references_used_in_xrecord():
 
 
 def test_count_references_in_header_section():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.blocks.new("Arrow")
     for var_name in ("$DIMBLK", "$DIMBLK1", "$DIMBLK2", "$DIMLDRBLK"):
         doc.header[var_name] = "Arrow"
@@ -100,7 +100,7 @@ def test_count_references_in_header_section():
 
 
 def test_count_references_in_dimstyle():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.blocks.new("Arrow")
     dimstyle = doc.dimstyles.new("Test")
     dimstyle.dxf.dimblk = "Arrow"
@@ -113,7 +113,7 @@ def test_count_references_in_dimstyle():
 
 
 def test_count_references_in_leader():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.blocks.new("Arrow")
     msp = doc.modelspace()
     msp.add_leader(
@@ -131,7 +131,7 @@ def test_count_references_in_leader():
 
 
 def test_count_references_for_anonymous_dimension_block():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     dim = msp.add_linear_dim(
         base=(25, 10),
@@ -144,7 +144,7 @@ def test_count_references_for_anonymous_dimension_block():
 
 
 def test_count_references_in_mleader_style():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     arrow = doc.blocks.new("Arrow")
     arrow_handle = arrow.block_record.dxf.handle
     block = doc.blocks.new("Block")
@@ -160,12 +160,12 @@ def test_count_references_in_mleader_style():
 
 class TestFindUnreferencedBlocks:
     def test_empty_document_has_no_unreferenced_blocks(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
 
         assert len(find_unreferenced_blocks(doc)) == 0
 
     def test_add_unreferenced_block(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.blocks.new("DUMMY")
 
         names = find_unreferenced_blocks(doc)
@@ -173,7 +173,7 @@ class TestFindUnreferencedBlocks:
         assert "DUMMY" in names, "name of unreferenced block expected"
 
     def test_add_referenced_block(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.blocks.new("DUMMY")
         msp = doc.modelspace()
         msp.add_blockref("DUMMY", (0, 0))

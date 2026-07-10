@@ -1,4 +1,4 @@
-set ezdxf v0.16b0 @ d:\source\ezdxf.git\src\ezdxf
+set dxfpy v0.16b0 @ d:\source\dxfpy.git\src\dxfpy
 Python version: 3.9.1 (tags/v3.9.1:1e5d33e, Dec  7 2020, 17:08:21) [MSC v.1927 64 bit (AMD64)]
 using C-extensions: yes
 using Matplotlib: yes

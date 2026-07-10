@@ -2,10 +2,10 @@
 # License: MIT-License
 import pytest
 
-import ezdxf
+import dxfpy
 import os
 
-FILE = os.path.join(ezdxf.EZDXF_TEST_FILES, "ProE_AC1018.dxf")
+FILE = os.path.join(dxfpy.DXFPY_TEST_FILES, "ProE_AC1018.dxf")
 
 
 @pytest.mark.skipif(
@@ -13,7 +13,7 @@ FILE = os.path.join(ezdxf.EZDXF_TEST_FILES, "ProE_AC1018.dxf")
     reason=f"Skip reading ProE AC1018: test file '{FILE}' not available.",
 )
 def test_open_proe_ac1018():
-    doc = ezdxf.readfile(FILE)
+    doc = dxfpy.readfile(FILE)
     modelspace = doc.modelspace()
 
     # are there entities in model space

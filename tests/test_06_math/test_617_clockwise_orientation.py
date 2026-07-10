@@ -3,7 +3,7 @@
 
 import pytest
 
-from ezdxf.math import has_clockwise_orientation
+from dxfpy.math import has_clockwise_orientation
 
 
 @pytest.fixture

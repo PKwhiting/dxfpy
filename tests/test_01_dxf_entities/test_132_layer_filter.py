@@ -2,9 +2,9 @@
 # License: MIT License
 from typing import cast
 import pytest
-import ezdxf
-from ezdxf.entities.idbuffer import LayerFilter
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+import dxfpy
+from dxfpy.entities.idbuffer import LayerFilter
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 LAYERFILTER = """0
 LAYER_FILTER
@@ -31,7 +31,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "LAYER_FILTER" in ENTITY_CLASSES
 
@@ -61,7 +61,7 @@ def test_write_dxf():
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2007")
+    return dxfpy.new("R2007")
 
 
 def test_generic_field_list(doc):

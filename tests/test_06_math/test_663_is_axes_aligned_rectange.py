@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.math import is_axes_aligned_rectangle_2d, Vec2
+from dxfpy.math import is_axes_aligned_rectangle_2d, Vec2
 
 @pytest.mark.parametrize(
     "points",

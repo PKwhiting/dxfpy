@@ -3,16 +3,16 @@
 import pathlib
 import time
 
-import ezdxf
-from ezdxf.addons.drawing import Frontend, RenderContext
-from ezdxf.addons.drawing.config import (
+import dxfpy
+from dxfpy.addons.drawing import Frontend, RenderContext
+from dxfpy.addons.drawing.config import (
     Configuration,
     BackgroundPolicy,
     ColorPolicy,
     LineweightPolicy,
 )
-from ezdxf.addons.drawing import hpgl2, layout
-from ezdxf.math import global_bspline_interpolation
+from dxfpy.addons.drawing import hpgl2, layout
+from dxfpy.math import global_bspline_interpolation
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -23,7 +23,7 @@ EXAMPLE_DXF = pathlib.Path(__file__).parent.parent.parent.parent / "examples_dxf
 # This example shows how to export the modelspace by the drawing add-on and the
 # native HPGL2 backend.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 CADKIT = "CADKitSamples"
@@ -68,7 +68,7 @@ wave = [
 def export(filepath: pathlib.Path, layout_names=("Model",)):
     print(f"\nprocessing: {filepath.name}")
     t0 = time.perf_counter()
-    doc = ezdxf.readfile(filepath)
+    doc = dxfpy.readfile(filepath)
     t1 = time.perf_counter()
     print(f"loading time: {t1 - t0: .3f} seconds")
     for layout_name in layout_names:
@@ -116,12 +116,12 @@ def export(filepath: pathlib.Path, layout_names=("Model",)):
 
 def export_cadkit_samples():
     for name in CADKIT_FILES[:]:
-        filename = ezdxf.options.test_files_path / CADKIT / name
+        filename = dxfpy.options.test_files_path / CADKIT / name
         export(filename)
 
 
 def simple():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     s = global_bspline_interpolation(wave)
     msp.add_spline(dxfattribs={"color": 2}).apply_construction_tool(s)
@@ -134,7 +134,7 @@ def simple():
 
 
 def triangle():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_line((0, 100), (500, 100))
     msp.add_solid([(0, 0), (500, 0), (250, 500)], dxfattribs={"color": 1})
@@ -146,7 +146,7 @@ def triangle():
 
 
 def text():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.styles.add("ARIAL", font="Arial.ttf")
     msp = doc.modelspace()
     msp.add_lwpolyline([(0, 0), (1000, 0), (1000, 800), (0, 800)], close=True)
@@ -160,7 +160,7 @@ def text():
 
 
 def transparency():
-    doc = ezdxf.readfile(EXAMPLE_DXF / "transparency_checker.dxf")
+    doc = dxfpy.readfile(EXAMPLE_DXF / "transparency_checker.dxf")
     msp = doc.modelspace()
     backend = hpgl2.PlotterBackend()
     Frontend(RenderContext(doc), backend).draw_layout(msp)

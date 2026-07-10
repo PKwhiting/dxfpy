@@ -6,7 +6,7 @@ import pytest
 import math
 import numpy as np
 
-from ezdxf.math import (
+from dxfpy.math import (
     Vec3,
     angle_to_param,
     ConstructionEllipse,

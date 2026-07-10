@@ -2,13 +2,13 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf import appsettings
-from ezdxf.math import Vec3
+import dxfpy
+from dxfpy import appsettings
+from dxfpy.math import Vec3
 
 
 def test_update_extents():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_line((0, 0), (7, 8, 9))
     appsettings.update_extents(doc)

@@ -2,8 +2,8 @@
 # License: MIT License
 import math
 import pathlib
-import ezdxf
-from ezdxf.render import forms, MeshBuilder
+import dxfpy
+from dxfpy.render import forms, MeshBuilder
 from itertools import cycle
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -14,14 +14,14 @@ if not CWD.exists():
 # This example shows how to create 3D forms.
 #
 # docs:
-# forms: https://ezdxf.mozman.at/docs/render/forms.html
-# MeshBuilder: https://ezdxf.mozman.at/docs/render/mesh.html
+# forms: https://dxfpy.mozman.at/docs/render/forms.html
+# MeshBuilder: https://dxfpy.mozman.at/docs/render/mesh.html
 # ------------------------------------------------------------------------------
 
 
 def write_mesh(filename, mesh: MeshBuilder):
     """Write MeshBuilder object as a MESH entity."""
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     # MESH can represent ngons, no tessellation is applied:
     mesh.render_mesh(doc.modelspace())
     try:
@@ -34,7 +34,7 @@ def write_mesh(filename, mesh: MeshBuilder):
 
 def write_polyface(filename, mesh: MeshBuilder):
     """Write MeshBuilder object as a POLYFACE entity a subtype of POLYLINE."""
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     # POLYFACE can only represent triangles or quads, the required
     # tessellation of the mesh is done automatically:
     mesh.render_polyface(doc.modelspace())
@@ -48,7 +48,7 @@ def write_polyface(filename, mesh: MeshBuilder):
 
 def write_3dfaces(filename, mesh: MeshBuilder):
     """Write MeshBuilder object as single 3DFACE entities."""
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     # 3DFACE can only represent triangles or quads, the required
     # tessellation of the mesh is done automatically:
     mesh.render_3dfaces(doc.modelspace())
@@ -70,7 +70,7 @@ def build_rotation_form(alpha=2 * math.pi, sides=16):
 def create_gear(
     filename, teeth=20, outside_radius=10, top_width=2, bottom_width=3, height=2
 ):
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     msp = doc.modelspace()
     vertices = zip(
         forms.gear(

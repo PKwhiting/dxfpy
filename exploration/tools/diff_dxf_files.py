@@ -2,10 +2,10 @@
 #  License: MIT License
 from typing import Optional, Iterable
 
-from ezdxf.lldxf.tags import Tags
-from ezdxf.lldxf.tagger import tag_compiler
-from ezdxf.tools.rawloader import raw_structure_loader
-from ezdxf.tools.difftags import diff_tags, print_diff, OpCode
+from dxfpy.lldxf.tags import Tags
+from dxfpy.lldxf.tagger import tag_compiler
+from dxfpy.tools.rawloader import raw_structure_loader
+from dxfpy.tools.difftags import diff_tags, print_diff, OpCode
 
 FILE1 = r"C:\Users\mozman\Desktop\Outbox\906_polylines.dxf"
 FILE2 = r"C:\Users\mozman\Desktop\Outbox\906_copy.dxf"

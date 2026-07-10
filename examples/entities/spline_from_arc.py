@@ -1,8 +1,8 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import zoom
+import dxfpy
+from dxfpy import zoom
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,7 +14,7 @@ if not CWD.exists():
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     arc = msp.add_arc(

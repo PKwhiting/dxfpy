@@ -1,9 +1,9 @@
 # Copyright (c) 2013-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import disassemble, options
-from ezdxf.enums import TextEntityAlignment
+import dxfpy
+from dxfpy import disassemble, options
+from dxfpy.enums import TextEntityAlignment
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,8 +12,8 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to create all kinds of TEXT alignments.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/text.html
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/text.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/text.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/text.html
 # ------------------------------------------------------------------------------
 
 
@@ -83,7 +83,7 @@ def create_doc(filename):
             (x + width, y), align=TextEntityAlignment.TOP_RIGHT
         )
 
-    doc = ezdxf.new(dxfversion="R2004")
+    doc = dxfpy.new(dxfversion="R2004")
     msp = doc.modelspace()
     add_justify_text(
         "ALIGNED-TEXT-ALIGNED-TEXT-gjpqy-ALIGNED-TEXT-ALIGNED-TEXT",

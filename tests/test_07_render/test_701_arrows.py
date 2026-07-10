@@ -1,8 +1,8 @@
 # Copyright (c) 2019-2020 Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.render.arrows import ARROWS
-from ezdxf.layouts import VirtualLayout
+import dxfpy
+from dxfpy.render.arrows import ARROWS
+from dxfpy.layouts import VirtualLayout
 
 
 def test_filled_solid_arrow():
@@ -21,7 +21,7 @@ def test_arrow_name():
 
 
 def test_closed_arrow_doc_r12():
-    doc = ezdxf.new(dxfversion="R12", setup=True)
+    doc = dxfpy.new(dxfversion="R12", setup=True)
     blocks = doc.blocks
     name = ARROWS.create_block(blocks, ARROWS.closed)
     arrow_entities = list(blocks.get(name))
@@ -29,7 +29,7 @@ def test_closed_arrow_doc_r12():
 
 
 def test_closed_arrow_doc_r2000():
-    doc = ezdxf.new(dxfversion="R2000", setup=True)
+    doc = dxfpy.new(dxfversion="R2000", setup=True)
     blocks = doc.blocks
     name = ARROWS.create_block(blocks, ARROWS.closed)
     arrow_entities = list(blocks.get(name))

@@ -2,15 +2,15 @@
 #  License: MIT License
 import pytest
 import os
-import ezdxf
-from ezdxf.lldxf.const import versions_supported_by_new
+import dxfpy
+from dxfpy.lldxf.const import versions_supported_by_new
 
 NONE_ASCII = "äöüÄÖÜß±ØáàÀÁóòÓÒéèÉÈ"
 
 
 @pytest.fixture(params=versions_supported_by_new)
 def doc(request):
-    return ezdxf.new(request.param)
+    return dxfpy.new(request.param)
 
 
 def test_write_and_read_unicode(doc, tmpdir):
@@ -19,13 +19,13 @@ def test_write_and_read_unicode(doc, tmpdir):
     filename = str(tmpdir.join("none_ascii_%s.dxf" % doc.dxfversion))
     try:
         doc.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(
             "DXFError: {0} for DXF version {1}".format(str(e), doc.dxfversion)
         )
     assert os.path.exists(filename)
 
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     text = doc.modelspace().query("TEXT")
     assert len(text) == 1
     assert text[0].dxf.text == NONE_ASCII

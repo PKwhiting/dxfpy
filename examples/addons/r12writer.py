@@ -3,9 +3,9 @@
 import pathlib
 from time import perf_counter
 import math
-from ezdxf.addons import MengerSponge
-from ezdxf.addons import r12writer
-from ezdxf.render.forms import sphere, circle, translate
+from dxfpy.addons import MengerSponge
+from dxfpy.addons import r12writer
+from dxfpy.render.forms import sphere, circle, translate
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,7 +14,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to use the fast DXF R12 writer add-on.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/r12writer.html
+# docs: https://dxfpy.mozman.at/docs/addons/r12writer.html
 # ------------------------------------------------------------------------------
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 
-from ezdxf.addons.dxf2code import document_to_code_file
+from dxfpy.addons.dxf2code import document_to_code_file
 
 
 def main() -> int:

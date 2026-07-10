@@ -9,14 +9,14 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 package-dir = {"" = "src"}
 zip-safe = false
-provides = ["ezdxf"]
+provides = ["dxfpy"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = false
 
 [project]
-name = "ezdxf"
+name = "dxfpy"
 dynamic = ["version"]
 description = "A Python package to create/manipulate DXF drawings."
 authors = [
@@ -80,13 +80,9 @@ dev5 = [
 ]
 
 [project.scripts]
-ezdxf = "ezdxf.__main__:main"
+dxfpy = "dxfpy.__main__:main"
 
 [project.urls]
-Repository = "https://github.com/mozman/ezdxf"
-Documentation = "https://ezdxf.readthedocs.io"
-Changelog = "https://ezdxf.mozman.at/notes/#/page/changelog"
-Forum = "https://github.com/mozman/ezdxf/discussions"
-Issues = "https://github.com/mozman/ezdxf/issues"
-Website = "https://ezdxf.mozman.at"
-Download = "https://pypi.org/project/ezdxf"
+Repository = "https://github.com/PKwhiting/ezdxf"
+Issues = "https://github.com/PKwhiting/ezdxf/issues"
+Download = "https://pypi.org/project/dxfpy"

@@ -6,8 +6,8 @@ from itertools import product
 import math
 import numpy as np
 
-from ezdxf.math import Matrix44, Vec3
-from ezdxf.entities import Ellipse
+from dxfpy.math import Matrix44, Vec3
+from dxfpy.entities import Ellipse
 
 UNIFORM_SCALING = [
     (2, 2, 2),

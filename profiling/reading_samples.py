@@ -3,7 +3,7 @@
 import os
 from collections import Counter
 import time
-import ezdxf
+import dxfpy
 
 CADKIT = "CADKitSamples"
 CADKIT_FILES = [
@@ -49,10 +49,10 @@ def count_entities(msp):
 
 
 for _name in CADKIT_FILES:
-    filename = ezdxf.options.test_files_path / CADKIT / _name
+    filename = dxfpy.options.test_files_path / CADKIT / _name
     print(f"reading file: {filename}")
     start_reading = time.perf_counter()
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     msp = doc.modelspace()
     new_entities = count_entities(msp)
     new_count = len(msp)

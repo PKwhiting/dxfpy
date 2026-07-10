@@ -7,18 +7,18 @@
 import pytest
 import math
 
-bezier = pytest.importorskip("ezdxf.acc.bezier4p")
+bezier = pytest.importorskip("dxfpy.acc.bezier4p")
 Bezier4P = bezier.Bezier4P
-from ezdxf.acc.vector import Vec3, Vec2
-from ezdxf.acc.matrix44 import Matrix44
+from dxfpy.acc.vector import Vec3, Vec2
+from dxfpy.acc.matrix44 import Matrix44
 
 # check functions:
-from ezdxf.math._bezier4p import (
+from dxfpy.math._bezier4p import (
     cubic_bezier_arc_parameters,
     cubic_bezier_from_arc,
     cubic_bezier_from_ellipse,
 )
-from ezdxf.math.ellipse import ConstructionEllipse
+from dxfpy.math.ellipse import ConstructionEllipse
 
 POINTS = Vec2.list([(0, 0), (1, 0), (1, 1), (0, 1)])
 

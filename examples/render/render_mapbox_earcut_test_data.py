@@ -3,11 +3,11 @@
 
 from pathlib import Path
 import json
-import ezdxf
+import dxfpy
 from collections import deque
-from ezdxf.render import forms
-from ezdxf.math import BoundingBox2d
-from ezdxf.math.triangulation import mapbox_earcut_2d
+from dxfpy.render import forms
+from dxfpy.math import BoundingBox2d
+from dxfpy.math.triangulation import mapbox_earcut_2d
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -31,7 +31,7 @@ def hole_beyond_exterior_path():
 
 
 def render(func):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     colors = deque([1, 2, 3, 4, 5, 6])
 
@@ -54,7 +54,7 @@ def render_mapbox_test_cases():
 
 def render_test_case(filepath: Path):
     print(f"processing: {filepath.name}")
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     colors = deque([1, 2, 3, 4, 5, 6])
 
@@ -79,7 +79,7 @@ def render_test_case(filepath: Path):
 def render_polydata():
     for data in POLYGON_DATA0:
         filename = data.name.replace(" ", "_") + ".dxf"
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         msp = doc.modelspace()
         colors = deque([1, 2, 3, 4, 5, 6])
         for triangle in mapbox_earcut_2d(data.vertices):

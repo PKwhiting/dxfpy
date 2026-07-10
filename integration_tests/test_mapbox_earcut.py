@@ -6,12 +6,12 @@ import json
 from pathlib import Path
 from functools import partial
 import pytest
-from ezdxf.math import Vec2, UVec
-from ezdxf.math._mapbox_earcut import earcut as _py_earcut
+from dxfpy.math import Vec2, UVec
+from dxfpy.math._mapbox_earcut import earcut as _py_earcut
 
 CYTHON = "Cython"
 try:
-    from ezdxf.acc.mapbox_earcut import earcut as _cy_earcut
+    from dxfpy.acc.mapbox_earcut import earcut as _cy_earcut
 except ImportError:
     CYTHON = "CPython"
     _cy_earcut = _py_earcut

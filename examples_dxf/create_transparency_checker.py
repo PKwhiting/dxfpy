@@ -1,9 +1,9 @@
 #  Copyright (c) 2021, Manfred Moitzi
 #  License: MIT License
 from typing import Optional, List, Tuple
-import ezdxf
-from ezdxf import colors
-from ezdxf.math import Vec3
+import dxfpy
+from dxfpy import colors
+from dxfpy.math import Vec3
 
 EXPLICIT_TRANSPARENCIES = [0.2, 0.4, 0.6, 0.8]
 SIZE = 2.0
@@ -97,7 +97,7 @@ def add_mtext(
             "char_height": height,
             "layer": layer,
         },
-    ).set_location(location, attachment_point=ezdxf.const.MTEXT_TOP_LEFT)
+    ).set_location(location, attachment_point=dxfpy.const.MTEXT_TOP_LEFT)
 
 
 def add_frame(
@@ -200,7 +200,7 @@ def make_single_block(
 
 
 def main(filename: str):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.styles.add(ARIAL, font="arial.ttf")
     doc.layers.add("TEXT")
     layer_bg = doc.layers.add("BACKGROUND")

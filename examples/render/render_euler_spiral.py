@@ -2,9 +2,9 @@
 # License: MIT License
 import pathlib
 from math import radians
-import ezdxf
-from ezdxf.render import EulerSpiral
-from ezdxf.math import basic_transformation
+import dxfpy
+from dxfpy.render import EulerSpiral
+from dxfpy.math import basic_transformation
 
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -12,11 +12,11 @@ if not CWD.exists():
     CWD = pathlib.Path(".")
 
 # ------------------------------------------------------------------------------
-# This example shows how to use the ezdxf.render.EulerSpiral class.
+# This example shows how to use the dxfpy.render.EulerSpiral class.
 # The DXF format does not support euler-spirals, therefore they can only be
 # approximated by polylines.
 #
-# docs: https://ezdxf.mozman.at/docs/render/curves.html#eulerspiral
+# docs: https://dxfpy.mozman.at/docs/render/curves.html#eulerspiral
 # ------------------------------------------------------------------------------
 
 NAME = "euler_spiral.dxf"
@@ -76,7 +76,7 @@ def tmatrix(dx, dy, sx=1, sy=1, angle=0):
 
 
 def main(dxfversion="R2000"):
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
 
     msp.add_line((-20, 0), (20, 0), dxfattribs={"linetype": "PHANTOM"})

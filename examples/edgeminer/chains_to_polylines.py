@@ -5,21 +5,21 @@ from typing import Sequence
 from pathlib import Path
 
 
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf import edgeminer as em
-from ezdxf import edgesmith as es
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy import edgeminer as em
+from dxfpy import edgesmith as es
 
 CWD = Path(__file__).parent
 OUTBOX = Path("~/Desktop/Outbox").expanduser()
 
 
 def new_doc() -> Drawing:
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def load(filename: str) -> list[em.Edge]:
-    doc = ezdxf.readfile(CWD / filename)
+    doc = dxfpy.readfile(CWD / filename)
     msp = doc.modelspace()
     edges = list(es.edges_from_entities_2d(msp))
     return edges

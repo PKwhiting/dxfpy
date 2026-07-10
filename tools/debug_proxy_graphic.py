@@ -2,21 +2,21 @@
 #  License: MIT License
 import pathlib
 import logging
-import ezdxf
-from ezdxf.proxygraphic import ProxyGraphicDebugger
+import dxfpy
+from dxfpy.proxygraphic import ProxyGraphicDebugger
 
-ezdxf.options.load_proxy_graphics = True
+dxfpy.options.load_proxy_graphics = True
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
-logging.basicConfig(filename=CWD / "ezdxf-log.txt", level="DEBUG")
-logger = logging.getLogger("ezdxf")
+logging.basicConfig(filename=CWD / "dxfpy-log.txt", level="DEBUG")
+logger = logging.getLogger("dxfpy")
 
-EXAMPLE = ezdxf.options.test_files_path / "mleader" / "mbway-mleader.dxf"
+EXAMPLE = dxfpy.options.test_files_path / "mleader" / "mbway-mleader.dxf"
 
-doc = ezdxf.readfile(EXAMPLE)
+doc = dxfpy.readfile(EXAMPLE)
 mleader = doc.entitydb["403"]
 with open(CWD / "proxy-debug.txt", mode="wt") as stream:
     proxy = ProxyGraphicDebugger(

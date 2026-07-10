@@ -2,7 +2,7 @@
 # License: MIT License
 
 from io import StringIO
-from ezdxf import comments
+from dxfpy import comments
 
 DXF = """999
 preceding comment

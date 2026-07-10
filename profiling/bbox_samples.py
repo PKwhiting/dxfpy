@@ -1,10 +1,10 @@
 # Copyright (c) 2022, Manfred Moitzi
 # License: MIT License
-import ezdxf
+import dxfpy
 import os
 from collections import Counter
 import time
-from ezdxf import EZDXF_TEST_FILES, bbox
+from dxfpy import DXFPY_TEST_FILES, bbox
 
 CADKIT = "CADKitSamples"
 CADKIT_FILES = [
@@ -66,10 +66,10 @@ sum_fast = 0.0
 
 for _name in CADKIT_FILES:
     count += 1
-    filename = os.path.join(EZDXF_TEST_FILES, CADKIT, _name)
+    filename = os.path.join(DXFPY_TEST_FILES, CADKIT, _name)
     print(f"reading file: {filename}")
     t0 = time.perf_counter()
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     msp = doc.modelspace()
     print(f"loading time: {time.perf_counter() - t0:.3f} sec")
 

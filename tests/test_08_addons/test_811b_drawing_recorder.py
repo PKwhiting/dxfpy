@@ -2,13 +2,13 @@
 # License: MIT License
 
 import pytest
-import ezdxf
-import ezdxf.path
-from ezdxf.npshapes import NumpyPath2d
-from ezdxf.math import Vec2
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.recorder import Recorder, BackendProperties, Override, FilledPathsRecord
-from ezdxf.addons.drawing.debug_backend import PathBackend
+import dxfpy
+import dxfpy.path
+from dxfpy.npshapes import NumpyPath2d
+from dxfpy.math import Vec2
+from dxfpy.addons.drawing import RenderContext, Frontend
+from dxfpy.addons.drawing.recorder import Recorder, BackendProperties, Override, FilledPathsRecord
+from dxfpy.addons.drawing.debug_backend import PathBackend
 
 
 class MyTestFrontend(Frontend):
@@ -19,7 +19,7 @@ class MyTestFrontend(Frontend):
 
 @pytest.fixture
 def doc():
-    d = ezdxf.new()
+    d = dxfpy.new()
     d.layers.new("Test1")
     d.styles.add("DEJAVU", font="DejaVuSans.ttf")
     return d
@@ -216,8 +216,8 @@ class TestCroppingRecords:
     def test_crop_filled_paths(self):
         props = BackendProperties()
         recorder = Recorder()
-        square = NumpyPath2d(ezdxf.path.rect(100, 100))  # center = (0, 0)
-        hole = NumpyPath2d(ezdxf.path.rect(50, 50))  # center = (0, 0)
+        square = NumpyPath2d(dxfpy.path.rect(100, 100))  # center = (0, 0)
+        hole = NumpyPath2d(dxfpy.path.rect(50, 50))  # center = (0, 0)
         recorder.draw_filled_paths([square, hole], props)
 
         player = recorder.player()
@@ -237,7 +237,7 @@ class TestCroppingRecords:
     def test_does_not_crop_holes_inside_crop_box(self):
         props = BackendProperties()
         recorder = Recorder()
-        square = NumpyPath2d(ezdxf.path.rect(100, 100))  # center = (0, 0)
+        square = NumpyPath2d(dxfpy.path.rect(100, 100))  # center = (0, 0)
         hole = NumpyPath2d.from_vertices(
             Vec2.list([(10, 10), (20, 10), (20, 20), (10, 20)]), close=True
         )
@@ -261,7 +261,7 @@ class TestCroppingRecords:
         props = BackendProperties()
         recorder = Recorder()
 
-        square = NumpyPath2d(ezdxf.path.rect(100, 100))  # center = (0, 0)
+        square = NumpyPath2d(dxfpy.path.rect(100, 100))  # center = (0, 0)
         hole = NumpyPath2d.from_vertices(
             Vec2.list([(-10, -10), (-20, -10), (-20, -20), (-10, -20)]), close=True
         )

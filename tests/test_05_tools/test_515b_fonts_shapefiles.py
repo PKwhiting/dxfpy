@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import BoundingBox2d
-from ezdxf.fonts import fonts
+from dxfpy.math import BoundingBox2d
+from dxfpy.fonts import fonts
 
 
 @pytest.fixture(scope="module", autouse=True)

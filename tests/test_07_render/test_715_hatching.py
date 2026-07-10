@@ -1,9 +1,9 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 import pytest
-from ezdxf.math import Vec2, Bezier4P
-from ezdxf.render import hatching, forms
-from ezdxf import path
+from dxfpy.math import Vec2, Bezier4P
+from dxfpy.render import hatching, forms
+from dxfpy import path
 
 
 class TestHatchBaseLine:
@@ -314,7 +314,7 @@ def test_explode_earth1_pattern():
     exploration/hatching.py,
 
     """
-    from ezdxf.entities import Hatch
+    from dxfpy.entities import Hatch
 
     hatch = Hatch.new()
     hatch.set_pattern_definition(

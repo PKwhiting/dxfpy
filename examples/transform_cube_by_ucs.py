@@ -3,9 +3,9 @@
 import pathlib
 
 import math
-import ezdxf
-from ezdxf import zoom
-from ezdxf.math import UCS
+import dxfpy
+from dxfpy import zoom
+from dxfpy.math import UCS
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,12 +15,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # use an UCS to place a cube in 3D
 #
-# docs: https://ezdxf.mozman.at/docs/math/core.html#ucs-class
-# tutorial for UCS based transformations: https://ezdxf.mozman.at/docs/tutorials/ucs_transform.html
+# docs: https://dxfpy.mozman.at/docs/math/core.html#ucs-class
+# tutorial for UCS based transformations: https://dxfpy.mozman.at/docs/tutorials/ucs_transform.html
 #
-# IMPORTANT: the ezdxf.math.UCS is not identical to the UCSTableEntry in
+# IMPORTANT: the dxfpy.math.UCS is not identical to the UCSTableEntry in
 # the TABLE section, but you can acquire the USC by UCSTableEntry.ucs():
-# https://ezdxf.mozman.at/docs/tables/ucs_table_entry.html#ezdxf.entities.UCSTableEntry.ucs
+# https://dxfpy.mozman.at/docs/tables/ucs_table_entry.html#dxfpy.entities.UCSTableEntry.ucs
 # ------------------------------------------------------------------------------
 
 p = [
@@ -34,7 +34,7 @@ p = [
     (0, 1, 1),
 ]
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 block = doc.blocks.new("block_4m3")
 

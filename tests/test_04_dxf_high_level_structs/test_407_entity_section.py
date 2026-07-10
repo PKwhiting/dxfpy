@@ -6,14 +6,14 @@
 # layouts are stored in the associated BLOCK in the blocks section. I assume this is just a legacy detail, which could
 # easily removed by storing all layouts including the modelspace in the block sections.
 #
-# In later ezdxf versions the EntitiesSection object has only the task to load and store the entities of the DXF section
+# In later dxfpy versions the EntitiesSection object has only the task to load and store the entities of the DXF section
 # ENTITIES.
 #
-import ezdxf
+import dxfpy
 
 
 def test_iterate_entities_section():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     m = doc.modelspace()
     m.add_line((0, 0), (1, 1))
     entity = list(doc.entities)[-1]

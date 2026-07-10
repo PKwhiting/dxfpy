@@ -1,12 +1,12 @@
 # Copyright (c) 2024, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.document import Drawing
-from ezdxf.math import Matrix44
-from ezdxf.render.forms import cube
-from ezdxf.acis.api import body_from_mesh, export_sab
+from dxfpy.document import Drawing
+from dxfpy.math import Matrix44
+from dxfpy.render.forms import cube
+from dxfpy.acis.api import body_from_mesh, export_sab
 
 FILENAME = "3dsolid.dxf"
 
@@ -14,7 +14,7 @@ FILENAME = "3dsolid.dxf"
 @pytest.fixture
 def doc():
     acis_body = body_from_mesh(cube())
-    _doc = ezdxf.new()
+    _doc = dxfpy.new()
     msp = _doc.modelspace()
     dxf_3dsolid = msp.add_3dsolid()
     dxf_3dsolid.sab = export_sab([acis_body])
@@ -35,7 +35,7 @@ def test_export_and_reload_transformed_acis_entities(tmp_path, doc: Drawing):
     doc.saveas(file_path)
     del doc
 
-    doc2 = ezdxf.readfile(file_path)
+    doc2 = dxfpy.readfile(file_path)
     # Do not test the current implementation, this may change in the future:
     solids = doc2.query("3DSOLID")
     assert len(solids) == 1

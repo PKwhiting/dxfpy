@@ -4,23 +4,23 @@ from __future__ import unicode_literals
 import pytest
 import os
 import random
-import ezdxf
-from ezdxf.lldxf.const import versions_supported_by_new
-from ezdxf.math import Vec3
+import dxfpy
+from dxfpy.lldxf.const import versions_supported_by_new
+from dxfpy.math import Vec3
 
 
 @pytest.fixture(params=versions_supported_by_new)
 def drawing(request):
-    return ezdxf.new(request.param, setup=True)
+    return dxfpy.new(request.param, setup=True)
 
 
 def test_linear_dimline_all_arrow_style(drawing, tmpdir):
     dwg = drawing
     msp = dwg.modelspace()
-    ezdxf_dimstyle = dwg.dimstyles.get("EZDXF")
-    ezdxf_dimstyle.copy_to_header(dwg)
+    dxfpy_dimstyle = dwg.dimstyles.get("EZDXF")
+    dxfpy_dimstyle.copy_to_header(dwg)
 
-    for index, name in enumerate(sorted(ezdxf.ARROWS.__all_arrows__)):
+    for index, name in enumerate(sorted(dxfpy.ARROWS.__all_arrows__)):
         y = index * 4
         attributes = {
             "dimtxsty": "LiberationMono",
@@ -44,7 +44,7 @@ def test_linear_dimline_all_arrow_style(drawing, tmpdir):
     )
     try:
         drawing.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(
             "DXFError: {0} for DXF version {1}".format(
                 str(e), drawing.dxfversion
@@ -63,7 +63,7 @@ def test_random_multi_point_linear_dimension(tmpdir):
     count = 10
     fname = "multi_random_point_linear_dim_R2007.dxf"
 
-    dwg = ezdxf.new("R2007", setup=True)
+    dwg = dxfpy.new("R2007", setup=True)
     msp = dwg.modelspace()
     points = [random_point(0, length) for _ in range(count)]
     msp.add_lwpolyline(points, dxfattribs={"color": 1})
@@ -75,7 +75,7 @@ def test_random_multi_point_linear_dimension(tmpdir):
     dimstyle.dxf.dimdec = 2
 
     dimstyle = dwg.dimstyles.duplicate_entry("WITHTFILL", "WITHTXT")
-    dimstyle.dxf.dimblk = ezdxf.ARROWS.closed
+    dimstyle.dxf.dimblk = dxfpy.ARROWS.closed
     dimstyle.dxf.dimtxsty = "STANDARD"
 
     msp.add_multi_point_linear_dim(
@@ -91,7 +91,7 @@ def test_random_multi_point_linear_dimension(tmpdir):
     filename = str(tmpdir.join(fname))
     try:
         dwg.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail("DXFError: {0} for {1}".format(str(e), fname))
     assert os.path.exists(filename)
 
@@ -99,7 +99,7 @@ def test_random_multi_point_linear_dimension(tmpdir):
 def test_draw_all_arrows(drawing, tmpdir):
     msp = drawing.modelspace()
     y = 0
-    for index, name in enumerate(sorted(ezdxf.ARROWS.__all_arrows__)):
+    for index, name in enumerate(sorted(dxfpy.ARROWS.__all_arrows__)):
         if name == "":
             label = '"" = closed filled'
         else:
@@ -143,7 +143,7 @@ def test_draw_all_arrows(drawing, tmpdir):
     )
     try:
         drawing.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(
             "DXFError: {0} for DXF version {1}".format(
                 str(e), drawing.dxfversion

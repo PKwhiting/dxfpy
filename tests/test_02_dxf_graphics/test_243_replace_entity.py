@@ -1,14 +1,14 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.entities.dxfgfx import add_entity, replace_entity
-from ezdxf.entities import Point
+import dxfpy
+from dxfpy.entities.dxfgfx import add_entity, replace_entity
+from dxfpy.entities import Point
 
 
 @pytest.fixture(scope="module")
 def msp():
-    return ezdxf.new().modelspace()
+    return dxfpy.new().modelspace()
 
 
 @pytest.fixture(scope="module")

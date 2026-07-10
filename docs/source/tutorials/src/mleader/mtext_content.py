@@ -3,9 +3,9 @@
 import pathlib
 
 import colors
-import ezdxf
-from ezdxf.math import Vec2
-from ezdxf.render import mleader
+import dxfpy
+from dxfpy.math import Vec2
+from dxfpy.render import mleader
 # reserved for further imports, line numbers have to be preserved for
 # .. literalinclude::
 #
@@ -19,7 +19,7 @@ if not CWD.exists():
 
 
 def mtext_content_horizontal_left(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content(
@@ -39,7 +39,7 @@ def mtext_content_horizontal_left(filename: str):
 
 
 def mtext_content_horizontal_right(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content(
@@ -55,7 +55,7 @@ def mtext_content_horizontal_right(filename: str):
 
 
 def mtext_content_horizontal_left_and_right(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content(
@@ -72,7 +72,7 @@ def mtext_content_horizontal_left_and_right(filename: str):
 
 
 def mtext_content_horizontal_center(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content(
@@ -89,7 +89,7 @@ def mtext_content_horizontal_center(filename: str):
 
 
 def mtext_content_horizontal_connection_types(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content(
@@ -110,7 +110,7 @@ def mtext_content_horizontal_connection_types(filename: str):
 
 
 def mtext_content_spline_left(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content(
@@ -130,7 +130,7 @@ def mtext_content_spline_left(filename: str):
 
 
 def mtext_content_leader_properties(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content(
@@ -151,8 +151,8 @@ def mtext_content_leader_properties(filename: str):
 
 
 def mtext_content_arrow_properties(filename: str):
-    from ezdxf.render import ARROWS
-    doc = ezdxf.new(setup=True)
+    from dxfpy.render import ARROWS
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     ml_builder = msp.add_multileader_mtext("Standard")
     ml_builder.set_content(

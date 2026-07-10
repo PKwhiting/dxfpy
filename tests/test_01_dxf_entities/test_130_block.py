@@ -1,7 +1,7 @@
 from io import StringIO
 
-from ezdxf.entities import Block, EndBlk
-from ezdxf.lldxf.tagwriter import TagWriter
+from dxfpy.entities import Block, EndBlk
+from dxfpy.lldxf.tagwriter import TagWriter
 
 
 BLOCK_WITH_TRANSPARENCY = """0

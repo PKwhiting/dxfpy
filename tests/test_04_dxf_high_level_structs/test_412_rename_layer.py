@@ -1,14 +1,14 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 LAYER = "test"
 
 
 @pytest.fixture
 def dxf():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     doc.layers.new(LAYER)
     msp = doc.modelspace()
     msp.add_text("A", dxfattribs={"layer": LAYER})

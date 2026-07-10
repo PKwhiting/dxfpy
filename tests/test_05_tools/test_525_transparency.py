@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf import colors
+from dxfpy import colors
 
 # DXF transparency value 0x020000TT
 # 0x00 = fully transparent

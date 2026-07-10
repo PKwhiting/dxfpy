@@ -1,10 +1,10 @@
 #  Copyright (c) 2021, Manfred Moitzi
 #  License: MIT License
 from pathlib import Path
-import ezdxf
+import dxfpy
 DIR = Path("~/Desktop/Outbox").expanduser()
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 # register your appid

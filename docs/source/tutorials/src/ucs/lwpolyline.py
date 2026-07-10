@@ -5,10 +5,10 @@ from pathlib import Path
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
 import math
-import ezdxf
-from ezdxf.math import Vec3, UCS
+import dxfpy
+from dxfpy.math import Vec3, UCS
 
-doc = ezdxf.new('R2010')
+doc = dxfpy.new('R2010')
 msp = doc.modelspace()
 
 # The center of the pentagon should be (0, 2, 2), and the shape is

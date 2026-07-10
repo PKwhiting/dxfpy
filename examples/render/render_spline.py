@@ -1,9 +1,9 @@
 # Copyright (c) 2010-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.render import Spline
-from ezdxf.math import Vec3, Matrix44
+import dxfpy
+from dxfpy.render import Spline
+from dxfpy.math import Vec3, Matrix44
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,7 +12,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to create SPLINE entities.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/spline.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/spline.html
 # ------------------------------------------------------------------------------
 
 
@@ -26,7 +26,7 @@ def main():
     right_frame = Matrix44.translate(10, 0, 0)
     spline_points = Vec3.list([(1.0, 1.0), (2.5, 3.0), (4.5, 2.0), (6.5, 4.0)])
 
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     msp = doc.modelspace()
 
     # draw the fit points itself:

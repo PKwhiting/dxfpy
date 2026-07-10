@@ -1,7 +1,7 @@
 # Copyright (c) 2018 Manfred Moitzi
 # License: MIT License
 from math import isclose, radians, pi
-from ezdxf.math import UCS, Vec3, X_AXIS, Y_AXIS, Z_AXIS, Matrix44
+from dxfpy.math import UCS, Vec3, X_AXIS, Y_AXIS, Z_AXIS, Matrix44
 
 
 def test_ucs_init():

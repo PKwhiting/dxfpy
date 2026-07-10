@@ -2,15 +2,15 @@ from io import StringIO
 
 import pytest
 
-import ezdxf
-from ezdxf.dynamic_blocks import (
+import dxfpy
+from dxfpy.dynamic_blocks import (
     DynamicBlockReference,
     DynamicBlockVisibilityError,
     NotDynamicBlockReferenceError,
     UnknownVisibilityStateError,
     UnsupportedDynamicBlockReferenceError,
 )
-from ezdxf.dynblkhelper import (
+from dxfpy.dynblkhelper import (
     DynamicBlockVisibilityParameter,
     DynamicBlockVisibilityState,
     set_dynamic_block_visibility_parameter,
@@ -18,19 +18,19 @@ from ezdxf.dynblkhelper import (
 
 
 def load_visibility_fixture():
-    return ezdxf.readzip("integration_tests/data/dynblks.zip", "dynblk1.dxf")
+    return dxfpy.readzip("integration_tests/data/dynblks.zip", "dynblk1.dxf")
 
 
 def test_dynamic_block_reference_requires_insert_entity():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     line = doc.modelspace().add_line((0, 0), (1, 0))
 
-    with pytest.raises(ezdxf.lldxf.const.DXFTypeError):
+    with pytest.raises(dxfpy.lldxf.const.DXFTypeError):
         DynamicBlockReference(line)
 
 
 def test_plain_insert_reports_not_dynamic():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("PLAIN")
     block.add_line((0, 0), (1, 0))
     insert = doc.modelspace().add_blockref(block.name, (0, 0))
@@ -87,7 +87,7 @@ def test_dynamic_block_reference_sets_visibility_state_and_survives_roundtrip():
 
     stream = StringIO()
     doc.write(stream)
-    loaded = ezdxf.read(StringIO(stream.getvalue()))
+    loaded = dxfpy.read(StringIO(stream.getvalue()))
     loaded_insert = list(loaded.modelspace().query("INSERT"))[0]
     loaded_dynamic = DynamicBlockReference(loaded_insert)
 
@@ -111,7 +111,7 @@ def test_dynamic_block_reference_rejects_unknown_visibility_state():
 
 
 def test_dynamic_block_reference_reports_missing_visibility_support():
-    doc = ezdxf.readzip("integration_tests/data/dynblks.zip", "dynblk0.dxf")
+    doc = dxfpy.readzip("integration_tests/data/dynblks.zip", "dynblk0.dxf")
     insert = list(doc.modelspace().query("INSERT"))[0]
     dynamic = DynamicBlockReference(insert)
 
@@ -123,7 +123,7 @@ def test_dynamic_block_reference_reports_missing_visibility_support():
 
 
 def test_dynamic_block_reference_rejects_direct_visibility_mutation():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("DIRECT_DYNAMIC")
     line = block.add_line((0, 0), (1, 0))
     set_dynamic_block_visibility_parameter(
@@ -147,7 +147,7 @@ def test_dynamic_block_reference_rejects_direct_visibility_mutation():
 
 
 def test_dynamic_block_reference_exposes_property_table_metadata():
-    doc = ezdxf.readfile(
+    doc = dxfpy.readfile(
         "tests/test_08_addons/autocad_nested_working_minimal_v1_edited.dxf"
     )
     inserts = list(doc.modelspace().query("INSERT"))

@@ -2,11 +2,11 @@
 # License: MIT License
 import pathlib
 from time import perf_counter
-import ezdxf
+import dxfpy
 
-from ezdxf.render.forms import sphere
-from ezdxf.addons import MengerSponge
-from ezdxf.addons.pycsg import CSG
+from dxfpy.render.forms import sphere
+from dxfpy.addons import MengerSponge
+from dxfpy.addons.pycsg import CSG
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,12 +15,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to use the pycsg add-on (Constructive Solid Geometry).
 #
-# docs: https://ezdxf.mozman.at/docs/addons/pycsg.html
+# docs: https://dxfpy.mozman.at/docs/addons/pycsg.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("sponge", dxfattribs={"color": 5})
     doc.layers.new("sphere", dxfattribs={"color": 6})
 

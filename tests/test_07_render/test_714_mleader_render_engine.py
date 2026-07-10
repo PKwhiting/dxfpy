@@ -2,15 +2,15 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.math import Vec2
-from ezdxf.render import mleader
-from ezdxf.entities import MText, MultiLeader, Insert
+import dxfpy
+from dxfpy.math import Vec2
+from dxfpy.render import mleader
+from dxfpy.entities import MText, MultiLeader, Insert
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def make_multi_leader(doc) -> MultiLeader:

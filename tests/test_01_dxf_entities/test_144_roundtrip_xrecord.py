@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.acad_xrec_roundtrip import RoundtripXRecord, find_section
-from ezdxf.entities import XRecord
-from ezdxf.lldxf.tags import Tags
+from dxfpy.entities.acad_xrec_roundtrip import RoundtripXRecord, find_section
+from dxfpy.entities import XRecord
+from dxfpy.lldxf.tags import Tags
 
 
 @pytest.fixture

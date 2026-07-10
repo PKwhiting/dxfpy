@@ -2,9 +2,9 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.tools.text import MTextParser
-from ezdxf.addons import MTextExplode
+import dxfpy
+from dxfpy.tools.text import MTextParser
+from dxfpy.addons import MTextExplode
 
 TEXT = r"{\fDIN OT|b0|i0|c0|p34;Abbruch Infoschild\PNotaus Einbindung\P\pxi-3,l4,t4;ehem.^IStaubsauger}"
 
@@ -15,7 +15,7 @@ def test_parse_text():
 
 
 def test_explode_mtext():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     mtext = msp.add_mtext(TEXT)

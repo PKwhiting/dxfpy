@@ -4,7 +4,7 @@
 import pytest
 from io import StringIO
 from time import sleep
-import ezdxf
+import dxfpy
 
 
 def doc2str(doc):
@@ -15,8 +15,8 @@ def doc2str(doc):
 
 @pytest.mark.parametrize("version", ["R12", "R2000", "R2018"])
 def test_fixed_meta_data(version):
-    ezdxf.options.write_fixed_meta_data_for_testing = True
-    doc = ezdxf.new(version)
+    dxfpy.options.write_fixed_meta_data_for_testing = True
+    doc = dxfpy.new(version)
     txt1 = doc2str(doc)
     # write it again
     sleep(0.1)
@@ -26,8 +26,8 @@ def test_fixed_meta_data(version):
 
 @pytest.mark.parametrize("version", ["R12", "R2000", "R2018"])
 def test_meta_data_is_different(version):
-    ezdxf.options.write_fixed_meta_data_for_testing = False
-    doc = ezdxf.new(version)
+    dxfpy.options.write_fixed_meta_data_for_testing = False
+    doc = dxfpy.new(version)
     txt1 = doc2str(doc)
     # write it again
     sleep(0.1)

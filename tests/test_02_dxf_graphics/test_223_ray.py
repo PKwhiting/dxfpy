@@ -3,8 +3,8 @@
 # created 2019-03-05
 import pytest
 
-from ezdxf.entities.xline import Ray
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.xline import Ray
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 RAY = """0
 RAY
@@ -39,7 +39,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "RAY" in ENTITY_CLASSES
 

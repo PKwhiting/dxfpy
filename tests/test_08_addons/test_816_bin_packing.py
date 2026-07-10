@@ -1,7 +1,7 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 import pytest
-from ezdxf.addons import binpacking as bp
+from dxfpy.addons import binpacking as bp
 
 
 def test_single_bin_single_item():

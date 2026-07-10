@@ -2,9 +2,9 @@
 # License: MIT License
 # created 2019-02-15
 import pytest
-import ezdxf
-from ezdxf.entities.helix import Helix
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+import dxfpy
+from dxfpy.entities.helix import Helix
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 HELIX = """0
 HELIX
@@ -71,7 +71,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "HELIX" in ENTITY_CLASSES
 
@@ -133,7 +133,7 @@ def test_write_dxf():
 
 
 def test_generic_helix():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     helix = msp.new_entity("HELIX", {})
     assert helix.dxftype() == "HELIX"

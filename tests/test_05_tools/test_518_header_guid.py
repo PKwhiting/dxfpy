@@ -3,7 +3,7 @@
 
 import pytest
 import re
-from ezdxf.tools import guid
+from dxfpy.tools import guid
 
 HEX4 = "[0-9A-F]{4}"
 HEX8 = "[0-9A-F]{8}"

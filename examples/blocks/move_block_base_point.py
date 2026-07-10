@@ -2,8 +2,8 @@
 # License: MIT License
 from __future__ import annotations
 import pathlib
-import ezdxf
-from ezdxf import bbox, transform
+import dxfpy
+from dxfpy import bbox, transform
 
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -11,9 +11,9 @@ if not CWD.exists():
     CWD = pathlib.Path(".")
 
 
-# This example requires ezdxf v1.1.0 or later.
+# This example requires dxfpy v1.1.0 or later.
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     # create a new block definition, with the default base point at (0, 0):
@@ -49,7 +49,7 @@ def main():
 
 
 if __name__ == "__main__":
-    if ezdxf.version >= (1, 1, 0):
+    if dxfpy.version >= (1, 1, 0):
         main()
     else:
-        print("This example requires ezdxf v1.1.0 or later.")
+        print("This example requires dxfpy v1.1.0 or later.")

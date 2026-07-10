@@ -1,12 +1,12 @@
 # Copyright (c) 2018-2020 Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.math import UCS, Vec3
+import dxfpy
+from dxfpy.math import UCS, Vec3
 from pathlib import Path
 
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
-doc = ezdxf.new('R2010')
+doc = dxfpy.new('R2010')
 msp = doc.modelspace()
 
 # Thickness for text works only with shx fonts not with true type fonts

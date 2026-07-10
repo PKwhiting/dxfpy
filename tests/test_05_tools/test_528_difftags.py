@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.tools.difftags import diff_tags, OpCode, round_tags
-from ezdxf.lldxf.tags import Tags, dxftag
+from dxfpy.tools.difftags import diff_tags, OpCode, round_tags
+from dxfpy.lldxf.tags import Tags, dxftag
 
 A = dxftag(0, "TagA")
 B = dxftag(0, "TagB")

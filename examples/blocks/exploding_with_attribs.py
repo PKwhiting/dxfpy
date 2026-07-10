@@ -2,7 +2,7 @@
 # License: MIT License
 from typing import cast, Tuple
 import pathlib
-import ezdxf
+import dxfpy
 import random
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -13,7 +13,7 @@ if not CWD.exists():
 # This example shows how to explode block references with attached ATTRIB
 # entities.
 #
-# https://ezdxf.mozman.at/docs/tutorials/blocks.html
+# https://dxfpy.mozman.at/docs/tutorials/blocks.html
 # ------------------------------------------------------------------------------
 
 
@@ -25,7 +25,7 @@ def get_random_point() -> Tuple[int, int]:
 
 
 def main():
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     msp = doc.modelspace()
 
     flag = doc.blocks.new(name="FLAG")

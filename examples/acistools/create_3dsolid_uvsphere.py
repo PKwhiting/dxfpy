@@ -2,9 +2,9 @@
 #  License: MIT License
 
 from pathlib import Path
-import ezdxf
-from ezdxf.render import forms
-from ezdxf.acis import api as acis
+import dxfpy
+from dxfpy.render import forms
+from dxfpy.acis import api as acis
 
 DIR = Path("~/Desktop/Outbox").expanduser()
 if not DIR.exists():
@@ -12,7 +12,7 @@ if not DIR.exists():
 
 VERSION = "R2018"
 DEBUG = False
-doc = ezdxf.new(VERSION)
+doc = dxfpy.new(VERSION)
 msp = doc.modelspace()
 
 sphere = forms.sphere()

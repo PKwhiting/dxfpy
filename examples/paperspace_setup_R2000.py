@@ -2,8 +2,8 @@
 # License: MIT License
 from typing import cast
 import pathlib
-import ezdxf
-from ezdxf.document import Drawing
+import dxfpy
+from dxfpy.document import Drawing
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -16,7 +16,7 @@ if not CWD.exists():
 # the paperspace scaling has no influence on the VIEWPORT scaling - this is a
 # total different topic, see example "viewports_in_paperspace.py"
 #
-# docs about layouts: https://ezdxf.mozman.at/docs/layouts/index.html
+# docs about layouts: https://dxfpy.mozman.at/docs/layouts/index.html
 # ------------------------------------------------------------------------------
 
 FILENAME = "page_setup_R2000.dxf"
@@ -98,7 +98,7 @@ def setup_paperspace_layouts(doc: Drawing):
 
 
 def setup_layout1(doc: Drawing):
-    from ezdxf.layouts import Paperspace
+    from dxfpy.layouts import Paperspace
 
     name = "Layout1"
     if name in doc.layouts:
@@ -195,7 +195,7 @@ def setup_layout4(doc: Drawing):
 
 
 def main():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     draw_raster(doc)
     setup_active_viewport_configuration(doc)
     setup_paperspace_layouts(doc)

@@ -1,11 +1,11 @@
 # Copyright (c) 2021-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import text2path
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.math import Vec3
-from ezdxf import path
+import dxfpy
+from dxfpy.addons import text2path
+from dxfpy.enums import TextEntityAlignment
+from dxfpy.math import Vec3
+from dxfpy import path
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,7 +14,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to convert TEXT entities to outline paths.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/text2path.html
+# docs: https://dxfpy.mozman.at/docs/addons/text2path.html
 # ------------------------------------------------------------------------------
 
 
@@ -25,7 +25,7 @@ def add_rect(msp, p1, p2, height):
 
 
 def main():
-    doc = ezdxf.new(setup=["styles"])
+    doc = dxfpy.new(setup=["styles"])
     msp = doc.modelspace()
 
     p1 = Vec3(0, 0)

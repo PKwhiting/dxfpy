@@ -1,16 +1,16 @@
 # Copyright (c) 2018 Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.entities.mesh import Mesh
-from ezdxf.entities.mesh import (
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.entities.mesh import Mesh
+from dxfpy.entities.mesh import (
     create_vertex_array,
     create_face_list,
     create_edge_array,
     create_crease_array,
 )
-from ezdxf.entities.mesh import face_to_array
+from dxfpy.entities.mesh import face_to_array
 
 
 @pytest.fixture

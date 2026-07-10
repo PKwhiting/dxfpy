@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import is_face_normal_pointing_outwards
-from ezdxf.render import forms
+from dxfpy.math import is_face_normal_pointing_outwards
+from dxfpy.render import forms
 
 
 def test_cube_with_ccw_vertex_orientation():

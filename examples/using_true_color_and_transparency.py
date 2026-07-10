@@ -1,7 +1,7 @@
 # Copyright (c) 2015-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,7 +15,7 @@ if not CWD.exists():
 def lwpolyline_with_true_color():
     # for true-color and transparency is DXF version AC1018 (ACAD R2004)
     # or newer necessary
-    doc = ezdxf.new("AC1018")
+    doc = dxfpy.new("AC1018")
     msp = doc.modelspace()
 
     points = [(0, 0), (3, 0), (6, 3), (6, 6)]
@@ -23,7 +23,7 @@ def lwpolyline_with_true_color():
         points,
         dxfattribs={
             "color": 2,
-            "true_color": ezdxf.rgb2int(
+            "true_color": dxfpy.rgb2int(
                 (38, 140, 89)
             ),  # true color has higher priority than the color attribute
         },
@@ -35,7 +35,7 @@ def lwpolyline_with_true_color():
 def lines_with_true_color():
     # for true-color and transparency is DXF version AC1018 (ACAD R2004)
     # or newer necessary
-    doc = ezdxf.new("AC1018")
+    doc = dxfpy.new("AC1018")
     msp = doc.modelspace()
     for y in range(10):
         line = msp.add_line((0, y * 10), (100, y * 10))
@@ -52,7 +52,7 @@ def rect(x, y, width=10, height=10):
 def solids_with_true_color():
     # for true-color and transparency is DXF version AC1018 (ACAD R2004)
     # or newer necessary
-    doc = ezdxf.new("AC1018")
+    doc = dxfpy.new("AC1018")
     msp = doc.modelspace()
     for i in range(10):
         x = i * 7
@@ -66,7 +66,7 @@ def solids_with_true_color():
 def solids_with_transparency():
     # for true-color and transparency is DXF version AC1018 (ACAD R2004)
     # or newer necessary
-    doc = ezdxf.new("AC1018")
+    doc = dxfpy.new("AC1018")
     msp = doc.modelspace()
     for i in range(10):
         x = i * 7

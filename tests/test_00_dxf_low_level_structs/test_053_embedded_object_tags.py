@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.types import is_embedded_object_marker
-from ezdxf.entities.mtext import MText
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.types import is_embedded_object_marker
+from dxfpy.entities.mtext import MText
 
 MTEXT = r"""0
 MTEXT

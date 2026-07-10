@@ -1,12 +1,12 @@
 # Copyright (c) 2018-2019 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module")
 def dxf12():
-    dwg = ezdxf.new("R12", setup="all")
+    dwg = dxfpy.new("R12", setup="all")
     return dwg
 
 
@@ -30,7 +30,7 @@ def test_dimstyle_override(dxf12):
     preset = {
         "dimtxsty": "TEST",  # virtual attribute - 'dimtxsty_handle' stores the text style handle
         "dimexe": 0.777,
-        "dimblk": ezdxf.ARROWS.dot_blank,
+        "dimblk": dxfpy.ARROWS.dot_blank,
     }
     dimstyle.update(preset)
     assert dimstyle["dimtxsty"] == "TEST"
@@ -48,7 +48,7 @@ def test_dimstyle_override(dxf12):
     # check group code 5 handling for 'dimblk'
     data = dimline.get_xdata_list("ACAD", "DSTYLE")
     for tag in data:
-        if tag.value == ezdxf.ARROWS.dot_blank:
+        if tag.value == dxfpy.ARROWS.dot_blank:
             assert (
                 tag.code == 1000
             ), "Despite group code 5, 'dimblk' should be treated as string, not as handle"
@@ -65,7 +65,7 @@ def test_dimstyle_override_arrows(dxf12):
         "dimblk": "XYZ",
         "dimblk1": "ABC",
         "dimblk2": "DEF",
-        "dimldrblk": "ZZZLDR",  # not supported by DXF12, but used by ezdxf for rendering
+        "dimldrblk": "ZZZLDR",  # not supported by DXF12, but used by dxfpy for rendering
     }
 
     dimstyle = msp.add_linear_dim(
@@ -97,7 +97,7 @@ def test_dimstyle_override_arrows(dxf12):
     assert dimstyle["dimblk2"] == "B2"
     assert (
         dimstyle["dimldrblk"] == "LBLK"
-    )  # not supported by DXF12, but used by ezdxf for rendering
+    )  # not supported by DXF12, but used by dxfpy for rendering
 
     dimstyle.commit()
     dstyle = dimstyle.get_dstyle_dict()

@@ -3,8 +3,8 @@
 import time
 import pathlib
 from collections import Counter
-import ezdxf
-from ezdxf.addons import iterdxf
+import dxfpy
+from dxfpy.addons import iterdxf
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -18,14 +18,14 @@ if not CWD.exists():
 # This example uses the modelspace iterator to copy all supported entities from
 # modelspace without any resources defined in the source DXF document.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/iterdxf.html#ezdxf.addons.iterdxf.modelspace
+# docs: https://dxfpy.mozman.at/docs/addons/iterdxf.html#dxfpy.addons.iterdxf.modelspace
 # ------------------------------------------------------------------------------
 
-BIGFILE = ezdxf.options.test_files_path / "GKB-R2010.dxf"
+BIGFILE = dxfpy.options.test_files_path / "GKB-R2010.dxf"
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     print("Modelspace Iterator:")
@@ -35,14 +35,14 @@ def main():
         counter[entity.dxftype()] += 1
         try:
             msp.add_foreign_entity(entity)
-        except ezdxf.DXFTypeError:
+        except dxfpy.DXFTypeError:
             pass
 
     ta = time.perf_counter() - t0
     print(f"Processing time: {ta:.2f}s")
 
-    print("Saving as ezdxf.dxf")
-    doc.saveas(CWD / "ezdxf.dxf")
+    print("Saving as dxfpy.dxf")
+    doc.saveas(CWD / "dxfpy.dxf")
 
 
 if __name__ == '__main__':

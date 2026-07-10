@@ -1,7 +1,7 @@
 #  Copyright (c) 2021-2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -9,7 +9,7 @@ if not CWD.exists():
 
 # Create a DXF document with missing BLOCK definitions
 # to see how AutoCAD/BricsCAD reacts:
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 # HEADER variables for arrows:

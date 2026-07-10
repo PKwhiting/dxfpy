@@ -3,11 +3,11 @@
 from typing import cast
 import pytest
 import math
-from ezdxf.acis.api import mesh_from_body, load, body_from_mesh, vertices_from_body
-from ezdxf.acis.mesh import PolyhedronFaceBuilder
-from ezdxf.acis import entities, dbg
-from ezdxf.render import forms
-from ezdxf.math import BoundingBox, Vec3
+from dxfpy.acis.api import mesh_from_body, load, body_from_mesh, vertices_from_body
+from dxfpy.acis.mesh import PolyhedronFaceBuilder
+from dxfpy.acis import entities, dbg
+from dxfpy.render import forms
+from dxfpy.math import BoundingBox, Vec3
 
 
 class TestPrismToMesh:
@@ -199,7 +199,7 @@ def test_non_manifold_detection():
 
 
 def test_body_from_menger_sponge_is_manifold():
-    from ezdxf.addons import MengerSponge
+    from dxfpy.addons import MengerSponge
 
     sponge = MengerSponge().mesh()
     body = body_from_mesh(sponge)

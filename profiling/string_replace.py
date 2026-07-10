@@ -1,7 +1,7 @@
 # Copyright (c) 2021, Manfred Moitzi
 # License: MIT License
 import time
-from ezdxf.tools.text_layout import lorem_ipsum
+from dxfpy.tools.text_layout import lorem_ipsum
 import re
 
 REPLACE = {"Lorem": "", "ipsum": "", "dolor": "", "sit": ""}

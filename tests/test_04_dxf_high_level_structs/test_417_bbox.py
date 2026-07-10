@@ -2,10 +2,10 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.layouts import VirtualLayout
-from ezdxf import bbox, disassemble
-from ezdxf.render.forms import square, translate
+import dxfpy
+from dxfpy.layouts import VirtualLayout
+from dxfpy import bbox, disassemble
+from dxfpy.render.forms import square, translate
 
 
 @pytest.fixture(scope="module")
@@ -39,7 +39,7 @@ def solid_entities():
 
 
 def solid_blockrefs():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     blk = doc.blocks.new("Solid")
     blk.add_solid(square(1))
     msp = doc.modelspace()

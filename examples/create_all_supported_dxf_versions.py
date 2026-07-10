@@ -1,10 +1,10 @@
 # Copyright (c) 2019-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import zoom
-from ezdxf.lldxf.const import versions_supported_by_new
-from ezdxf.gfxattribs import GfxAttribs
+import dxfpy
+from dxfpy import zoom
+from dxfpy.lldxf.const import versions_supported_by_new
+from dxfpy.gfxattribs import GfxAttribs
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -16,7 +16,7 @@ if not CWD.exists():
 
 
 def create_doc(dxfversion: str):
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
     msp.add_circle(
         center=(0, 0),

@@ -2,9 +2,9 @@
 #  License: MIT License
 import pytest
 import math
-from ezdxf.layouts import VirtualLayout
-from ezdxf.math import Matrix44, OCS, Vec3, close_vectors
-from ezdxf.path import (
+from dxfpy.layouts import VirtualLayout
+from dxfpy.math import Matrix44, OCS, Vec3, close_vectors
+from dxfpy.path import (
     Path,
     bbox,
     precise_bbox,
@@ -26,9 +26,9 @@ from ezdxf.path import (
     lines_to_curve4,
     is_rectangular,
 )
-from ezdxf.path import make_path, Command
-from ezdxf.entities import BoundaryPathType, EdgeType
-from ezdxf.render import forms
+from dxfpy.path import make_path, Command
+from dxfpy.entities import BoundaryPathType, EdgeType
+from dxfpy.render import forms
 
 
 class TestTransformPaths:
@@ -634,7 +634,7 @@ def test_issue_224_end_points(ellipse):
 
 
 def test_issue_494_make_path_from_spline_defined_by_fit_points_and_tangents():
-    from ezdxf.entities import Spline
+    from dxfpy.entities import Spline
 
     spline = Spline.new(
         dxfattribs={

@@ -2,9 +2,9 @@
 # License: MIT License
 
 import pytest
-import ezdxf
+import dxfpy
 import math
-from ezdxf.math import (
+from dxfpy.math import (
     ConstructionArc,
     ConstructionCircle,
     ConstructionLine,
@@ -106,7 +106,7 @@ def test_spatial_arc_from_3p():
     def_point_ucs = Vec3(0, 0)
 
     arc = ConstructionArc.from_3p(start_point_ucs, end_point_ucs, def_point_ucs)
-    dwg = ezdxf.new("R12")
+    dwg = dxfpy.new("R12")
     msp = dwg.modelspace()
 
     dxf_arc = arc.add_to_layout(msp, ucs)

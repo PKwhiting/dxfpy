@@ -4,10 +4,10 @@
 import pytest
 from io import StringIO
 from copy import deepcopy
-from ezdxf.lldxf.tags import Tags, DXFTag
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.lldxf.const import DXFValueError
-from ezdxf.lldxf import types
+from dxfpy.lldxf.tags import Tags, DXFTag
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.lldxf.const import DXFValueError
+from dxfpy.lldxf import types
 
 TEST_TAGREADER = """  0
 SECTION

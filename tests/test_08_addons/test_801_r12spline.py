@@ -1,8 +1,8 @@
 # Copyright (c) 2018-2019 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.render import R12Spline
+import dxfpy
+from dxfpy.render import R12Spline
 
 
 CONTROL_POINTS = [
@@ -17,7 +17,7 @@ CONTROL_POINTS = [
 
 @pytest.fixture(scope="module")
 def msp():
-    return ezdxf.new("R12").modelspace()
+    return dxfpy.new("R12").modelspace()
 
 
 def test_r12_quadratic_spline(msp):

@@ -1,13 +1,13 @@
 # Copyright (c) 2018 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.entities.dxfobj import SortEntsTable
+import dxfpy
+from dxfpy.entities.dxfobj import SortEntsTable
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 def get_entry(table, index):

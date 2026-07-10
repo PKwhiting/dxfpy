@@ -2,8 +2,8 @@
 # License: MIT License
 import time
 import pathlib
-import ezdxf
-from ezdxf.addons import iterdxf
+import dxfpy
+from dxfpy.addons import iterdxf
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -17,13 +17,13 @@ if not CWD.exists():
 # This example uses the opendxf() method to copy modelspace entities and also
 # preserves ALL resources defined in the source DXF document.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/iterdxf.html#ezdxf.addons.iterdxf.opendxf
+# docs: https://dxfpy.mozman.at/docs/addons/iterdxf.html#dxfpy.addons.iterdxf.opendxf
 # ------------------------------------------------------------------------------
 
 
 def main():
     t0 = time.perf_counter()
-    doc = iterdxf.opendxf(ezdxf.options.test_files_path / "GKB-R2010.dxf")
+    doc = iterdxf.opendxf(dxfpy.options.test_files_path / "GKB-R2010.dxf")
     line_exporter = doc.export(CWD / "lines.dxf")
     text_exporter = doc.export(CWD / "text.dxf")
     polyline_exporter = doc.export(CWD / "polyline.dxf")

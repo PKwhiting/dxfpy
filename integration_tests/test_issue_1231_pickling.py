@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-import ezdxf
-from ezdxf.document import Drawing
+import dxfpy
+from dxfpy.document import Drawing
 
 EXAMPLES = Path(__file__).parent.parent / "examples_dxf"
 
@@ -27,12 +27,12 @@ def _to_dxf_str(doc: Drawing) -> str:
 
 
 def test_document_pickle(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(ezdxf.options, "write_fixed_meta_data_for_testing", True)
+    monkeypatch.setattr(dxfpy.options, "write_fixed_meta_data_for_testing", True)
 
     for item in example_dxfs():
         print(f"testing pickling of {item}")
 
-        doc = ezdxf.readfile(item)
+        doc = dxfpy.readfile(item)
         doc_serialized = pickle.dumps(doc)
         doc_loaded = pickle.loads(doc_serialized)
 

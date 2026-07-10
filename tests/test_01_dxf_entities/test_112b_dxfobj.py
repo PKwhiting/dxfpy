@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.entities import (
+from dxfpy.entities import (
     DXFObject,
     is_dxf_object,
     DXFTagStorage,

@@ -1,7 +1,7 @@
 # Copyright (c) 2025, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.math import BSpline
+from dxfpy.math import BSpline
 
 
 @pytest.fixture

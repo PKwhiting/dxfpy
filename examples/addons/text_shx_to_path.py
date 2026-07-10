@@ -1,11 +1,11 @@
 # Copyright (c) 2021-2023, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import path, zoom
-from ezdxf.fonts import fonts
-from ezdxf.addons import text2path
-from ezdxf.enums import TextEntityAlignment
+import dxfpy
+from dxfpy import path, zoom
+from dxfpy.fonts import fonts
+from dxfpy.addons import text2path
+from dxfpy.enums import TextEntityAlignment
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,14 +14,14 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to convert a text-string to stroke paths.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/text2path.html
+# docs: https://dxfpy.mozman.at/docs/addons/text2path.html
 # ------------------------------------------------------------------------------
 
 FONT = "isocp.shx"
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("STROKE")
     doc.layers.new("TEXT")
     doc.styles.add("TXT", font=FONT)

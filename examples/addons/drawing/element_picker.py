@@ -3,17 +3,17 @@ import signal
 import sys
 from typing import Optional
 
-import ezdxf
-from ezdxf import recover
-from ezdxf.addons.drawing.qtviewer import (
+import dxfpy
+from dxfpy import recover
+from dxfpy.addons.drawing.qtviewer import (
     CADGraphicsViewWithOverlay,
     CADWidget,
     CADViewer,
 )
-from ezdxf.addons.xqt import QtCore as qc, QtGui as qg, QtWidgets as qw
-from ezdxf.audit import Auditor
-from ezdxf.document import Drawing
-from ezdxf.entities import DXFGraphic
+from dxfpy.addons.xqt import QtCore as qc, QtGui as qg, QtWidgets as qw
+from dxfpy.audit import Auditor
+from dxfpy.document import Drawing
+from dxfpy.entities import DXFGraphic
 
 
 class ElementSelectorView(CADGraphicsViewWithOverlay):
@@ -67,14 +67,14 @@ def main():
         sys.exit(1)
 
     try:
-        doc = ezdxf.readfile(args.cad_file)
+        doc = dxfpy.readfile(args.cad_file)
     except IOError:
         print(f"Not a DXF file or a generic I/O error.")
         sys.exit(2)
-    except ezdxf.DXFError:
+    except dxfpy.DXFError:
         try:
             doc, auditor = recover.readfile(args.cad_file)
-        except ezdxf.DXFStructureError:
+        except dxfpy.DXFStructureError:
             print(f"Invalid or corrupted DXF file: {args.cad_file}")
             sys.exit(3)
 

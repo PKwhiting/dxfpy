@@ -2,9 +2,9 @@
 #  License: MIT License
 # This is the example provided by the py3dbp package:
 from typing import List
-import ezdxf
-from ezdxf import colors
-from ezdxf.addons import binpacking as bp
+import dxfpy
+from dxfpy import colors
+from dxfpy.addons import binpacking as bp
 
 SMALL_ENVELOPE = ("small-envelope", 11.5, 6.125, 0.25, 10)
 LARGE_ENVELOPE = ("large-envelope", 15.0, 12.0, 0.75, 15)
@@ -40,7 +40,7 @@ def build_packer():
 
 
 def make_doc():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("FRAME", color=colors.YELLOW)
     doc.layers.add("ITEMS")
     doc.layers.add("TEXT")

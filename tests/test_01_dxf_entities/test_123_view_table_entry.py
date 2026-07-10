@@ -1,7 +1,7 @@
 # Copyright (c) 2011-2018, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.entities.view import View
+from dxfpy.entities.view import View
 
 
 @pytest.fixture

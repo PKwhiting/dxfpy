@@ -2,12 +2,12 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.lldxf import const
-from ezdxf.math import Vec3
-from ezdxf.lldxf.tags import Tags
+from dxfpy.lldxf import const
+from dxfpy.math import Vec3
+from dxfpy.lldxf.tags import Tags
 
 # noinspection PyProtectedMember
-from ezdxf.urecord import (
+from dxfpy.urecord import (
     parse_items,
     compile_user_record,
     parse_binary_data,

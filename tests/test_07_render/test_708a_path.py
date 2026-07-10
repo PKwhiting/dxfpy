@@ -3,14 +3,14 @@
 import pytest
 import math
 
-from ezdxf.path import (
+from dxfpy.path import (
     Path,
     make_path,
     converter,
     Command,
     tools,
 )
-from ezdxf.math import (
+from dxfpy.math import (
     Vec3,
     Vec2,
     Matrix44,
@@ -19,7 +19,7 @@ from ezdxf.math import (
     close_vectors,
     OCS,
 )
-from ezdxf.entities import (
+from dxfpy.entities import (
     factory,
     DXFEntity,
     Polymesh,
@@ -296,7 +296,7 @@ class TestSubPath:
 
 
 def test_add_spline():
-    from ezdxf.math import BSpline
+    from dxfpy.math import BSpline
 
     spline = BSpline.from_fit_points([(2, 0), (4, 1), (6, -1), (8, 0)])
     path = Path()
@@ -328,7 +328,7 @@ def test_from_spline():
 
 
 def test_add_ellipse():
-    from ezdxf.math import ConstructionEllipse
+    from dxfpy.math import ConstructionEllipse
 
     ellipse = ConstructionEllipse(
         center=(3, 0),
@@ -459,7 +459,7 @@ def test_from_quadrilateral_with_3_points(dxftype):
 
 
 def test_lwpolyline_lines():
-    from ezdxf.entities import LWPolyline
+    from dxfpy.entities import LWPolyline
 
     pline = LWPolyline()
     pline.append_points([(1, 1), (2, 1), (2, 2)], format="xy")
@@ -529,7 +529,7 @@ S_SHAPE = [
 
 
 def test_lwpolyline_s_shape():
-    from ezdxf.entities import LWPolyline
+    from dxfpy.entities import LWPolyline
 
     pline = LWPolyline()
     pline.append_points(S_SHAPE, format="xyb")
@@ -540,7 +540,7 @@ def test_lwpolyline_s_shape():
 
 
 def test_polyline_lines():
-    from ezdxf.entities import Polyline
+    from dxfpy.entities import Polyline
 
     pline = Polyline()
     pline.append_formatted_vertices([(1, 1), (2, 1), (2, 2)], format="xy")
@@ -556,7 +556,7 @@ def test_polyline_lines():
 
 
 def test_polyline_with_bulges():
-    from ezdxf.entities import Polyline
+    from dxfpy.entities import Polyline
 
     pline = Polyline()
     pline.close(True)
@@ -568,7 +568,7 @@ def test_polyline_with_bulges():
 
 
 def test_3d_polyline():
-    from ezdxf.entities import Polyline
+    from dxfpy.entities import Polyline
 
     pline = Polyline.new(dxfattribs={"flags": Polyline.POLYLINE_3D})
     pline.append_vertices([(1, 1, 1), (2, 1, 3), (2, 2, 2)])
@@ -780,7 +780,7 @@ class TestReversePath:
 
 
 def test_cw_and_ccw_orientation(p1):
-    from ezdxf.math import has_clockwise_orientation
+    from dxfpy.math import has_clockwise_orientation
 
     cw_path = p1.clockwise()
     ccw_path = p1.counter_clockwise()

@@ -5,13 +5,13 @@ import pathlib
 import random
 
 import matplotlib.pyplot as plt
-import ezdxf
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
-from ezdxf import bbox
-from ezdxf.math import BoundingBox2d
+import dxfpy
+from dxfpy.addons.drawing import RenderContext, Frontend
+from dxfpy.addons.drawing.matplotlib import MatplotlibBackend
+from dxfpy import bbox
+from dxfpy.math import BoundingBox2d
 
-assert ezdxf.__version__ >= "0.18", "requires ezdxf v0.18b0 or newer"
+assert dxfpy.__version__ >= "0.18", "requires dxfpy v0.18b0 or newer"
 
 # ------------------------------------------------------------------------------
 # This example renders the DXF file in rows by cols tiles including filtering
@@ -20,7 +20,7 @@ assert ezdxf.__version__ >= "0.18", "requires ezdxf v0.18b0 or newer"
 # expanding into several tiles are rendered multiple times, therefore this
 # solution takes longer than a single-pass rendering, but it shows the concept.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -61,11 +61,11 @@ def render_areas(extents, grid=(2, 2)) -> Iterator[BoundingBox2d]:
 
 
 def main(rows: int, cols: int):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     create_content(msp)
 
-    # Detecting the drawing extents by ezdxf:
+    # Detecting the drawing extents by dxfpy:
     # The bounding box cache can be reused for entity filtering.
     # This cache is a lightweight object, which is compatible to the pickle
     # module, DXF entities are referenced by handle strings. (multiprocessing!)

@@ -1,13 +1,13 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.tools import standards
-from ezdxf.math import Vec3
-from ezdxf import units
+import dxfpy
+from dxfpy.tools import standards
+from dxfpy.math import Vec3
+from dxfpy import units
 
 for unit in (1, 6):
     unit_name = units.decode(unit)
-    doc = ezdxf.new("R2000", setup=True, units=unit)
+    doc = dxfpy.new("R2000", setup=True, units=unit)
     msp = doc.modelspace()
 
     for y, ltype in enumerate(standards.linetypes()):
@@ -15,7 +15,7 @@ for unit in (1, 6):
     doc.set_modelspace_vport(25, center=(10, 10))
     doc.saveas(f"linetypes_{unit_name}_lines.dxf")
 
-    doc = ezdxf.new("R2000", setup=True, units=unit)
+    doc = dxfpy.new("R2000", setup=True, units=unit)
     msp = doc.modelspace()
 
     for r, ltype in enumerate(standards.linetypes()):
@@ -23,7 +23,7 @@ for unit in (1, 6):
     doc.set_modelspace_vport(50)
     doc.saveas(f"linetypes_{unit_name}_circle.dxf")
 
-    doc = ezdxf.new("R2000", setup=True, units=unit)
+    doc = dxfpy.new("R2000", setup=True, units=unit)
     msp = doc.modelspace()
 
     points = Vec3.list([(0, 0), (4, 9), (6, 9), (11, 0), (16, 9)])

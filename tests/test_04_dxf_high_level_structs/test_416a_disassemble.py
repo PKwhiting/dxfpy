@@ -2,9 +2,9 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import Vec3, BoundingBox
-from ezdxf import disassemble
-from ezdxf.entities import factory
+from dxfpy.math import Vec3, BoundingBox
+from dxfpy import disassemble
+from dxfpy.entities import factory
 
 
 def test_do_nothing():
@@ -124,8 +124,8 @@ def test_spline_to_primitive():
 
 
 def test_mesh_entity_to_primitive():
-    from ezdxf.layouts import VirtualLayout
-    from ezdxf.render.forms import cube
+    from dxfpy.layouts import VirtualLayout
+    from dxfpy.render.forms import cube
 
     vl = VirtualLayout()
     mesh_entity = cube().render_mesh(vl)
@@ -184,8 +184,8 @@ def test_from_quadrilateral_with_4_points(dxftype):
 
 
 def test_poly_face_mesh_to_primitive():
-    from ezdxf.layouts import VirtualLayout
-    from ezdxf.render.forms import cube
+    from dxfpy.layouts import VirtualLayout
+    from dxfpy.render.forms import cube
 
     vl = VirtualLayout()
     poly_face_mesh = cube().render_polyface(vl)
@@ -207,7 +207,7 @@ def test_poly_face_mesh_to_primitive():
 
 
 def test_poly_mesh_to_primitive():
-    from ezdxf.layouts import VirtualLayout
+    from dxfpy.layouts import VirtualLayout
 
     vl = VirtualLayout()
     poly_mesh = vl.add_polymesh(size=(4, 4))
@@ -231,7 +231,7 @@ def test_poly_mesh_to_primitive():
 
 
 def test_2d_3d_polyline_to_primitive():
-    from ezdxf.layouts import VirtualLayout
+    from dxfpy.layouts import VirtualLayout
 
     vl = VirtualLayout()
 
@@ -253,7 +253,7 @@ def test_2d_3d_polyline_to_primitive():
 
 
 def test_2d_polyline_including_width_to_primitive():
-    from ezdxf.layouts import VirtualLayout
+    from dxfpy.layouts import VirtualLayout
 
     vl = VirtualLayout()
 
@@ -281,7 +281,7 @@ def test_2d_polyline_including_width_to_primitive():
 
 def test_text_to_primitive():
     # Testing just the control flow, correct bounding boxes are visually tested.
-    # see: ezdxf/examples/entities/text.py
+    # see: dxfpy/examples/entities/text.py
     text = factory.new("TEXT")
     text.dxf.text = "0123456789"
     p = disassemble.make_primitive(text)
@@ -298,7 +298,7 @@ def test_text_to_primitive():
 
 def test_mtext_to_primitive():
     # Testing just the control flow, correct bounding boxes are visually tested.
-    # see: ezdxf/examples/entities/mtext.py
+    # see: dxfpy/examples/entities/mtext.py
     mtext = factory.new("MTEXT")
     mtext.text = "0123456789"
     p = disassemble.make_primitive(mtext)
@@ -314,7 +314,7 @@ def test_mtext_to_primitive():
 
 
 def test_mtext_columns_to_primitive():
-    from ezdxf.entities.mtext import MTextColumns
+    from dxfpy.entities.mtext import MTextColumns
 
     mtext = factory.new("MTEXT")
     mtext._columns = MTextColumns.new_static_columns(3, 10, 1, 15)

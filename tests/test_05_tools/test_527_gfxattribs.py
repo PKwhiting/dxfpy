@@ -2,20 +2,20 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf import gfxattribs, const, colors
-from ezdxf.gfxattribs import GfxAttribs
-from ezdxf.entities import factory
+import dxfpy
+from dxfpy import gfxattribs, const, colors
+from dxfpy.gfxattribs import GfxAttribs
+from dxfpy.entities import factory
 
 
 class TestDefaultGfxAttribs:
     def test_default_init(self):
         attribs = GfxAttribs()
         assert attribs.layer == "0"
-        assert attribs.color == ezdxf.colors.BYLAYER
+        assert attribs.color == dxfpy.colors.BYLAYER
         assert attribs.rgb is None
         assert attribs.linetype == "ByLayer"
-        assert attribs.lineweight == ezdxf.const.LINEWEIGHT_BYLAYER
+        assert attribs.lineweight == dxfpy.const.LINEWEIGHT_BYLAYER
         assert attribs.transparency is None
         assert attribs.ltscale == 1.0
 
@@ -45,7 +45,7 @@ class TestGfxAttribsFromDict:
         assert attribs.color == 10
         assert attribs.rgb is None
         assert attribs.linetype == "ByLayer"
-        assert attribs.lineweight == ezdxf.const.LINEWEIGHT_BYLAYER
+        assert attribs.lineweight == dxfpy.const.LINEWEIGHT_BYLAYER
         assert attribs.transparency is None
         assert attribs.ltscale == 1.0
 
@@ -72,7 +72,7 @@ class TestGfxAttribLayer:
         assert GfxAttribs(layer="Test").layer == "Test"
 
     def test_init_by_invalid_value_raises_exception(self):
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             assert GfxAttribs(layer="Test*")
 
     def test_set_value(self):
@@ -82,7 +82,7 @@ class TestGfxAttribLayer:
 
     def test_set_invalid_value_raises_exception(self):
         attribs = GfxAttribs()
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             attribs.layer = "Test*"
 
     def test_str(self):
@@ -94,21 +94,21 @@ class TestGfxAttribLayer:
 
 class TestGfxAttribColor:
     def test_init_by_value(self):
-        assert GfxAttribs(color=ezdxf.colors.RED).color == ezdxf.colors.RED
+        assert GfxAttribs(color=dxfpy.colors.RED).color == dxfpy.colors.RED
 
     def test_init_by_invalid_value_raises_exception(self):
         """ACI color tests see validator test suite 020: is_valid_aci_color()"""
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             assert GfxAttribs(color=300)
 
     def test_set_value(self):
         attribs = GfxAttribs()
-        attribs.color = ezdxf.colors.RED
-        assert attribs.color == ezdxf.colors.RED
+        attribs.color = dxfpy.colors.RED
+        assert attribs.color == dxfpy.colors.RED
 
     def test_set_invalid_value_raises_exception(self):
         attribs = GfxAttribs()
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             attribs.color = 300
 
     def test_str(self):
@@ -124,7 +124,7 @@ class TestGfxAttribTrueColor:
 
     def test_init_by_invalid_value_raises_exception(self):
         """RGB color tests see validator test suite 020: is_valid_rgb()"""
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             assert GfxAttribs(rgb=(-1, 0, 0))
 
     def test_set_value(self):
@@ -139,7 +139,7 @@ class TestGfxAttribTrueColor:
 
     def test_set_invalid_value_raises_exception(self):
         attribs = GfxAttribs()
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             attribs.rgb = (-1, 0, 0)
 
     def test_str(self):
@@ -154,7 +154,7 @@ class TestGfxAttribLinetype:
         assert GfxAttribs(linetype="Test").linetype == "Test"
 
     def test_init_by_invalid_value_raises_exception(self):
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             assert GfxAttribs(linetype="*Test")
 
     def test_set_value(self):
@@ -164,7 +164,7 @@ class TestGfxAttribLinetype:
 
     def test_set_invalid_value_raises_exception(self):
         attribs = GfxAttribs()
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             attribs.linetype = "*Test"
 
     def test_str(self):
@@ -180,7 +180,7 @@ class TestGfxAttribLineweight:
 
     def test_init_by_invalid_value_raises_exception(self):
         """lineweight tests see validator test suite 020: is_valid_lineweight()"""
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             assert GfxAttribs(lineweight=300)
 
     def test_set_value(self):
@@ -190,7 +190,7 @@ class TestGfxAttribLineweight:
 
     def test_set_invalid_value_raises_exception(self):
         attribs = GfxAttribs()
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             attribs.lineweight = 300
 
     def test_str(self):
@@ -205,7 +205,7 @@ class TestGfxAttribTransparency:
         assert GfxAttribs(transparency=0.5).transparency == 0.5
 
     def test_init_by_invalid_value_raises_exception(self):
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             assert GfxAttribs(transparency=2.0)
 
     @pytest.mark.parametrize("value", [0.0, 0.5, 1.0])
@@ -226,7 +226,7 @@ class TestGfxAttribTransparency:
 
     def test_set_invalid_value_raises_exception(self):
         attribs = GfxAttribs()
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             attribs.transparency = 2.0
 
     def test_str(self):
@@ -244,7 +244,7 @@ class TestGfxAttribLinetypeScale:
         assert GfxAttribs(ltscale=0.5).ltscale == 0.5
 
     def test_init_by_invalid_value_raises_exception(self):
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             assert GfxAttribs(ltscale=-1.0)
 
     @pytest.mark.parametrize("value", [0.5, 1.0, 2.0, 1])
@@ -256,7 +256,7 @@ class TestGfxAttribLinetypeScale:
     @pytest.mark.parametrize("value", [-1.0, 0.0, -1])
     def test_set_invalid_value_raises_exception(self, value):
         attribs = GfxAttribs()
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             attribs.ltscale = value
 
     def test_str(self):
@@ -295,7 +295,7 @@ def test_transparency_by_block_as_dict():
     attribs = GfxAttribs(
         transparency=gfxattribs.TRANSPARENCY_BYBLOCK,
     )
-    expected = [("transparency", ezdxf.colors.TRANSPARENCY_BYBLOCK)]
+    expected = [("transparency", dxfpy.colors.TRANSPARENCY_BYBLOCK)]
     assert attribs.items() == expected
     assert attribs.asdict() == dict(expected)
     assert dict(attribs) == dict(expected)
@@ -312,17 +312,17 @@ def test_gfx_attribs_repr():
 
 
 def test_load_header_defaults():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     attribs = GfxAttribs.load_from_header(doc)
     assert attribs.layer == "0"
-    assert attribs.color == ezdxf.colors.BYLAYER
+    assert attribs.color == dxfpy.colors.BYLAYER
     assert attribs.linetype == "ByLayer"
-    assert attribs.lineweight == ezdxf.const.LINEWEIGHT_BYLAYER
+    assert attribs.lineweight == dxfpy.const.LINEWEIGHT_BYLAYER
     assert attribs.ltscale == 1.0
 
 
 def test_write_back_header_defaults():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("Test")
     doc.linetypes.new("SOLID")
     attribs = GfxAttribs(
@@ -378,8 +378,8 @@ def test_update_dxf_attributes_from_gfx_attribs():
     line.update_dxf_attribs(dict(attribs))
     assert attribs.layer == line.dxf.layer
     assert attribs.color == line.dxf.color
-    assert attribs.rgb == ezdxf.colors.int2rgb(line.dxf.true_color)
-    assert attribs.transparency == ezdxf.colors.transparency2float(
+    assert attribs.rgb == dxfpy.colors.int2rgb(line.dxf.true_color)
+    assert attribs.transparency == dxfpy.colors.transparency2float(
         line.dxf.transparency
     )
     assert attribs.linetype == line.dxf.linetype
@@ -389,8 +389,8 @@ def test_update_dxf_attributes_from_gfx_attribs():
     line.dxf.update(dict(attribs))
     assert attribs.layer == line.dxf.layer
     assert attribs.color == line.dxf.color
-    assert attribs.rgb == ezdxf.colors.int2rgb(line.dxf.true_color)
-    assert attribs.transparency == ezdxf.colors.transparency2float(
+    assert attribs.rgb == dxfpy.colors.int2rgb(line.dxf.true_color)
+    assert attribs.transparency == dxfpy.colors.transparency2float(
         line.dxf.transparency
     )
     assert attribs.linetype == line.dxf.linetype
@@ -403,7 +403,7 @@ def test_update_transparency_by_block_from_gfx_attribs():
     )
     line = factory.new("LINE")
     line.dxf.update(dict(attribs))
-    assert line.dxf.transparency == ezdxf.colors.TRANSPARENCY_BYBLOCK
+    assert line.dxf.transparency == dxfpy.colors.TRANSPARENCY_BYBLOCK
 
 
 if __name__ == "__main__":

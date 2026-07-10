@@ -3,10 +3,10 @@
 
 import pytest
 
-from ezdxf.entities import LWPolyline
-from ezdxf.math import BoundingBox
-from ezdxf.path import make_path, tools
-from ezdxf.disassemble import make_primitive
+from dxfpy.entities import LWPolyline
+from dxfpy.math import BoundingBox
+from dxfpy.path import make_path, tools
+from dxfpy.disassemble import make_primitive
 
 
 @pytest.fixture
@@ -49,9 +49,9 @@ class TestMakePath:
         assert box.size.isclose((0.45, 0.45))
 
     # Conclusion: Everything works fine at the path level, therefore the
-    # error has to be in the ezdxf.disassemble module which converts entities
+    # error has to be in the dxfpy.disassemble module which converts entities
     # into primitives and which is also the base for the bounding box
-    # calculation of the ezdxf.bbox module.
+    # calculation of the dxfpy.bbox module.
 
 
 class TestMakePrimitive:

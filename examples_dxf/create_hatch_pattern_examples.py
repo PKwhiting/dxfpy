@@ -1,9 +1,9 @@
 #  Copyright (c) 2020, Manfred Moitzi
 #  License: MIT License
 
-import ezdxf
-from ezdxf.tools import pattern
-from ezdxf.render.forms import square, translate
+import dxfpy
+from dxfpy.tools import pattern
+from dxfpy.render.forms import square, translate
 
 HEIGHT = 300
 
@@ -21,7 +21,7 @@ def add_predefined_hatch_pattern(msp, cols, size, gap, scale):
 
 if __name__ == "__main__":
     # Imperial: Inch
-    doc = ezdxf.new(units=1)
+    doc = dxfpy.new(units=1)
     add_predefined_hatch_pattern(
         doc.modelspace(), cols=10, size=10, gap=1, scale=4
     )
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     doc.saveas("hatch_pattern_imperial.dxf")
 
     # ISO: Meter
-    doc = ezdxf.new(units=6)
+    doc = dxfpy.new(units=6)
     add_predefined_hatch_pattern(
         doc.modelspace(), cols=10, size=10, gap=1, scale=0.25
     )

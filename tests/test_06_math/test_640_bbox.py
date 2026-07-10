@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.math import BoundingBox, BoundingBox2d, Vec2, Vec3
+from dxfpy.math import BoundingBox, BoundingBox2d, Vec2, Vec3
 from itertools import permutations
 
 

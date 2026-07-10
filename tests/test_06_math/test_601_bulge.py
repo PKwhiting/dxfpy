@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 import math
-from ezdxf.math import (
+from dxfpy.math import (
     bulge_radius,
     bulge_center,
     arc_to_bulge,

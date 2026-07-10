@@ -2,11 +2,11 @@
 #  License: MIT License
 
 import time
-import ezdxf
+import dxfpy
 N = 10000
 print(f"create {N} DXF drawings in a single process")
 t0 = time.perf_counter()
 for _ in range(N):
-    ezdxf.new()
+    dxfpy.new()
 t = time.perf_counter()-t0
 print(f"created {int(N / t)} DXF drawings per second")

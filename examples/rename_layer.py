@@ -1,8 +1,8 @@
 # Copyright (c) 2018-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.document import Drawing
+import dxfpy
+from dxfpy.document import Drawing
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -16,10 +16,10 @@ if not CWD.exists():
 # some entities introduced later, layers are referenced by their handle.
 # There is also not a complete overview of where layer references are
 # stored, which means that it is not 100% safe to rename layers via
-# ezdxf, so in some rare cases renaming layers can corrupt the DXF
+# dxfpy, so in some rare cases renaming layers can corrupt the DXF
 # file!
 #
-# docs: https://ezdxf.mozman.at/docs/tables/layer_table_entry.html#layer
+# docs: https://dxfpy.mozman.at/docs/tables/layer_table_entry.html#layer
 # ------------------------------------------------------------------------------
 
 OLD_LAYER_NAME = "LAYER_1"
@@ -27,7 +27,7 @@ NEW_LAYER_NAME = "MOZMAN"
 
 
 def create_doc() -> Drawing:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     layer = doc.layers.add(OLD_LAYER_NAME)
     msp = doc.modelspace()
     attribs = dict(layer=layer.dxf.name)

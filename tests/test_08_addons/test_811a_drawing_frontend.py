@@ -2,19 +2,19 @@
 # License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.math import Vec2
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.frontend import UniversalFrontend
-from ezdxf.addons.drawing.properties import BackendProperties, Properties
+import dxfpy
+from dxfpy.math import Vec2
+from dxfpy.addons.drawing import RenderContext, Frontend
+from dxfpy.addons.drawing.frontend import UniversalFrontend
+from dxfpy.addons.drawing.properties import BackendProperties, Properties
 
-from ezdxf.addons.drawing.backend import Backend, BkPath2d
-from ezdxf.addons.drawing.debug_backend import BasicBackend, PathBackend
-from ezdxf.addons.drawing.pipeline import RenderPipeline2d
-from ezdxf.entities import DXFGraphic
-from ezdxf.layouts import Modelspace
-from ezdxf.render.forms import cube
-from ezdxf import xclip
+from dxfpy.addons.drawing.backend import Backend, BkPath2d
+from dxfpy.addons.drawing.debug_backend import BasicBackend, PathBackend
+from dxfpy.addons.drawing.pipeline import RenderPipeline2d
+from dxfpy.entities import DXFGraphic
+from dxfpy.layouts import Modelspace
+from dxfpy.render.forms import cube
+from dxfpy import xclip
 
 
 class ClippingTrackingPipeline(RenderPipeline2d):
@@ -57,7 +57,7 @@ class MyTestFrontend(Frontend):
 
 @pytest.fixture
 def doc():
-    d = ezdxf.new()
+    d = dxfpy.new()
     d.layers.new("Test1")
     d.styles.add("DEJAVU", font="DejaVuSans.ttf")
     return d

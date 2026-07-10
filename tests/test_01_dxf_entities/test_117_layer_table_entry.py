@@ -1,8 +1,8 @@
 # Copyright (C) 2011-2022, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.entities.layer import Layer
-from ezdxf.lldxf.const import DXFValueError
+from dxfpy.entities.layer import Layer
+from dxfpy.lldxf.const import DXFValueError
 
 
 @pytest.fixture

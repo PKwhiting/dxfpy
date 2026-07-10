@@ -3,14 +3,14 @@
 import pytest
 from io import StringIO
 
-from ezdxf.lldxf.tagger import (
+from dxfpy.lldxf.tagger import (
     internal_tag_compiler,
     ascii_tags_loader,
     tag_compiler,
     DXFStructureError,
 )
-from ezdxf.lldxf.types import strtag, DXFTag, DXFVertex
-from ezdxf.math import Vec3
+from dxfpy.lldxf.types import strtag, DXFTag, DXFVertex
+from dxfpy.math import Vec3
 
 
 def test_strtag_int():

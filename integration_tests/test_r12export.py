@@ -4,12 +4,12 @@
 import pytest
 import math
 
-import ezdxf
-from ezdxf.addons import r12export
-from ezdxf import entities as ents
-from ezdxf.render import forms
-from ezdxf.tools.text import MTextEditor
-from ezdxf.math import Vec2
+import dxfpy
+from dxfpy.addons import r12export
+from dxfpy import entities as ents
+from dxfpy.render import forms
+from dxfpy.tools.text import MTextEditor
+from dxfpy.math import Vec2
 
 DXFATTRIBS = {
     "layer": "EZDXF",
@@ -18,13 +18,13 @@ DXFATTRIBS = {
 
 
 def test_export_empty_doc():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     doc_r12 = r12export.convert(doc)
-    assert doc_r12.dxfversion == ezdxf.DXF12
+    assert doc_r12.dxfversion == dxfpy.DXF12
 
 
 def test_export_dxf_primitives():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     msp.add_point((0, 0))
     msp.add_text("MyText")
@@ -38,7 +38,7 @@ def test_export_dxf_primitives():
 
 def test_export_lwpolyline_as_polyline():
     points = [(0, 0), (1, 0, 0.7), (2, 0), (2, 2)]
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     msp.add_lwpolyline(points, format="xyb", dxfattribs=DXFATTRIBS)
 
@@ -53,7 +53,7 @@ def test_export_lwpolyline_as_polyline():
 
 
 def test_export_mesh_as_polyface_mesh():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     cube = forms.cube()
     cube.render_mesh(msp, dxfattribs=DXFATTRIBS)
@@ -67,7 +67,7 @@ def test_export_mesh_as_polyface_mesh():
 
 
 def test_export_ellipse_as_3d_polyline():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     msp.add_ellipse(
         (0, 0), (3, 0), 0.5, start_param=0, end_param=math.pi, dxfattribs=DXFATTRIBS
@@ -83,7 +83,7 @@ def test_export_ellipse_as_3d_polyline():
 
 
 def test_export_spline_as_3d_polyline():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     msp.add_spline(fit_points=[(0, 0, 0), (2, 1, 1), (3, 5, -1)], dxfattribs=DXFATTRIBS)
 
@@ -98,10 +98,10 @@ def test_export_spline_as_3d_polyline():
 
 
 def test_export_proxy_graphic():
-    from ezdxf.lldxf.tags import Tags
-    from ezdxf.proxygraphic import load_proxy_graphic
+    from dxfpy.lldxf.tags import Tags
+    from dxfpy.proxygraphic import load_proxy_graphic
 
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     proxy_entity = ents.ACADProxyEntity.new()
     proxy_entity.proxy_graphic = load_proxy_graphic(Tags.from_text(DATA))
@@ -112,7 +112,7 @@ def test_export_proxy_graphic():
 
 
 def test_export_mtext():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     editor = MTextEditor()
     editor.append("LINE0\n")
@@ -130,7 +130,7 @@ def test_export_mtext():
 
 
 def test_export_virtual_entities():
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     mleaderstyle = doc.mleader_styles.duplicate_entry("Standard", "EZDXF")
     mleaderstyle.set_mtext_style("OpenSans")
     msp = doc.modelspace()
@@ -145,7 +145,7 @@ def test_export_virtual_entities():
 
 
 def test_export_hatch_pattern_fill():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     hatch = msp.add_hatch()
     hatch.paths.add_polyline_path([(0, 0), (10, 0), (10, 10), (0, 10)])

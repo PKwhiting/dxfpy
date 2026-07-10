@@ -3,9 +3,9 @@
 
 import pytest
 import math
-from ezdxf.math.bspline import bspline_basis_vector, open_uniform_knot_vector
-from ezdxf.math._bspline import Basis
-from ezdxf.acc import USE_C_EXT
+from dxfpy.math.bspline import bspline_basis_vector, open_uniform_knot_vector
+from dxfpy.math._bspline import Basis
+from dxfpy.acc import USE_C_EXT
 
 basis_functions = [Basis]
 

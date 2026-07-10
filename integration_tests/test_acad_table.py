@@ -3,8 +3,8 @@
 import pytest
 
 from pathlib import Path
-import ezdxf
-from ezdxf.protocols import query_virtual_entities
+import dxfpy
+from dxfpy.protocols import query_virtual_entities
 
 DATA = Path(__file__).parent / "data"
 ACAD_TABLE_WITH_BLK_REF = "acad_table_with_blk_ref.dxf"
@@ -12,7 +12,7 @@ ACAD_TABLE_WITH_BLK_REF = "acad_table_with_blk_ref.dxf"
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.readfile(DATA / ACAD_TABLE_WITH_BLK_REF)
+    return dxfpy.readfile(DATA / ACAD_TABLE_WITH_BLK_REF)
 
 
 @pytest.fixture

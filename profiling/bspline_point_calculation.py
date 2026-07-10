@@ -4,8 +4,8 @@ import time
 import math
 import numpy as np
 
-from ezdxf.math import global_bspline_interpolation
-from ezdxf.render import random_3d_path
+from dxfpy.math import global_bspline_interpolation
+from dxfpy.render import random_3d_path
 
 path = list(random_3d_path(100, max_step_size=10, max_heading=math.pi * 0.8))
 spline = global_bspline_interpolation(path)

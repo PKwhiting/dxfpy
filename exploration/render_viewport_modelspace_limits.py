@@ -3,14 +3,14 @@
 from __future__ import annotations
 from typing import cast, TYPE_CHECKING
 from pathlib import Path
-import ezdxf
-from ezdxf import colors
-from ezdxf.gfxattribs import GfxAttribs
-from ezdxf.math import Vec2
-from ezdxf.entities import Viewport
+import dxfpy
+from dxfpy import colors
+from dxfpy.gfxattribs import GfxAttribs
+from dxfpy.math import Vec2
+from dxfpy.entities import Viewport
 
 if TYPE_CHECKING:
-    from ezdxf.layouts import Modelspace
+    from dxfpy.layouts import Modelspace
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -26,7 +26,7 @@ def render_viewport_modelspace_limits(vp: Viewport, msp: Modelspace, dxfattribs)
 
 def main(filename: str) -> None:
     print(f"loading DXF: {filename}")
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     msp = doc.modelspace()
 
     for num, name in enumerate(doc.layout_names_in_taborder()):
@@ -51,4 +51,4 @@ def main(filename: str) -> None:
 
 
 if __name__ == "__main__":
-    main(r"C:\Users\mozman\Desktop\Now\ezdxf\1298\problematic_viewports.dxf")
+    main(r"C:\Users\mozman\Desktop\Now\dxfpy\1298\problematic_viewports.dxf")

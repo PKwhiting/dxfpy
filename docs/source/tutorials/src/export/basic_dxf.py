@@ -1,12 +1,12 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
 
-import ezdxf
-from ezdxf.addons.drawing import Frontend, RenderContext, dxf
+import dxfpy
+from dxfpy.addons.drawing import Frontend, RenderContext, dxf
 
 
 def example_doc():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     x0, y0, x1, y1 = 0, 0, 10, 10
     start = (x0, y0)
@@ -26,7 +26,7 @@ def example_doc():
 
 
 def export(doc):
-    export_doc = ezdxf.new()
+    export_doc = dxfpy.new()
     msp = doc.modelspace()
     # 1. create the render context
     context = RenderContext(doc)

@@ -3,7 +3,7 @@
 from typing import List
 import math
 import pytest
-from ezdxf.math import ConstructionPolyline, Vec3
+from dxfpy.math import ConstructionPolyline, Vec3
 
 
 @pytest.fixture(scope="module")
@@ -234,7 +234,7 @@ class TestDivide:
 
 class TestApproximationAccuracy:
     def test_unit_circle(self):
-        from ezdxf.entities import Circle
+        from dxfpy.entities import Circle
 
         # create unit circle
         circle: Circle = Circle.new(
@@ -246,7 +246,7 @@ class TestApproximationAccuracy:
         assert abs(cp.length - math.tau) < 0.02
 
     def test_unit_circle_by_path(self):
-        from ezdxf import path
+        from dxfpy import path
 
         p = path.unit_circle()
         cp = ConstructionPolyline(p.flattening(0.01, segments=16))

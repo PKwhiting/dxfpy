@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.lldxf.attributes import (
+from dxfpy.lldxf.attributes import (
     DXFAttr,
     DefSubclass,
     group_code_mapping,

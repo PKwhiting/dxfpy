@@ -1,10 +1,10 @@
 # Copyright (c) 2021-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import text2path
-from ezdxf import zoom, disassemble
-from ezdxf.lldxf import const
+import dxfpy
+from dxfpy.addons import text2path
+from dxfpy import zoom, disassemble
+from dxfpy.lldxf import const
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,7 +13,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to convert TEXT entities to outline paths.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/text2path.html
+# docs: https://dxfpy.mozman.at/docs/addons/text2path.html
 # ------------------------------------------------------------------------------
 
 EXAMPLES = pathlib.Path(__file__).parent.parent.parent / "examples_dxf"
@@ -24,7 +24,7 @@ FILE = FILE2
 
 
 def main():
-    doc = ezdxf.readfile(EXAMPLES / FILE)
+    doc = dxfpy.readfile(EXAMPLES / FILE)
     doc.layers.new("OUTLINE", dxfattribs={"color": 1})
     doc.layers.new("BBOX", dxfattribs={"color": 5})
     msp = doc.modelspace()

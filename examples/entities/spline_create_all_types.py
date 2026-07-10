@@ -2,9 +2,9 @@
 # License: MIT License
 import math
 import pathlib
-import ezdxf
-from ezdxf import zoom
-from ezdxf.math import Vec3, BSpline
+import dxfpy
+from dxfpy import zoom
+from dxfpy.math import Vec3, BSpline
 
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -14,8 +14,8 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to create all types of SPLINE entities.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/spline.html
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/spline.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/spline.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/spline.html
 # ------------------------------------------------------------------------------
 
 
@@ -25,7 +25,7 @@ closed_points.append(closed_points[0])
 
 
 def new_doc():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("SPLINE", color=1)
     doc.layers.add("ENTITY", color=4)
     doc.layers.add("EZDXF", color=2)
@@ -91,7 +91,7 @@ def add_fit_points(points):
 doc, msp = new_doc()
 msp.add_spline(fit_points=points, dxfattribs={"layer": "SPLINE"})
 
-# ezdxf provides a method to calculate the control points from the fit points
+# dxfpy provides a method to calculate the control points from the fit points
 # without given end tangents like AutoCAD, but the result is not a perfect match.
 spline = msp.add_cad_spline_control_frame(
     points, estimate="5-p", dxfattribs={"layer": "EZDXF"}
@@ -130,7 +130,7 @@ msp.add_spline(
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
-# RECOMMENDED: use ezdxf to calculate the control points
+# RECOMMENDED: use dxfpy to calculate the control points
 #
 # The method add_cad_spline_control_frame() can calculate the control points
 # with a perfect match to AutoCAD, if you provide the start- and end tangents.

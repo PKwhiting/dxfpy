@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.enums import MTextParagraphAlignment
-from ezdxf.tools.text import (
+from dxfpy.enums import MTextParagraphAlignment
+from dxfpy.tools.text import (
     MTextParser,
     TokenType,
     ParagraphProperties,
@@ -669,7 +669,7 @@ class TestMTextParagraphProperties:
             "i1,l2,r3,qc,t1,2,3;",  # regular order
             "qc,l2,r3,i1,t1,2,3;",  # tab stops have to be the last argument
             "xqc,xl2,xr3,xi1,xt1,2,3;",  # ignore "x"
-            "xqcl2xr3xi1xt1,2,3;",  # ezdxf: commas not required between arguments
+            "xqcl2xr3xi1xt1,2,3;",  # dxfpy: commas not required between arguments
         ],
     )
     def test_combinations(self, expr):

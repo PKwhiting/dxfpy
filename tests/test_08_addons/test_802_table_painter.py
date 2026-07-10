@@ -1,9 +1,9 @@
 # Copyright (C) 2011-2012, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.addons.tablepainter import (
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.addons.tablepainter import (
     TablePainter,
     CustomCell,
     Grid,
@@ -14,7 +14,7 @@ from ezdxf.addons.tablepainter import (
 
 @pytest.fixture(scope="module")
 def doc() -> Drawing:
-    return ezdxf.new("R12")
+    return dxfpy.new("R12")
 
 
 class MockCell(CustomCell):
@@ -119,7 +119,7 @@ def test_border_style():
 
 
 def test_visibility_map():
-    from ezdxf.addons.tablepainter import VisibilityMap
+    from dxfpy.addons.tablepainter import VisibilityMap
 
     table = TablePainter((0, 0), 3, 3)
     text_cell = table.text_cell(0, 0, "text", span=(2, 2))

@@ -3,8 +3,8 @@
 import pytest
 import os
 from random import random
-import ezdxf
-from ezdxf.addons import r12writer
+import dxfpy
+from dxfpy.addons import r12writer
 
 MAX_X_COORD = 1000.0
 MAX_Y_COORD = 1000.0
@@ -54,7 +54,7 @@ def test_write_r12(filename):
 
 
 def test_read_r12(filename):
-    dwg = ezdxf.readfile(filename)
+    dwg = dxfpy.readfile(filename)
     msp = dwg.modelspace()
     circles = msp.query("CIRCLE")
     assert len(circles) == CIRCLE_COUNT
@@ -94,7 +94,7 @@ def test_context_manager(filename):
             dxf.add_line((0, 0), (17, 23))
             raise ValueError()
 
-    dwg = ezdxf.readfile(filename)
+    dwg = dxfpy.readfile(filename)
     entities = list(dwg.modelspace())
     assert len(entities) == 1
     assert entities[0].dxftype() == "LINE"
@@ -105,7 +105,7 @@ def test_write_and_read_binary_dxf(tmpdir_factory):
     with r12writer(filename, fmt="bin") as dxf:
         dxf.add_line((0, 0), (17, 23))
 
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     line = doc.modelspace()[0]
     assert line.dxftype() == "LINE"
     assert line.dxf.start == (0, 0, 0)

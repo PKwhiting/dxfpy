@@ -4,11 +4,11 @@
 import math
 
 import pytest
-from ezdxf.entities.mtext import MText
-from ezdxf.layouts import VirtualLayout
-from ezdxf.lldxf import const
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.colors import rgb2int
+from dxfpy.entities.mtext import MText
+from dxfpy.layouts import VirtualLayout
+from dxfpy.lldxf import const
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.colors import rgb2int
 
 MTEXT = """0
 MTEXT
@@ -78,7 +78,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "MTEXT" in ENTITY_CLASSES
 

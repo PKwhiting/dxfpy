@@ -2,10 +2,10 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.hatch import Hatch
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.lldxf import const
-from ezdxf.math import Vec3
+from dxfpy.entities.hatch import Hatch
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.lldxf import const
+from dxfpy.math import Vec3
 
 
 HATCH = """0
@@ -61,7 +61,7 @@ def entity() -> Hatch:
 
 
 def test_if_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "HATCH" in ENTITY_CLASSES
 

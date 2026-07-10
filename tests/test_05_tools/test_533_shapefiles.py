@@ -2,9 +2,9 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.fonts import shapefile
-from ezdxf import path
-from ezdxf.math import BoundingBox2d
+from dxfpy.fonts import shapefile
+from dxfpy import path
+from dxfpy.math import BoundingBox2d
 
 
 def test_filter_noise():

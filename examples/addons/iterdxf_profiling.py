@@ -1,11 +1,11 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import time
-import ezdxf
+import dxfpy
 from collections import Counter
-from ezdxf.addons import iterdxf
+from dxfpy.addons import iterdxf
 
-BIGFILE = ezdxf.options.test_files_path / "GKB-R2010.dxf"
+BIGFILE = dxfpy.options.test_files_path / "GKB-R2010.dxf"
 
 # ------------------------------------------------------------------------------
 # This example shows how iterate over very big DXF files without loading them
@@ -15,7 +15,7 @@ BIGFILE = ezdxf.options.test_files_path / "GKB-R2010.dxf"
 # This example shows the difference of the tree supported iteration methods of
 # the iterdxf add-on.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/iterdxf.html#
+# docs: https://dxfpy.mozman.at/docs/addons/iterdxf.html#
 # ------------------------------------------------------------------------------
 
 

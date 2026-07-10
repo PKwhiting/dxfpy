@@ -2,16 +2,16 @@
 # License: MIT License
 from io import StringIO
 
-import ezdxf
-from ezdxf.addons.dxf2code import block_to_code, entities_to_code, table_entries_to_code
-from ezdxf.addons.dxf2code._generator import _SourceCodeGenerator
-from ezdxf.dynblkhelper import snapshot_raw_entity_export
-from ezdxf.entities.ltype import LinetypePattern  # required by exec() or eval()
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.tags import Tags  # required by exec() or eval()
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.lldxf.types import dxftag  # required by exec() or eval()
-from ezdxf.math import Vec3
+import dxfpy
+from dxfpy.addons.dxf2code import block_to_code, entities_to_code, table_entries_to_code
+from dxfpy.addons.dxf2code._generator import _SourceCodeGenerator
+from dxfpy.dynblkhelper import snapshot_raw_entity_export
+from dxfpy.entities.ltype import LinetypePattern  # required by exec() or eval()
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.tags import Tags  # required by exec() or eval()
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.lldxf.types import dxftag  # required by exec() or eval()
+from dxfpy.math import Vec3
 
 from tests.test_08_addons.dxf2code_support import (
     cmp_vertices,
@@ -21,7 +21,7 @@ from tests.test_08_addons.dxf2code_support import (
     translate_entities_to_new_layout,
 )
 
-doc = ezdxf.new("R2010")
+doc = dxfpy.new("R2010")
 msp = doc.modelspace()
 
 
@@ -32,7 +32,7 @@ def translate_to_code_and_execute(entity):
 
 
 def test_line_to_code():
-    from ezdxf.entities.line import Line
+    from dxfpy.entities.line import Line
 
     entity = Line.new(
         handle="ABBA",
@@ -45,7 +45,7 @@ def test_line_to_code():
 
 
 def test_point_to_code():
-    from ezdxf.entities.point import Point
+    from dxfpy.entities.point import Point
 
     entity = Point.new(
         handle="ABBA",
@@ -58,7 +58,7 @@ def test_point_to_code():
 
 
 def test_circle_to_code():
-    from ezdxf.entities.circle import Circle
+    from dxfpy.entities.circle import Circle
 
     entity = Circle.new(
         handle="ABBA",
@@ -71,7 +71,7 @@ def test_circle_to_code():
 
 
 def test_arc_to_code():
-    from ezdxf.entities.arc import Arc
+    from dxfpy.entities.arc import Arc
 
     entity = Arc.new(
         handle="ABBA",
@@ -90,7 +90,7 @@ def test_arc_to_code():
 
 
 def test_text_to_code():
-    from ezdxf.entities.text import Text
+    from dxfpy.entities.text import Text
 
     entity = Text.new(
         handle="ABBA",
@@ -103,7 +103,7 @@ def test_text_to_code():
 
 
 def test_solid_to_code():
-    from ezdxf.entities.solid import Solid
+    from dxfpy.entities.solid import Solid
 
     entity = Solid.new(
         handle="ABBA",
@@ -121,7 +121,7 @@ def test_solid_to_code():
 
 
 def test_shape_to_code():
-    from ezdxf.entities.shape import Shape
+    from dxfpy.entities.shape import Shape
 
     entity = Shape.new(
         handle="ABBA",
@@ -134,7 +134,7 @@ def test_shape_to_code():
 
 
 def test_ellipse_to_code():
-    from ezdxf.entities.ellipse import Ellipse
+    from dxfpy.entities.ellipse import Ellipse
 
     entity = Ellipse.new(
         handle="ABBA",
@@ -161,7 +161,7 @@ def test_ellipse_to_code():
 
 
 def test_insert_to_code():
-    from ezdxf.entities.insert import Insert
+    from dxfpy.entities.insert import Insert
 
     entity = Insert.new(
         handle="ABBA",
@@ -174,7 +174,7 @@ def test_insert_to_code():
 
 
 def test_insert_with_attrib_to_code():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.blocks.new("ATTRIB_BLOCK")
     source_msp = source_doc.modelspace()
     insert = source_msp.add_blockref("ATTRIB_BLOCK", (2, 3, 4))
@@ -190,7 +190,7 @@ def test_insert_with_attrib_to_code():
 
 
 def test_attdef_to_code():
-    from ezdxf.entities.attrib import AttDef
+    from dxfpy.entities.attrib import AttDef
 
     entity = AttDef.new(
         handle="ABBA",
@@ -203,7 +203,7 @@ def test_attdef_to_code():
 
 
 def test_mtext_to_code():
-    from ezdxf.entities.mtext import MText
+    from dxfpy.entities.mtext import MText
 
     entity = MText.new(
         handle="ABBA",
@@ -218,7 +218,7 @@ def test_mtext_to_code():
 
 
 def test_mtext_to_code_preserves_explicit_optional_line_spacing_style():
-    from ezdxf.entities.mtext import MText
+    from dxfpy.entities.mtext import MText
 
     entity = MText.new(
         handle="ABBA",
@@ -235,7 +235,7 @@ def test_mtext_to_code_preserves_explicit_optional_line_spacing_style():
 
 
 def test_mtext_to_code_preserves_explicit_optional_line_spacing_factor():
-    from ezdxf.entities.mtext import MText
+    from dxfpy.entities.mtext import MText
 
     entity = MText.new(
         handle="ABBA",
@@ -252,7 +252,7 @@ def test_mtext_to_code_preserves_explicit_optional_line_spacing_factor():
 
 
 def test_wipeout_to_code_preserves_proxy_graphic_payload():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     wipeout = source_doc.modelspace().add_wipeout([(0, 0), (2, 0), (2, 1), (0, 1)])
     wipeout.proxy_graphic = b"\x01\x02\x03\x04"
 
@@ -267,13 +267,13 @@ def test_wipeout_to_code_preserves_proxy_graphic_payload():
 
 
 def test_insert_attrib_to_code_preserves_explicit_attrib_layer():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("ATTRIB_LAYER_BLOCK")
     insert = block.add_blockref("TEST_REF", (0, 0), dxfattribs={"layer": "INSERT_LAYER"})
     insert.add_attrib("TAG", "TEXT", insert=(1, 2), dxfattribs={"layer": "ATTRIB_LAYER"})
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
 
     new_insert = next(
@@ -286,7 +286,7 @@ def test_insert_attrib_to_code_preserves_explicit_attrib_layer():
 
 
 def test_insert_attrib_to_code_preserves_context_data_subtree():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("ATTRIB_CONTEXT_BLOCK")
     insert = block.add_blockref("TEST_REF", (0, 0))
     attrib = insert.add_attrib("TAG", "TEXT", insert=(1, 2))
@@ -294,8 +294,8 @@ def test_insert_attrib_to_code_preserves_context_data_subtree():
     mgr = xdict.dictionary.add_new_dict("AcDbContextDataManager")
     mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
 
     new_insert = next(
@@ -314,7 +314,7 @@ def test_insert_attrib_to_code_preserves_context_data_subtree():
 
 
 def test_insert_attrib_to_code_preserves_normalized_raw_export():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     for appid in (
         "AcDbBlockRepETag",
         "AcadInvisibleAttribDecomposition",
@@ -351,8 +351,8 @@ def test_insert_attrib_to_code_preserves_normalized_raw_export():
     mgr = attrib.new_extension_dict().dictionary.add_new_dict("AcDbContextDataManager")
     mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
 
     new_insert = next(
@@ -368,7 +368,7 @@ def test_insert_attrib_to_code_preserves_normalized_raw_export():
 
 
 def test_insert_to_code_preserves_normalized_raw_export_without_extension_dict():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     if "AcadAnnotativeAttributeDecomposition" not in source_doc.appids:
         source_doc.appids.new("AcadAnnotativeAttributeDecomposition")
 
@@ -379,8 +379,8 @@ def test_insert_to_code_preserves_normalized_raw_export_without_extension_dict()
         [(1000, "AnnotativeData"), (1002, "{"), (1070, 1), (1070, 1), (1002, "}")],
     )
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
 
     new_insert = next(
@@ -395,7 +395,7 @@ def test_insert_to_code_preserves_normalized_raw_export_without_extension_dict()
 
 
 def test_insert_to_code_preserves_normalized_raw_export_with_extension_dict_and_attribs():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     for appid in (
         "AcDbBlockRepETag",
         "AcadInvisibleAttribDecomposition",
@@ -424,8 +424,8 @@ def test_insert_to_code_preserves_normalized_raw_export_with_extension_dict_and_
     mgr = attrib.new_extension_dict().dictionary.add_new_dict("AcDbContextDataManager")
     mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
 
     new_insert = next(
@@ -440,7 +440,7 @@ def test_insert_to_code_preserves_normalized_raw_export_with_extension_dict_and_
 
 
 def test_entities_to_code_with_multiple_extension_inserts_preserves_insert_count():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("MULTI_INSERT_BLOCK")
     inserts = []
     for x in (0, 10):
@@ -449,8 +449,8 @@ def test_entities_to_code_with_multiple_extension_inserts_preserves_insert_count
         insert.add_attrib("TAG", f"TEXT_{x}", insert=(x + 1, 2))
         inserts.append(insert)
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     code = entities_to_code(inserts, layout="msp")
     execute_code_in_namespace(code, namespace)
 
@@ -460,7 +460,7 @@ def test_entities_to_code_with_multiple_extension_inserts_preserves_insert_count
 
 
 def test_insert_to_code_with_hosted_field_does_not_duplicate_field_objects():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("INSERT_FIELD_BLOCK")
     target = source_doc.modelspace().add_line((0, 0), (1, 0))
     insert = block.add_blockref("TEST_REF", (0, 0), dxfattribs={"transparency": 16777216})
@@ -476,8 +476,8 @@ def test_insert_to_code_with_hosted_field_does_not_duplicate_field_objects():
 
     source_field_count = sum(1 for obj in source_doc.objects if obj.dxftype() == "FIELD")
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
 
     target_field_count = sum(1 for obj in namespace["doc"].objects if obj.dxftype() == "FIELD")
@@ -486,13 +486,13 @@ def test_insert_to_code_with_hosted_field_does_not_duplicate_field_objects():
 
 
 def test_block_to_code_preserves_block_record_preview_data():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("BLOCK_PREVIEW_DATA")
     block.add_line((0, 0), (1, 0))
     block.block_record.preview_data = bytes.fromhex("01020304")
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
 
     new_block = namespace["doc"].blocks.get("BLOCK_PREVIEW_DATA")
@@ -500,7 +500,7 @@ def test_block_to_code_preserves_block_record_preview_data():
 
 
 def test_lwpolyline_to_code():
-    from ezdxf.entities.lwpolyline import LWPolyline
+    from dxfpy.entities.lwpolyline import LWPolyline
 
     entity = LWPolyline.new(handle="ABBA", owner="0", dxfattribs={"color": "7"})
     entity.set_points([(1, 2, 0, 0, 0), (4, 3, 0, 0, 0), (7, 8, 0, 0, 0)])
@@ -523,7 +523,7 @@ def test_polyline_to_code():
 
 
 def test_spline_to_code():
-    from ezdxf.entities.spline import Spline
+    from dxfpy.entities.spline import Spline
 
     entity = Spline.new(handle="ABBA", owner="0", dxfattribs={"color": "7", "degree": 3})
     entity.fit_points = [(1, 2, 0), (4, 3, 0), (7, 8, 0)]
@@ -540,7 +540,7 @@ def test_spline_to_code():
 
 
 def test_leader_to_code():
-    from ezdxf.entities.leader import Leader
+    from dxfpy.entities.leader import Leader
 
     entity = Leader.new(handle="ABBA", owner="0", dxfattribs={"color": "7"})
     entity.set_vertices([(1, 2, 0), (4, 3, 0), (7, 8, 0)])
@@ -551,8 +551,8 @@ def test_leader_to_code():
 
 
 def test_mesh_to_code():
-    from ezdxf.entities.mesh import Mesh
-    from ezdxf.render.forms import cube
+    from dxfpy.entities.mesh import Mesh
+    from dxfpy.render.forms import cube
 
     entity = Mesh.new(handle="ABBA", owner="0", dxfattribs={"color": "7"})
     cube_mesh = cube()
@@ -566,7 +566,7 @@ def test_mesh_to_code():
 
 
 def test_layer_entry():
-    from ezdxf.entities.layer import Layer
+    from dxfpy.entities.layer import Layer
 
     layer = Layer.new("LAYER", dxfattribs={"name": "TestTest", "color": 3})
     code = table_entries_to_code([layer], drawing="doc")
@@ -576,7 +576,7 @@ def test_layer_entry():
 
 
 def test_ltype_entry():
-    from ezdxf.entities.ltype import Linetype
+    from dxfpy.entities.ltype import Linetype
 
     ltype = Linetype.new(
         "FFFF",
@@ -594,14 +594,14 @@ def test_ltype_entry():
 
 
 def test_mleaderstyle_entry():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "TEST_STYLE")
     style.dxf.default_text_content = "STYLE_TEXT"
     style.dxf.char_height = 3.5
     style.set_arrow_head("DOT")
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc}
     code = table_entries_to_code([style], drawing="doc")
     execute_code_in_namespace(code, namespace)
     new_style = target_doc.mleader_styles.get("TEST_STYLE")
@@ -613,13 +613,13 @@ def test_mleaderstyle_entry():
 
 
 def test_mleaderstyle_entry_missing_block_handle_is_safe():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "TEST_STYLE")
     source_doc.blocks.new("STYLE_BLOCK")
     style.dxf.block_record_handle = source_doc.blocks.get("STYLE_BLOCK").block_record_handle
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc}
     code = table_entries_to_code([style], drawing="doc")
     execute_code_in_namespace(code, namespace)
     new_style = target_doc.mleader_styles.get("TEST_STYLE")
@@ -629,13 +629,13 @@ def test_mleaderstyle_entry_missing_block_handle_is_safe():
 
 
 def test_mleaderstyle_entry_uses_object_dict_key_when_entity_name_diverges():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "TEST_STYLE")
     style.dxf.name = "Standard"
     style.dxf.default_text_content = "STYLE_TEXT"
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc}
     code = table_entries_to_code([style], drawing="doc")
     execute_code_in_namespace(code, namespace)
     new_style = target_doc.mleader_styles.get("TEST_STYLE")
@@ -645,7 +645,7 @@ def test_mleaderstyle_entry_uses_object_dict_key_when_entity_name_diverges():
 
 
 def test_block_to_code():
-    testdoc = ezdxf.new()
+    testdoc = dxfpy.new()
     block = testdoc.blocks.new("TestBlock", dxfattribs={"description": "test"})
     block.add_line((1, 1), (2, 2))
     code = block_to_code(block, drawing="doc")
@@ -656,7 +656,7 @@ def test_block_to_code():
 
 
 def test_hatch_to_code():
-    from ezdxf.entities import Hatch
+    from dxfpy.entities import Hatch
 
     hatch = Hatch()
     hatch.set_pattern_fill(name="ANGLE")

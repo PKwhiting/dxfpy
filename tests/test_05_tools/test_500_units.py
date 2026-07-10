@@ -1,7 +1,7 @@
 # Copyright (c) 2019-2020 Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.units import DrawingUnits, PaperSpaceUnits, conversion_factor, unit_name
+from dxfpy.units import DrawingUnits, PaperSpaceUnits, conversion_factor, unit_name
 from math import isclose
 
 

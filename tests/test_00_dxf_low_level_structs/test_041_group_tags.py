@@ -2,7 +2,7 @@
 # Copyright (C) 2011-2019, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.lldxf.tags import group_tags, internal_tag_compiler
+from dxfpy.lldxf.tags import group_tags, internal_tag_compiler
 
 
 @pytest.fixture

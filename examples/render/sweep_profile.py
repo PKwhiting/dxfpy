@@ -2,20 +2,20 @@
 #  License: MIT License
 import pathlib
 
-import ezdxf
-from ezdxf.render import forms
-from ezdxf import path
+import dxfpy
+from dxfpy.render import forms
+from dxfpy import path
 
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
-DEBUG_COLOR = ezdxf.colors.CYAN
+DEBUG_COLOR = dxfpy.colors.CYAN
 
 # ------------------------------------------------------------------------------
 # This example shows how sweep a profile along a polyline to create a MESH entity.
 #
-# docs: https://ezdxf.mozman.at/docs/render/forms.html#d-form-builder
+# docs: https://dxfpy.mozman.at/docs/render/forms.html#d-form-builder
 # ------------------------------------------------------------------------------
 
 
@@ -32,7 +32,7 @@ def main(filepath):
                 for s, e in zip(p0, p1):
                     msp.add_line(s, e, dxfattribs=attribs)
 
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("DEBUG", color=DEBUG_COLOR)
     msp = doc.modelspace()
 
@@ -42,14 +42,14 @@ def main(filepath):
     p0.curve4_to((6, 0, 10), (4.5, 0, 6), (6, 0, 8))
     sweeping_path = list(p0.flattening(distance=0.1))
     mesh = forms.sweep(circle, sweeping_path, close=True, caps=True)
-    mesh.render_mesh(msp, dxfattribs={"color": ezdxf.colors.MAGENTA})
+    mesh.render_mesh(msp, dxfattribs={"color": dxfpy.colors.MAGENTA})
 
     square = forms.square(center=True)
     sweeping_path = [(0, 0, 0), (0, 0, 5), (5, 0, 5), (5, 5, 5), (10, 5, 5)]
     mesh = forms.sweep(square, sweeping_path, close=True, caps=True)
     offset = 10, 0, 0
     mesh.translate(*offset)
-    mesh.render_mesh(msp, dxfattribs={"color": ezdxf.colors.MAGENTA})
+    mesh.render_mesh(msp, dxfattribs={"color": dxfpy.colors.MAGENTA})
 
     # The next example shows the limitations of the sweeping algorithm,
     # the intersection of the sweeping volumes is degenerated for the last bending:
@@ -67,7 +67,7 @@ def main(filepath):
     )
 
     mesh.translate(*offset)
-    mesh.render_mesh(msp, dxfattribs={"color": ezdxf.colors.YELLOW})
+    mesh.render_mesh(msp, dxfattribs={"color": dxfpy.colors.YELLOW})
 
     doc.saveas(filepath)
 

@@ -1,10 +1,10 @@
 # Copyright (c) 2018-2024 Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.lldxf.packedtags import TagArray, VertexArray
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.math import UCS, Matrix44, Vec3
+from dxfpy.lldxf.packedtags import TagArray, VertexArray
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.math import UCS, Matrix44, Vec3
 
 
 @pytest.fixture()

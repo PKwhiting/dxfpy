@@ -2,9 +2,9 @@
 # License: MIT License
 import time
 import numpy as np
-from ezdxf.math import Vec2, has_clockwise_orientation
-from ezdxf.acc import np_support
-from ezdxf.render.forms import circle
+from dxfpy.math import Vec2, has_clockwise_orientation
+from dxfpy.acc import np_support
+from dxfpy.render.forms import circle
 
 
 VEC2_LIST = Vec2.list(circle(512, 10, close=True))

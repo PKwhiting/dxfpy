@@ -1,20 +1,20 @@
 #  Copyright (c) 2021, Manfred Moitzi
 #  License: MIT License
 """
-Test the ezdxf.entities.objectcollection module, but the tests need
+Test the dxfpy.entities.objectcollection module, but the tests need
 a real implementation: MLeaderStyleCollection
 
 """
 import pytest
 
-import ezdxf
-from ezdxf.entities import is_dxf_object
+import dxfpy
+from dxfpy.entities import is_dxf_object
 
 
 @pytest.fixture(scope="module")
 def collection_ro():
     """Creates a read only document"""
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.entitydb.locked = True
     return doc.mleader_styles
 
@@ -50,7 +50,7 @@ class TestGetterMethods:
 
 @pytest.fixture(scope="module")
 def collection_rw():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     return doc.mleader_styles
 
 
@@ -136,7 +136,7 @@ class TestDuplicateEntry:
 
 
 def test_clear():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.mleader_styles.clear()
     # This creates an invalid DXF file!!!
     assert len(doc.mleader_styles) == 0

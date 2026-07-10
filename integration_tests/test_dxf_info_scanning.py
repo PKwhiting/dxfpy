@@ -1,15 +1,15 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
 import pytest
-import ezdxf
-from ezdxf import xref, units, const
+import dxfpy
+from dxfpy import xref, units, const
 
 
 @pytest.mark.parametrize("fmt", ["asc", "bin"])
 @pytest.mark.parametrize("dxfversion", const.versions_supported_by_new)
 def test_dxf_info_scanning(dxfversion, fmt, tmp_path):
     drawing_units = units.MM
-    doc = ezdxf.new(dxfversion=dxfversion, units=drawing_units)
+    doc = dxfpy.new(dxfversion=dxfversion, units=drawing_units)
     doc.encoding = "cp1253"  # Greek
     doc.header["$INSBASE"] = (10, 20, 30)
     filename = tmp_path / f"{dxfversion}.dxf"

@@ -1,9 +1,9 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons.pycsg import CSG
-from ezdxf.render.forms import cube, cylinder_2p
+import dxfpy
+from dxfpy.addons.pycsg import CSG
+from dxfpy.render.forms import cube, cylinder_2p
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,7 +12,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to use the pycsg add-on (Constructive Solid Geometry).
 #
-# docs: https://ezdxf.mozman.at/docs/addons/pycsg.html
+# docs: https://dxfpy.mozman.at/docs/addons/pycsg.html
 # ------------------------------------------------------------------------------
 
 
@@ -22,7 +22,7 @@ def main():
         count=32, base_center=(0, -1, 0), top_center=(0, 1, 0), radius=0.25
     )
 
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.set_modelspace_vport(6, center=(5, 0))
     msp = doc.modelspace()
 

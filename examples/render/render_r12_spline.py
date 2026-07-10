@@ -1,9 +1,9 @@
 # Copyright (c) 2018-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.render import R12Spline
-from ezdxf.math import Vec3, Matrix44, UCS, OCS
+import dxfpy
+from dxfpy.render import R12Spline
+from dxfpy.math import Vec3, Matrix44, UCS, OCS
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,7 +13,7 @@ if not CWD.exists():
 # This example shows how to get B-splines in DXF R12 files which does not support
 # the SPLINE entity.
 #
-# docs: https://ezdxf.mozman.at/docs/render/curves.html#r12spline
+# docs: https://dxfpy.mozman.at/docs/render/curves.html#r12spline
 # ------------------------------------------------------------------------------
 
 next_frame = Matrix44.translate(0, 7, 0)
@@ -33,7 +33,7 @@ def draw(msp, points, extrusion=None):
 
 
 def main(dxfversion="R12"):
-    doc = ezdxf.new(dxfversion)
+    doc = dxfpy.new(dxfversion)
     msp = doc.modelspace()
     spline_points = Vec3.list(
         [

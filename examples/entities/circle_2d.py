@@ -1,7 +1,7 @@
 # Copyright (c) 2016-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -10,11 +10,11 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example adds a circle to the modelspace.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/circle.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/circle.html
 # ------------------------------------------------------------------------------
 
 # setup=True is required to get the DASHED linetype.
-doc = ezdxf.new("R12", setup=True)
+doc = dxfpy.new("R12", setup=True)
 modelspace = doc.modelspace()
 modelspace.add_circle(
     center=(0, 0),

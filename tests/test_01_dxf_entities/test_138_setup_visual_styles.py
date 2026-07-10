@@ -1,13 +1,13 @@
 # Copyright (c) 2018 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.tools.standards import setup_visual_styles
+import dxfpy
+from dxfpy.tools.standards import setup_visual_styles
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2007")
+    return dxfpy.new("R2007")
 
 
 def test_visualstyle(doc):

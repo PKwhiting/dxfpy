@@ -1,8 +1,8 @@
 # Copyright (c) 2017-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.math import UCS
+import dxfpy
+from dxfpy.math import UCS
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,13 +11,13 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to place a MTEXT entity in 3D space.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/mtext.html
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/mtext.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/mtext.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/mtext.html
 # ------------------------------------------------------------------------------
 
 
 def place_by_extrusion_vector():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     modelspace = doc.modelspace()
     modelspace.add_mtext(
         "This is a text in the YZ-plane",
@@ -31,7 +31,7 @@ def place_by_extrusion_vector():
 
 
 def place_by_ucs():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     modelspace = doc.modelspace()
     # place the MTEXT in the xy-plane of the UCS
     mtext = modelspace.add_mtext(

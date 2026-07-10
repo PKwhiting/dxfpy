@@ -1,13 +1,13 @@
 # Copyright (c) 2021-2022, Manfred Moitzi
 # License: MIT License
 import sys
-from ezdxf import comments
+from dxfpy import comments
 
 # ------------------------------------------------------------------------------
 # Ezdxf drops all comments from loaded DXF files.
 # This example shows how to load comments from DXF files if needed.
 #
-# docs: https://ezdxf.mozman.at/docs/comments.html
+# docs: https://dxfpy.mozman.at/docs/comments.html
 # ------------------------------------------------------------------------------
 
 

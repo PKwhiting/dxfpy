@@ -3,11 +3,11 @@
 from typing import Set, List
 import pathlib
 import string
-import ezdxf
-from ezdxf import path, zoom
-from ezdxf.fonts import shapefile
-from ezdxf.math import Matrix44
-from ezdxf.filemanagement import find_support_file
+import dxfpy
+from dxfpy import path, zoom
+from dxfpy.fonts import shapefile
+from dxfpy.math import Matrix44
+from dxfpy.filemanagement import find_support_file
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -21,9 +21,9 @@ if not CWD.exists():
 # I can not include the test files in the repository because these shape files
 # are generated from copyright protected Autodesk SHX files by the program dumpshx.exe
 # Add the directory containing the shx/shp files to your config file:
-# 1. create a default config file in home directory at ~/.config/ezdxf/ezdxf.ini
+# 1. create a default config file in home directory at ~/.config/dxfpy/dxfpy.ini
 #
-#     $ ezdxf config --home
+#     $ dxfpy config --home
 #
 # 2. add the font directory as support dir, this is my config file:
 # [core]
@@ -48,7 +48,7 @@ SPECIAL_CODES = "special_codes.shp"
 def render_font(fontname: str):
     fontname = find_support_file(fontname, SHAPE_FILE_DIRS)
     font = shapefile.readfile(fontname)
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     line_height = font.cap_height / 3 * 5
     y = RENDER_POS
@@ -68,7 +68,7 @@ def render_font(fontname: str):
 def render_txt(fontname: str, text: str):
     fontname = find_support_file(fontname, SHAPE_FILE_DIRS)
     font = shapefile.readfile(fontname)
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     text_path = font.render_text(text)
     path.render_splines_and_polylines(msp, [text_path])
@@ -82,7 +82,7 @@ def render_txt(fontname: str, text: str):
 
 def debug_letter(shp_data: bytes, num: int, filename: str):
     font = shapefile.shp_load(shp_data)
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     text_path = font.render_shape(num)
     path.render_splines_and_polylines(msp, [text_path])
@@ -95,7 +95,7 @@ def render_all_chars(fontpath: pathlib.Path):
     # ignore non-ascii characters in comments and names
     shp_data = fontpath.read_bytes()
     font = shapefile.shp_load(shp_data)
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     numbers = list(font.shapes.keys())
     text_path = font.render_shapes(numbers)
@@ -180,5 +180,5 @@ if __name__ == "__main__":
         render_txt("bold.shx", "R?")
         debug_letter(DEBUG_UCR, 0x43, "bold_c.dxf")
         render_all_chars(
-            pathlib.Path(find_support_file("bold.shx", ezdxf.options.support_dirs))
+            pathlib.Path(find_support_file("bold.shx", dxfpy.options.support_dirs))
         )

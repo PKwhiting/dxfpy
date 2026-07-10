@@ -4,10 +4,10 @@
 import pathlib
 import random
 
-import ezdxf
-from ezdxf.addons import odafc
-from ezdxf.document import Drawing
-from ezdxf import xref
+import dxfpy
+from dxfpy.addons import odafc
+from dxfpy.document import Drawing
+from dxfpy import xref
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -31,7 +31,7 @@ FLAG_NAME = "Flag"
 
 
 def make_doc() -> Drawing:
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     doc.layers.add("FLAGS")
     msp = doc.modelspace()
 

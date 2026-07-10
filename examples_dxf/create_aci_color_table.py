@@ -1,10 +1,10 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 from __future__ import annotations
-import ezdxf
-from ezdxf.math import Vec2
-from ezdxf.enums import MTextEntityAlignment
-from ezdxf.layouts import Modelspace
+import dxfpy
+from dxfpy.math import Vec2
+from dxfpy.enums import MTextEntityAlignment
+from dxfpy.layouts import Modelspace
 
 SIZE_X = 20
 SIZE_Y = 20
@@ -63,7 +63,7 @@ def draw_aci_color_table(msp: Modelspace, order: list[int], x: int, y: int):
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.styles.add("OpenSans", font="OpenSans-Regular.ttf")
     doc.layers.add("SOLID")
     doc.layers.add("TEXT", color=TEXT_COLOR)

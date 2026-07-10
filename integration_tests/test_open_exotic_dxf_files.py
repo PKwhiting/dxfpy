@@ -1,12 +1,12 @@
 # Copyright (c) 2018-2020, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf import recover
+import dxfpy
+from dxfpy import recover
 import os
 
 CP936_FILE = os.path.join(
-    ezdxf.EZDXF_TEST_FILES, "ChineseChars_cp936_R2004.dxf"
+    dxfpy.DXFPY_TEST_FILES, "ChineseChars_cp936_R2004.dxf"
 )
 
 
@@ -14,13 +14,13 @@ CP936_FILE = os.path.join(
     not os.path.exists(CP936_FILE), reason=f"File {CP936_FILE} not found"
 )
 def test_read_plain_cp936_chinese():
-    doc = ezdxf.readfile(CP936_FILE)
+    doc = dxfpy.readfile(CP936_FILE)
     assert doc.filename is not None
     assert doc.dxfversion is not None
 
 
 CP936_ZIP_FILE = os.path.join(
-    ezdxf.EZDXF_TEST_FILES, "ChineseChars_cp936_R2004.zip"
+    dxfpy.DXFPY_TEST_FILES, "ChineseChars_cp936_R2004.zip"
 )
 
 
@@ -29,12 +29,12 @@ CP936_ZIP_FILE = os.path.join(
     reason=f"File {CP936_ZIP_FILE} not found",
 )
 def test_read_from_zip():
-    doc = ezdxf.readzip(CP936_ZIP_FILE)
+    doc = dxfpy.readzip(CP936_ZIP_FILE)
     assert doc.filename is not None
     assert doc.dxfversion is not None
 
 
-PROE_FILE = os.path.join(ezdxf.EZDXF_TEST_FILES, "ProE_AC1018.dxf")
+PROE_FILE = os.path.join(dxfpy.DXFPY_TEST_FILES, "ProE_AC1018.dxf")
 
 
 @pytest.mark.skipif(
@@ -46,7 +46,7 @@ class TestProE:
         return PROE_FILE
 
     def test_read_ProE_file(self, filename):
-        doc = ezdxf.readfile(filename)
+        doc = dxfpy.readfile(filename)
         assert doc.filename is not None
         assert doc.dxfversion is not None
 
@@ -59,7 +59,7 @@ class TestProE:
 
 
 FILE_CIVIL_3D = os.path.join(
-    ezdxf.EZDXF_TEST_FILES, "AutodeskProducts/Civil3D_2018.dxf"
+    dxfpy.DXFPY_TEST_FILES, "AutodeskProducts/Civil3D_2018.dxf"
 )
 
 
@@ -78,18 +78,18 @@ class TestCorruptCivil3D:
         return FILE_CIVIL_3D
 
     def test_readfile_and_preserve_errors_by_surrogate_escape(self, filename):
-        doc = ezdxf.readfile(filename, errors="surrogateescape")
+        doc = dxfpy.readfile(filename, errors="surrogateescape")
         assert doc.filename == filename
         assert doc.dxfversion == "AC1032"
 
     def test_readfile_and_ignore_errors(self, filename):
-        doc = ezdxf.readfile(filename, errors="ignore")
+        doc = dxfpy.readfile(filename, errors="ignore")
         assert doc.filename == filename
         assert doc.dxfversion == "AC1032"
 
     def test_readfile_and_raise_exception(self, filename):
         with pytest.raises(UnicodeDecodeError):
-            ezdxf.readfile(filename, errors="strict")
+            dxfpy.readfile(filename, errors="strict")
 
         with pytest.raises(UnicodeDecodeError):
             recover.readfile(filename, errors="strict")
@@ -104,7 +104,7 @@ class TestCorruptCivil3D:
 
 
 FILE_MAP_3D = os.path.join(
-    ezdxf.EZDXF_TEST_FILES, "AutodeskProducts/Map3D_2017.dxf"
+    dxfpy.DXFPY_TEST_FILES, "AutodeskProducts/Map3D_2017.dxf"
 )
 
 
@@ -112,22 +112,22 @@ FILE_MAP_3D = os.path.join(
     not os.path.exists(FILE_MAP_3D), reason=f'File "{FILE_MAP_3D}" not found'
 )
 def test_read_map_3d():
-    doc = ezdxf.readfile(FILE_MAP_3D)
+    doc = dxfpy.readfile(FILE_MAP_3D)
     assert doc.filename == FILE_MAP_3D
     assert doc.dxfversion == "AC1027"
 
 
-GERBER_FILE = os.path.join(ezdxf.EZDXF_TEST_FILES, "Gerber.dxf")
+GERBER_FILE = os.path.join(dxfpy.DXFPY_TEST_FILES, "Gerber.dxf")
 
 
 @pytest.mark.skipif(
     not os.path.exists(GERBER_FILE), reason=f'File "{GERBER_FILE}" not found'
 )
 def test_read_gerber_file():
-    from ezdxf.lldxf.validator import is_dxf_file
+    from dxfpy.lldxf.validator import is_dxf_file
 
     assert is_dxf_file(GERBER_FILE)
 
-    doc = ezdxf.readfile(GERBER_FILE)
+    doc = dxfpy.readfile(GERBER_FILE)
     assert doc.filename == GERBER_FILE
     assert doc.dxfversion == "AC1009"

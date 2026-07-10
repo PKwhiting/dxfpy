@@ -3,10 +3,10 @@
 
 import pytest
 import math
-import ezdxf
-from ezdxf.upright import upright, _flip_deg_angle
-from ezdxf import path
-from ezdxf.entities import (
+import dxfpy
+from dxfpy.upright import upright, _flip_deg_angle
+from dxfpy import path
+from dxfpy.entities import (
     Circle,
     Arc,
     DXFEntity,
@@ -17,7 +17,7 @@ from ezdxf.entities import (
     LWPolyline,
     Hatch,
 )
-from ezdxf.math import Z_AXIS, Matrix44, OCS, OCSTransform, Vec3
+from dxfpy.math import Z_AXIS, Matrix44, OCS, OCSTransform, Vec3
 
 
 @pytest.mark.parametrize(
@@ -175,7 +175,7 @@ def lwpolyline():
 
 
 def polyline2d():
-    from ezdxf.layouts import VirtualLayout
+    from dxfpy.layouts import VirtualLayout
 
     layout = VirtualLayout()
     return layout.add_polyline2d(
@@ -236,7 +236,7 @@ def test_upright_hatch_with_edge_path(all_edge_types_hatch):
 
 
 def test_upright_insert():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     blk = doc.blocks.new("example")
     blk.add_arc(
         center=(5, 0, 2),

@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.dynamic_blocks import (
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.dynamic_blocks import (
     DynamicBlockReference,
     DynamicBlockVisibilityError,
 )
@@ -21,7 +21,7 @@ from ezdxf.dynamic_blocks import (
 #   python change_dynamic_block_visibility.py input.dxf \
 #       --state "State Name" --output output.dxf
 #
-# The input DXF must already contain AutoCAD-compatible dynamic blocks. ezdxf can
+# The input DXF must already contain AutoCAD-compatible dynamic blocks. dxfpy can
 # change visibility states of existing dynamic block references, but does not
 # create complete dynamic block definitions from scratch.
 # ------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ def set_reference_state(reference: DynamicBlockReference, state: str) -> None:
 
 def run(input_file: Path, output_file: Path | None, state: str | None) -> None:
     """Load, inspect, optionally modify, and save the DXF document."""
-    doc = ezdxf.readfile(input_file)
+    doc = dxfpy.readfile(input_file)
     references = iter_dynamic_block_references(doc)
     print_visibility_states(references)
     if state is None:

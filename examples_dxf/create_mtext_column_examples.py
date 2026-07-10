@@ -1,10 +1,10 @@
 # Copyright (c) 2021, Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf import zoom
-from ezdxf.math import Vec3
-from ezdxf.lldxf import const
-from ezdxf.tools.text_layout import lorem_ipsum
+import dxfpy
+from dxfpy import zoom
+from dxfpy.math import Vec3
+from dxfpy.lldxf import const
+from dxfpy.tools.text_layout import lorem_ipsum
 
 
 def create_doc(filename: str, dxfversion: str):
@@ -23,7 +23,7 @@ def create_doc(filename: str, dxfversion: str):
         ]
         # Create 3 static columns, the content if each column is
         # clearly defined: [content0, content1, content2, ...]
-        # The height of the columns is defined by their content, ezdxf adds
+        # The height of the columns is defined by their content, dxfpy adds
         # an automatic column switch `\N` (R2018) between the parts.
         # The height argument should as big as the tallest column needs to be,
         # this value also determines the total height of the MTEXT entity.
@@ -69,7 +69,7 @@ def create_doc(filename: str, dxfversion: str):
             dxfattribs=attribs,
         )
 
-    doc = ezdxf.new(dxfversion=dxfversion)
+    doc = dxfpy.new(dxfversion=dxfversion)
     msp = doc.modelspace()
     add_mtext_columns(msp)
     zoom.extents(msp)

@@ -1,13 +1,13 @@
 # Copyright (c) 2021-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.enums import MTextParagraphAlignment
-from ezdxf.tools.text import (
+import dxfpy
+from dxfpy.enums import MTextParagraphAlignment
+from dxfpy.tools.text import (
     MTextEditor,
     ParagraphProperties,
 )
-from ezdxf.tools.text_layout import lorem_ipsum
+from dxfpy.tools.text_layout import lorem_ipsum
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -16,8 +16,8 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to use the MTextEditor to compose MTEXT content.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/mtext.html
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/mtext.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/mtext.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/mtext.html
 # ------------------------------------------------------------------------------
 
 ATTRIBS = {
@@ -236,11 +236,11 @@ def create(dxfversion):
     Inline codes are well-supported by AutoCAD (of course!) and BricsCAD,
     but don't expect the same rendering in other CAD applications.
 
-    The drawing add-on of ezdxf support some of these features, but with a
+    The drawing add-on of dxfpy support some of these features, but with a
     different rendering result than AutoCAD/BricsCAD.
 
     """
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
     recreate_mtext_py_example(msp, location=(0, 0))
     using_colors(msp, location=(0, 10))

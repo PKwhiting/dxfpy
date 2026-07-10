@@ -1,5 +1,5 @@
 
-# ezdxf
+# dxfpy
 
 ## Abstract
 
@@ -13,14 +13,14 @@ containing data from third-party applications without any loss of valuable infor
 
 ## Quick-Info
 
-- `ezdxf` is a Python package to create new DXF files and read/modify/write 
+- `dxfpy` is a Python package to create new DXF files and read/modify/write
   existing DXF documents
 - MIT-License
 - the intended audience are programmers
 - requires at least Python 3.10
 - OS independent
 - tested with CPython and pypy3
-- has type annotations and passes `mypy --ignore-missing-imports -p ezdxf` successful
+- has type annotations and passes `mypy --ignore-missing-imports -p dxfpy` successful
 - additional required packages for the core package without add-ons
   - [typing_extensions](https://pypi.org/project/typing-extensions/)
   - [pyparsing](https://pypi.org/project/pyparsing/)
@@ -31,15 +31,13 @@ containing data from third-party applications without any loss of valuable infor
 - additional read-only support for older DXF versions than R12 (upgraded to R12)
 - read/write support for ASCII DXF and Binary DXF
 - retains third-party DXF content
-- optional C-extensions for CPython are included in the binary wheels, available 
-  on [PyPI](https://pypi.org/project/ezdxf/) for Windows, Linux and macOS
-- command line script `ezdxf` to display, convert and inspect DXF files
+- optional C-extensions for CPython are included in binary wheels when available
+- command line script `dxfpy` to display, convert and inspect DXF files
 
 ## Included Extensions
 
 Additional packages required for these add-ons are not automatically installed 
-during the *basic* setup, for more information about the setup & dependencies 
-visit the [documentation](https://ezdxf.mozman.at/docs/setup.html).
+during the *basic* setup.
 
 - The `drawing` add-on is a translation layer to send DXF data to a render backend, 
   interfaces to [matplotlib](https://pypi.org/project/matplotlib/), which can export 
@@ -65,12 +63,12 @@ visit the [documentation](https://ezdxf.mozman.at/docs/setup.html).
 A simple example:
 
 ```Python
-import ezdxf
-from ezdxf import colors
-from ezdxf.enums import TextEntityAlignment
+import dxfpy
+from dxfpy import colors
+from dxfpy.enums import TextEntityAlignment
 
 # Create a new DXF document.
-doc = ezdxf.new(dxfversion="R2010")
+doc = dxfpy.new(dxfversion="R2010")
 
 # Create new table entries (layers, linetypes, text styles, ...).
 doc.layers.add("TEXTLAYER", color=colors.RED)
@@ -96,7 +94,7 @@ in-memory structures:
 
 ```Python
 from random import random
-from ezdxf.addons import r12writer
+from dxfpy.addons import r12writer
 
 MAX_X_COORD = 1000
 MAX_Y_COORD = 1000
@@ -115,103 +113,94 @@ additional predefined text styles and line types are available.
 Basic installation by pip including the optional C-extensions from PyPI as 
 binary wheels:
 
-    pip install ezdxf
+    pip install dxfpy
 
 Full installation with all dependencies (matplotlib, PySide6) for using the 
 drawing add-on:
 
-    pip install ezdxf[draw]
+    pip install dxfpy[draw]
 
-For more information about the setup & dependencies visit the 
-[documentation](https://ezdxf.mozman.at/docs/setup.html).
+For more information about the setup & dependencies, see the project repository.
 
 ## Command Line
 
-Use `python -m ezdxf ...` if your shell can't find the `ezdxf` script.
+Use `python -m dxfpy ...` if your shell can't find the `dxfpy` script.
 
 Get additional help for a sub-command:
 
-    ezdxf <cmd> -h
+    dxfpy <cmd> -h
 
 Preview DXF files in a graphical window:
 
-    ezdxf view <file.dxf>
+    dxfpy view <file.dxf>
 
 Export the modelspace of DXF files as PNG|SVG|PDF:
 
-    ezdxf draw -o file.<png|svg|pdf> <file.dxf>
+    dxfpy draw -o file.<png|svg|pdf> <file.dxf>
 
 Print basic information about DXF files:
 
-    ezdxf info <file.dxf>
+    dxfpy info <file.dxf>
 
 Show detailed information and structures of DXF files:
 
-    ezdxf browse <file.dxf>
+    dxfpy browse <file.dxf>
 
 Audit DXF files:
 
-    ezdxf audit <file.dxf>
+    dxfpy audit <file.dxf>
 
 Preview and convert HPGL/2 plot files:
 
-    ezdxf hpgl <file.plt>
+    dxfpy hpgl <file.plt>
 
-
-## Website
-
-https://ezdxf.mozman.at/
 
 ## Documentation
 
-Documentation of the development version at https://ezdxf.mozman.at/docs
-
-Documentation of the latest release at https://ezdxf.readthedocs.io/
+Documentation is inherited from the upstream project and is being rebranded for
+`dxfpy`.
 
 ## Knowledge Graph
 
 The knowledge graph contains additional information beyond the documentation and is 
 managed by [logseq](https://logseq.com/).  The source data is included in the repository 
-in the folder `ezdxf/notes`.  There is also a [HTML export](https://ezdxf.mozman.at/notes/#/page/ezdxf) 
-on the website which gets regular updates.
+in the folder `notes`.
 
 
 ## Contribution
 
-The source code of *ezdxf* can be found at __GitHub__, target your pull requests 
+The source code of *dxfpy* can be found at __GitHub__, target your pull requests
 to the `master` branch:
 
-https://github.com/mozman/ezdxf.git
+https://github.com/PKwhiting/ezdxf.git
 
 
 ## Feedback
 
 Questions and feedback at __GitHub Discussions__:
 
-https://github.com/mozman/ezdxf/discussions
+https://github.com/PKwhiting/ezdxf/discussions
 
 Questions at __Stack Overflow__:
 
-Post questions at [stack overflow](https://stackoverflow.com/) and use the tag `dxf` or `ezdxf`.
+Post questions at [stack overflow](https://stackoverflow.com/) and use the tag `dxf` or `dxfpy`.
 
 Issue tracker at __GitHub__:
 
-http://github.com/mozman/ezdxf/issues
+https://github.com/PKwhiting/ezdxf/issues
 
 ## Release Notes
 
-The [release notes](https://ezdxf.mozman.at/notes/#/page/release%20notes) are included 
-in the knowledge graph.
+Release notes are included in the knowledge graph.
 
 ## Changelog
 
-The [changelog](https://ezdxf.mozman.at/notes/#/page/changelog) is included 
-in the knowledge graph.
+The changelog is included in the knowledge graph.
 
 
 ## Contact
 
-Please __always__ post questions at the [forum](https://github.com/mozman/ezdxf/discussions) 
+Please __always__ post questions at the [forum](https://github.com/PKwhiting/ezdxf/discussions)
 or [stack overflow](https://stackoverflow.com/) to make answers 
 available to other users as well. 
 

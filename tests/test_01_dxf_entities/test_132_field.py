@@ -3,12 +3,12 @@
 from typing import cast
 import io
 import math
-import ezdxf
+import dxfpy
 import pytest
 
-from ezdxf.entities.dxfobj import Field
-from ezdxf.entities.mtext import MText
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.dxfobj import Field
+from dxfpy.entities.mtext import MText
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 FIELD = """0
 FIELD
@@ -55,7 +55,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "FIELD" in ENTITY_CLASSES
 
@@ -227,9 +227,9 @@ def test_set_acexpr_builds_expression_field_with_two_children():
 
 
 def test_build_acexpr_rejects_non_field_children():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
 
-    with pytest.raises(ezdxf.lldxf.const.DXFTypeError) as error:
+    with pytest.raises(dxfpy.lldxf.const.DXFTypeError) as error:
         Field.build_acexpr(doc, "%<\\_FldIdx 0>%", [object()])
 
     assert "object" in str(error.value)
@@ -245,14 +245,14 @@ def test_clear_tags_clears_simple_attributes():
 
 
 def test_add_field_to_objects_section():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     field = cast(Field, doc.objects.add_field(owner="ABBA"))
     assert field.dxftype() == "FIELD"
     assert field.dxf.owner == "ABBA"
 
 
 def test_minimal_export_from_dxfattribs():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     field = cast(
         Field,
         doc.objects.add_field(
@@ -270,7 +270,7 @@ def test_minimal_export_from_dxfattribs():
 
 
 def test_writing_document_adds_field_class_definition():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     cast(
         Field,
         doc.objects.add_field(
@@ -289,7 +289,7 @@ def test_writing_document_adds_field_class_definition():
 
 
 def test_mtext_new_field_creates_field_dict_and_links_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext("TEXT")
     field = cast(
         Field,
@@ -312,7 +312,7 @@ def test_mtext_new_field_creates_field_dict_and_links_field():
 
 
 def test_mtext_set_field_replaces_existing_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext("TEXT")
     field1 = cast(
         Field,
@@ -338,7 +338,7 @@ def test_mtext_set_field_replaces_existing_field():
 
 
 def test_mtext_get_primary_field_returns_child_of_text_wrapper():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext("TEXT")
     child = cast(
         Field,
@@ -357,13 +357,13 @@ def test_mtext_get_primary_field_returns_child_of_text_wrapper():
 
 
 def test_mtext_get_field_returns_none_without_field_dict():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext("TEXT")
     assert mtext.get_field() is None
 
 
 def test_writing_mtext_field_exports_xdictionary_and_field_dict():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext("TEXT")
     mtext.new_field(
         dxfattribs={
@@ -380,7 +380,7 @@ def test_writing_mtext_field_exports_xdictionary_and_field_dict():
 
 
 def test_setup_field_list_creates_rootdict_entry():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     field_list = doc.objects.setup_field_list()
     assert doc.rootdict.get("ACAD_FIELDLIST") is field_list
     assert field_list.dxf.owner == doc.rootdict.dxf.handle
@@ -389,7 +389,7 @@ def test_setup_field_list_creates_rootdict_entry():
 
 
 def test_new_linked_field_creates_wrapper_and_registers_field_list():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext("TEXT")
     child, wrapper = mtext.new_linked_field(
         dxfattribs={
@@ -411,7 +411,7 @@ def test_new_linked_field_creates_wrapper_and_registers_field_list():
 
 
 def test_new_acvar_field_creates_object_backed_author_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext("TEXT")
     child, wrapper = mtext.new_acvar_field(
         "Author", text="----", register_field_list=True
@@ -424,7 +424,7 @@ def test_new_acvar_field_creates_object_backed_author_field():
 
 
 def test_new_dwgprops_field_creates_object_backed_custom_property_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext("TEXT")
     child, wrapper = mtext.new_dwgprops_field(
         "ProjectCode", text="VALUE-123", register_field_list=True
@@ -436,7 +436,7 @@ def test_new_dwgprops_field_creates_object_backed_custom_property_field():
 
 
 def test_new_acobjprop_field_creates_object_backed_length_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     line = doc.modelspace().add_line((0, 0), (10, 0))
     mtext = doc.modelspace().add_mtext("TEXT")
     child, wrapper = mtext.new_acobjprop_field(
@@ -455,7 +455,7 @@ def test_new_acobjprop_field_creates_object_backed_length_field():
 
 
 def test_writing_mtext_acobjprop_field_exports_property_reference():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     line = doc.modelspace().add_line((0, 0), (10, 0))
     mtext = doc.modelspace().add_mtext("TEXT")
     mtext.new_acobjprop_field(line, "Length", register_field_list=True)
@@ -468,7 +468,7 @@ def test_writing_mtext_acobjprop_field_exports_property_reference():
 
 
 def test_graphicsfactory_add_mtext_acvar_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     mtext = doc.modelspace().add_mtext_acvar_field(
         "Author", text="----", register_field_list=True
     )
@@ -479,7 +479,7 @@ def test_graphicsfactory_add_mtext_acvar_field():
 
 
 def test_graphicsfactory_add_mtext_acobjprop_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     line = doc.modelspace().add_line((0, 0), (10, 0))
     mtext = doc.modelspace().add_mtext_acobjprop_field(
         line, "Length", register_field_list=True
@@ -491,7 +491,7 @@ def test_graphicsfactory_add_mtext_acobjprop_field():
 
 
 def test_new_acobjprop_field_supports_circle_radius():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     circle = doc.modelspace().add_circle((0, 0), radius=5)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(circle, "Radius", register_field_list=True)
@@ -501,7 +501,7 @@ def test_new_acobjprop_field_supports_circle_radius():
 
 
 def test_new_acobjprop_field_supports_circle_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     circle = doc.modelspace().add_circle((0, 0), radius=2)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(circle, "Area", register_field_list=True)
@@ -511,7 +511,7 @@ def test_new_acobjprop_field_supports_circle_area():
 
 
 def test_new_acobjprop_field_supports_arc_radius():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     arc = doc.modelspace().add_arc((0, 0), radius=5, start_angle=0, end_angle=180)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(arc, "Radius", register_field_list=True)
@@ -521,7 +521,7 @@ def test_new_acobjprop_field_supports_arc_radius():
 
 
 def test_new_acobjprop_field_supports_arc_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     arc = doc.modelspace().add_arc((0, 0), radius=5, start_angle=0, end_angle=180)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(arc, "Length", register_field_list=True)
@@ -531,7 +531,7 @@ def test_new_acobjprop_field_supports_arc_length():
 
 
 def test_new_acobjprop_field_supports_arc_arc_length_alias():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     arc = doc.modelspace().add_arc((0, 0), radius=5, start_angle=0, end_angle=180)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(arc, "ArcLength", register_field_list=True)
@@ -541,7 +541,7 @@ def test_new_acobjprop_field_supports_arc_arc_length_alias():
 
 
 def test_new_acobjprop_field_supports_arc_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     arc = doc.modelspace().add_arc((0, 0), radius=5, start_angle=0, end_angle=180)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(arc, "Area", register_field_list=True)
@@ -551,7 +551,7 @@ def test_new_acobjprop_field_supports_arc_area():
 
 
 def test_new_acobjprop_field_supports_open_polyline2d_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline2d([(0, 0), (3, 4), (3, 8)])
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(polyline, "Length", register_field_list=True)
@@ -561,7 +561,7 @@ def test_new_acobjprop_field_supports_open_polyline2d_length():
 
 
 def test_new_acobjprop_field_supports_open_polyline3d_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline3d([(0, 0, 0), (3, 4, 0), (3, 8, 0)])
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(polyline, "Length", register_field_list=True)
@@ -571,7 +571,7 @@ def test_new_acobjprop_field_supports_open_polyline3d_length():
 
 
 def test_new_acobjprop_field_supports_open_polyline2d_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline2d([(0, 0), (3, 4), (3, 8)])
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(polyline, "Area", register_field_list=True)
@@ -581,7 +581,7 @@ def test_new_acobjprop_field_supports_open_polyline2d_area():
 
 
 def test_new_acobjprop_field_supports_bulged_open_polyline2d_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline2d(
         [(0, 0, 1.0), (10, 0, 0.0), (10, 10, 0.0)], format="xyb"
     )
@@ -593,7 +593,7 @@ def test_new_acobjprop_field_supports_bulged_open_polyline2d_length():
 
 
 def test_new_acobjprop_field_supports_bulged_open_polyline2d_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline2d(
         [(0, 0, 1.0), (10, 0, 0.0), (10, 10, 0.0)], format="xyb"
     )
@@ -605,7 +605,7 @@ def test_new_acobjprop_field_supports_bulged_open_polyline2d_area():
 
 
 def test_new_acobjprop_field_supports_open_spline_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     spline = doc.modelspace().add_open_spline([(0, 0), (3, 4), (6, 0), (9, 4)])
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(spline, "Area", register_field_list=True)
@@ -615,7 +615,7 @@ def test_new_acobjprop_field_supports_open_spline_area():
 
 
 def test_new_acobjprop_field_supports_closed_spline_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     spline = doc.modelspace().add_spline()
     spline.set_closed([(0, 0, 0), (3, 4, 0), (6, 0, 0), (3, -4, 0)], degree=3)
     mtext = doc.modelspace().add_mtext("TEXT")
@@ -626,7 +626,7 @@ def test_new_acobjprop_field_supports_closed_spline_area():
 
 
 def test_new_acobjprop_field_supports_closed_polyline2d_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline2d(
         [(0, 0), (10, 0), (10, 10), (0, 10)], close=True
     )
@@ -638,7 +638,7 @@ def test_new_acobjprop_field_supports_closed_polyline2d_length():
 
 
 def test_new_acobjprop_field_supports_closed_polyline2d_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline2d(
         [(0, 0), (10, 0), (10, 10), (0, 10)], close=True
     )
@@ -650,7 +650,7 @@ def test_new_acobjprop_field_supports_closed_polyline2d_area():
 
 
 def test_new_acobjprop_field_supports_closed_polyline3d_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline3d(
         [(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 0)], close=True
     )
@@ -662,7 +662,7 @@ def test_new_acobjprop_field_supports_closed_polyline3d_length():
 
 
 def test_new_acobjprop_field_supports_simple_hatch_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     hatch = doc.modelspace().add_hatch(color=1)
     hatch.paths.add_polyline_path([(0, 0), (10, 0), (10, 10), (0, 10)], is_closed=True)
     mtext = doc.modelspace().add_mtext("TEXT")
@@ -673,7 +673,7 @@ def test_new_acobjprop_field_supports_simple_hatch_area():
 
 
 def test_new_acobjprop_field_supports_hatch_area_with_hole():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     hatch = doc.modelspace().add_hatch(color=1)
     hatch.paths.add_polyline_path([(0, 0), (10, 0), (10, 10), (0, 10)], is_closed=True)
     hatch.paths.add_polyline_path([(2, 2), (8, 2), (8, 8), (2, 8)], is_closed=True)
@@ -685,7 +685,7 @@ def test_new_acobjprop_field_supports_hatch_area_with_hole():
 
 
 def test_new_acobjprop_field_supports_hatch_edge_rect_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     hatch = doc.modelspace().add_hatch(color=1)
     edge_path = hatch.paths.add_edge_path()
     edge_path.add_line((0, 0), (10, 0))
@@ -700,7 +700,7 @@ def test_new_acobjprop_field_supports_hatch_edge_rect_area():
 
 
 def test_new_acobjprop_field_supports_hatch_edge_arc_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     hatch = doc.modelspace().add_hatch(color=1)
     edge_path = hatch.paths.add_edge_path()
     edge_path.add_line((0, 0), (10, 0))
@@ -715,7 +715,7 @@ def test_new_acobjprop_field_supports_hatch_edge_arc_area():
 
 
 def test_new_acobjprop_field_supports_hatch_edge_ellipse_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     hatch = doc.modelspace().add_hatch(color=1)
     edge_path = hatch.paths.add_edge_path()
     edge_path.add_ellipse(center=(5, 5), major_axis=(5, 0), ratio=0.5, start_angle=0, end_angle=360)
@@ -727,7 +727,7 @@ def test_new_acobjprop_field_supports_hatch_edge_ellipse_area():
 
 
 def test_new_acobjprop_field_supports_hatch_edge_spline_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     hatch = doc.modelspace().add_hatch(color=1)
     edge_path = hatch.paths.add_edge_path()
     cps = [(0, 0), (3, 4), (6, 0), (3, -4), (0, 0)]
@@ -740,7 +740,7 @@ def test_new_acobjprop_field_supports_hatch_edge_spline_area():
 
 
 def test_new_acobjprop_field_supports_canonicalized_bulged_hatch_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     hatch = doc.modelspace().add_hatch(color=1)
     hatch.paths.add_polyline_path(
         [
@@ -761,7 +761,7 @@ def test_new_acobjprop_field_supports_canonicalized_bulged_hatch_area():
 
 
 def test_new_acobjprop_field_supports_ellipse_major_radius():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     ellipse = doc.modelspace().add_ellipse((0, 0), major_axis=(5, 0), ratio=0.5)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(
@@ -773,7 +773,7 @@ def test_new_acobjprop_field_supports_ellipse_major_radius():
 
 
 def test_new_acobjprop_field_supports_ellipse_minor_radius():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     ellipse = doc.modelspace().add_ellipse((0, 0), major_axis=(5, 0), ratio=0.5)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(
@@ -785,7 +785,7 @@ def test_new_acobjprop_field_supports_ellipse_minor_radius():
 
 
 def test_new_acobjprop_field_supports_full_ellipse_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     ellipse = doc.modelspace().add_ellipse((0, 0), major_axis=(5, 0), ratio=0.5)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(ellipse, "Area", register_field_list=True)
@@ -795,7 +795,7 @@ def test_new_acobjprop_field_supports_full_ellipse_area():
 
 
 def test_new_acobjprop_field_supports_ellipse_arc_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     ellipse = doc.modelspace().add_ellipse(
         (0, 0), major_axis=(5, 0), ratio=0.5, start_param=0.0, end_param=math.pi
     )
@@ -807,7 +807,7 @@ def test_new_acobjprop_field_supports_ellipse_arc_area():
 
 
 def test_new_acobjprop_field_supports_closed_lwpolyline_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     pline = doc.modelspace().add_lwpolyline(
         [(0, 0), (10, 0), (10, 10), (0, 10)], close=True
     )
@@ -819,7 +819,7 @@ def test_new_acobjprop_field_supports_closed_lwpolyline_area():
 
 
 def test_new_acobjprop_field_supports_open_lwpolyline_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     pline = doc.modelspace().add_lwpolyline([(0, 0), (3, 4), (3, 8)])
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(pline, "Length", register_field_list=True)
@@ -829,7 +829,7 @@ def test_new_acobjprop_field_supports_open_lwpolyline_length():
 
 
 def test_new_acobjprop_field_supports_open_lwpolyline_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     pline = doc.modelspace().add_lwpolyline([(0, 0), (10, 0), (10, 10)])
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(pline, "Area", register_field_list=True)
@@ -839,7 +839,7 @@ def test_new_acobjprop_field_supports_open_lwpolyline_area():
 
 
 def test_new_acobjprop_field_supports_closed_lwpolyline_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     pline = doc.modelspace().add_lwpolyline(
         [(0, 0), (10, 0), (10, 10), (0, 10)], close=True
     )
@@ -851,7 +851,7 @@ def test_new_acobjprop_field_supports_closed_lwpolyline_length():
 
 
 def test_new_acobjprop_field_supports_bulged_open_lwpolyline_length():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     pline = doc.modelspace().add_lwpolyline(
         [(0, 0, 0, 0, 1.0), (10, 0, 0, 0, 0.0), (10, 10, 0, 0, 0.0)],
         format="xyseb",
@@ -864,7 +864,7 @@ def test_new_acobjprop_field_supports_bulged_open_lwpolyline_length():
 
 
 def test_new_acobjprop_field_supports_bulged_open_lwpolyline_area():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     pline = doc.modelspace().add_lwpolyline(
         [(0, 0, 0, 0, 1.0), (10, 0, 0, 0, 0.0), (10, 10, 0, 0, 0.0)],
         format="xyseb",
@@ -877,7 +877,7 @@ def test_new_acobjprop_field_supports_bulged_open_lwpolyline_area():
 
 
 def test_arc_diameter_is_not_inferred():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     arc = doc.modelspace().add_arc((0, 0), radius=5, start_angle=0, end_angle=180)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(arc, "Diameter", register_field_list=True)
@@ -886,7 +886,7 @@ def test_arc_diameter_is_not_inferred():
 
 
 def test_ellipse_length_is_not_inferred():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     ellipse = doc.modelspace().add_ellipse((0, 0), major_axis=(5, 0), ratio=0.5)
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(ellipse, "Length", register_field_list=True)
@@ -895,7 +895,7 @@ def test_ellipse_length_is_not_inferred():
 
 
 def test_polyline2d_area_with_bulge_is_inferred():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline2d(
         [(0, 0, 1.0), (10, 0, 0.0), (10, 10, 0.0)], format="xyb"
     )
@@ -906,7 +906,7 @@ def test_polyline2d_area_with_bulge_is_inferred():
 
 
 def test_spline_length_is_not_inferred():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     spline = doc.modelspace().add_open_spline([(0, 0), (3, 4), (6, 0), (9, 4)])
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(spline, "Length", register_field_list=True)
@@ -915,7 +915,7 @@ def test_spline_length_is_not_inferred():
 
 
 def test_open_polyline3d_area_is_not_inferred():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline3d([(0, 0, 0), (3, 4, 0), (3, 8, 0)])
     mtext = doc.modelspace().add_mtext("TEXT")
     child, _ = mtext.new_acobjprop_field(polyline, "Area", register_field_list=True)
@@ -924,7 +924,7 @@ def test_open_polyline3d_area_is_not_inferred():
 
 
 def test_closed_polyline3d_area_is_not_inferred():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     polyline = doc.modelspace().add_polyline3d(
         [(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 0)], close=True
     )
@@ -935,7 +935,7 @@ def test_closed_polyline3d_area_is_not_inferred():
 
 
 def test_hatch_area_with_bulged_hole_is_not_inferred():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     hatch = doc.modelspace().add_hatch(color=1)
     hatch.paths.add_polyline_path([(0, 0), (10, 0), (10, 10), (0, 10)], is_closed=True)
     hatch.paths.add_polyline_path([(2, 2, 1.0), (8, 2, 0.0), (8, 8, 0.0)], is_closed=True)

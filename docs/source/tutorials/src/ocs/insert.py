@@ -1,13 +1,13 @@
 # Copyright (c) 2019-2020 Manfred Moitzi
 # License: MIT License
 import math
-import ezdxf
+import dxfpy
 from pathlib import Path
 
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
-from ezdxf.lldxf.const import MIRROR_X
-from ezdxf.math import UCS, Vec3, Matrix44, Y_AXIS, X_AXIS, Z_AXIS
+from dxfpy.lldxf.const import MIRROR_X
+from dxfpy.math import UCS, Vec3, Matrix44, Y_AXIS, X_AXIS, Z_AXIS
 
 RED = 1
 GREEN = 3
@@ -46,14 +46,14 @@ def setup_csys(blk, size=3):
 
 # rotate UCS around an arbitrary axis:
 def ucs_rotation(ucs: UCS, axis: Vec3, angle: float):
-    # new in ezdxf v0.11: UCS.rotate(axis, angle)
+    # new in dxfpy v0.11: UCS.rotate(axis, angle)
     t = Matrix44.axis_rotate(axis, math.radians(angle))
     ux, uy, uz = t.transform_vertices([ucs.ux, ucs.uy, ucs.uz])
     return UCS(origin=ucs.origin, ux=ux, uy=uy, uz=uz)
 
 
 
-doc = ezdxf.new('R2010', setup=True)
+doc = dxfpy.new('R2010', setup=True)
 blk = doc.blocks.new('CSYS')
 setup_csys(blk)
 msp = doc.modelspace()

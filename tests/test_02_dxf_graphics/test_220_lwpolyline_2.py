@@ -1,15 +1,15 @@
 # Copyright (C) 2011-2020, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.entities.lwpolyline import (
+import dxfpy
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.entities.lwpolyline import (
     format_point,
     compile_array,
     LWPolylinePoints,
     LWPolyline,
 )
-from ezdxf.math import Vec3
+from dxfpy.math import Vec3
 
 
 def lwpolyline(points, dxfattribs=None):
@@ -33,7 +33,7 @@ def test_new_line():
     assert line.closed is False, "Polyline should be open by default."
     # test callback DXF attribute
     assert 3 == line.dxf.count  # DXF attrib callback
-    with pytest.raises(ezdxf.DXFAttributeError):
+    with pytest.raises(dxfpy.DXFAttributeError):
         line.dxf.count = 0  # set dxf tag 90
 
 

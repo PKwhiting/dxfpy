@@ -2,9 +2,9 @@
 # License: MIT License
 
 import pathlib
-import ezdxf
-from ezdxf import disassemble, zoom
-from ezdxf.fonts import fonts
+import dxfpy
+from dxfpy import disassemble, zoom
+from dxfpy.fonts import fonts
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -31,7 +31,7 @@ FILES = [
 def main():
     for filename in FILES:
         print(f"Processing: {filename}")
-        doc = ezdxf.readfile(
+        doc = dxfpy.readfile(
             pathlib.Path(__file__).parent.parent / "examples_dxf" / filename
         )
         msp = doc.modelspace()

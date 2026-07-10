@@ -1,4 +1,4 @@
-from ezdxf.entities import LWPolyline
+from dxfpy.entities import LWPolyline
 import pytest
 
 

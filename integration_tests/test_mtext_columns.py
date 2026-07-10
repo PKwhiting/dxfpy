@@ -3,9 +3,9 @@
 from typing import Iterable, cast
 from pathlib import Path
 import pytest
-import ezdxf
-from ezdxf import recover
-from ezdxf.entities import MText
+import dxfpy
+from dxfpy import recover
+from dxfpy.entities import MText
 
 DATA = Path(__file__).parent / "data"
 COLUMNS_R2007 = "mtext_columns_R2007.dxf"
@@ -13,7 +13,7 @@ COLUMNS_R2018 = "mtext_columns_R2018.dxf"
 
 
 def load_mtext_entities(name: str) -> Iterable[MText]:
-    doc = ezdxf.readfile(DATA / name)
+    doc = dxfpy.readfile(DATA / name)
     msp = doc.modelspace()
     entities = msp.query("MTEXT")
     return entities

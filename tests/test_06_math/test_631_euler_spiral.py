@@ -1,6 +1,6 @@
 # Copyright (c) 2010-2021, Manfred Moitzi
 # License: MIT License
-from ezdxf.math import Vec3, EulerSpiral
+from dxfpy.math import Vec3, EulerSpiral
 from math import isclose
 
 expected_points = [

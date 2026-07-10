@@ -2,13 +2,13 @@
 #  License: MIT License
 
 from pathlib import Path
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.entities.xdata import XDataUserDict, XDataUserList
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.entities.xdata import XDataUserDict, XDataUserList
 
 DIR = Path("~/Desktop/Outbox").expanduser()
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 line = msp.add_line((0, 0), (1, 0))
 

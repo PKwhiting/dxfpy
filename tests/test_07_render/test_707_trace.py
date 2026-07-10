@@ -1,9 +1,9 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.render.trace import TraceBuilder, LinearTrace, CurvedTrace
-from ezdxf.math import BSpline, Vec2, BoundingBox
+import dxfpy
+from dxfpy.render.trace import TraceBuilder, LinearTrace, CurvedTrace
+from dxfpy.math import BSpline, Vec2, BoundingBox
 
 
 def test_trace_builder_init():
@@ -118,7 +118,7 @@ def test_linear_trace_polygon():
 
 
 def test_virtual_entities_added_to_entity_database():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     t = LinearTrace()
     t.add_station((0, 0), 1, 1)
@@ -147,7 +147,7 @@ def test_virtual_entities_added_to_entity_database():
 
 
 def test_issue_191():
-    from ezdxf.entities import factory
+    from dxfpy.entities import factory
 
     e = factory.new(
         "LWPOLYLINE",

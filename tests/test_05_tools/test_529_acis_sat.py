@@ -2,8 +2,8 @@
 #  License: MIT License
 import pytest
 from datetime import datetime
-from ezdxf.acis import sat, hdr, const
-from ezdxf.version import __version__
+from dxfpy.acis import sat, hdr, const
+from dxfpy.version import __version__
 
 
 def test_default_header():
@@ -16,17 +16,29 @@ def test_default_header():
 
 LEN = len(__version__) + 20
 
-HEADER_400 = f"""400 0 1 0 
-{LEN} ezdxf v{__version__} ACIS Builder 12 ACIS 4.00 NT 24 Sat Jan  1 10:00:00 2022 
-1 9.9999999999999995e-007 1e-010 """
+HEADER_400 = "\n".join(
+    [
+        "400 0 1 0 ",
+        f"{LEN} dxfpy v{__version__} ACIS Builder 12 ACIS 4.00 NT 24 Sat Jan  1 10:00:00 2022 ",
+        "1 9.9999999999999995e-007 1e-010 ",
+    ]
+)
 
-HEADER_700 = f"""700 0 1 0 
-@{LEN} ezdxf v{__version__} ACIS Builder @12 ACIS 32.0 NT @24 Sat Jan  1 10:00:00 2022 
-1 9.9999999999999995e-007 1e-010 """
+HEADER_700 = "\n".join(
+    [
+        "700 0 1 0 ",
+        f"@{LEN} dxfpy v{__version__} ACIS Builder @12 ACIS 32.0 NT @24 Sat Jan  1 10:00:00 2022 ",
+        "1 9.9999999999999995e-007 1e-010 ",
+    ]
+)
 
-HEADER_21800 = f"""21800 0 1 0 
-@{LEN} ezdxf v{__version__} ACIS Builder @14 ACIS 218.00 NT @24 Sat Jan  1 10:00:00 2022 
-1 9.9999999999999995e-007 1e-010 """
+HEADER_21800 = "\n".join(
+    [
+        "21800 0 1 0 ",
+        f"@{LEN} dxfpy v{__version__} ACIS Builder @14 ACIS 218.00 NT @24 Sat Jan  1 10:00:00 2022 ",
+        "1 9.9999999999999995e-007 1e-010 ",
+    ]
+)
 
 
 @pytest.mark.parametrize(
@@ -50,14 +62,14 @@ def test_dump_header_string(ver, s):
 @pytest.mark.parametrize(
     "s",
     [
-        "18 ezdxf ACIS Builder 14 ACIS 208.00 NT 24 Sat Jan  1 10:00:00 2022 ",
-        "@18 ezdxf ACIS Builder @14 ACIS 208.00 NT @24 Sat Jan  1 10:00:00 2022 ",
+        "18 dxfpy ACIS Builder 14 ACIS 208.00 NT 24 Sat Jan  1 10:00:00 2022 ",
+        "@18 dxfpy ACIS Builder @14 ACIS 208.00 NT @24 Sat Jan  1 10:00:00 2022 ",
     ],
 )
 def test_parse_header_str(s):
     tokens = list(sat.parse_header_str(s))
     assert tokens == [
-        "ezdxf ACIS Builder",
+        "dxfpy ACIS Builder",
         "ACIS 208.00 NT",
         "Sat Jan  1 10:00:00 2022",
     ]
@@ -68,7 +80,7 @@ def test_parse_sat_header(hdr, ver):
     header, data = sat.parse_header(hdr.split("\n"))
     assert len(data) == 0
     assert header.version == ver
-    assert header.product_id == f"ezdxf v{__version__} ACIS Builder"
+    assert header.product_id == f"dxfpy v{__version__} ACIS Builder"
     assert header.n_entities == 1
     assert header.creation_date == datetime(2022, 1, 1, 10, 00)
 

@@ -1,13 +1,13 @@
 # Copyright (c) 2022-2023, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import text2path
-from ezdxf.gfxattribs import GfxAttribs
-from ezdxf.fonts import fonts
-from ezdxf.math import Matrix44
-from ezdxf import zoom, path
-from ezdxf.render import hatching
+import dxfpy
+from dxfpy.addons import text2path
+from dxfpy.gfxattribs import GfxAttribs
+from dxfpy.fonts import fonts
+from dxfpy.math import Matrix44
+from dxfpy import zoom, path
+from dxfpy.render import hatching
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -17,8 +17,8 @@ if not CWD.exists():
 # This example shows how to render text as HATCH entities by the text2path add-on.
 #
 # docs:
-# text2path add-on: https://ezdxf.mozman.at/docs/addons/text2path.html
-# hatching module: https://ezdxf.mozman.at/docs/render/hatching.html
+# text2path add-on: https://dxfpy.mozman.at/docs/addons/text2path.html
+# hatching module: https://dxfpy.mozman.at/docs/render/hatching.html
 # ------------------------------------------------------------------------------
 
 SAMPLE_STRING = "Sample Text: 1234567890 abc ABC"
@@ -26,7 +26,7 @@ FONT = fonts.FontFace(family="Arial")
 
 
 def text_to_solid_filling():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     hatches = text2path.make_hatches_from_str(
@@ -42,7 +42,7 @@ def text_to_solid_filling():
 
 
 def text_to_predefined_pattern():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     hatches = text2path.make_hatches_from_str(
@@ -60,7 +60,7 @@ def text_to_predefined_pattern():
 
 
 def text_to_custom_pattern():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     m = Matrix44.translate(2, 1.5, 0)
@@ -93,7 +93,7 @@ def text_to_custom_pattern():
         SAMPLE_STRING, font=FONT, size=4, m=m
     )
     path.render_splines_and_polylines(
-        msp, outlines, dxfattribs=GfxAttribs(color=ezdxf.colors.YELLOW)
+        msp, outlines, dxfattribs=GfxAttribs(color=dxfpy.colors.YELLOW)
     )
 
     zoom.extents(msp)
@@ -101,7 +101,7 @@ def text_to_custom_pattern():
 
 
 def render_hatch_entities():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     hatches = text2path.make_hatches_from_str(SAMPLE_STRING, font=FONT, size=4)
@@ -123,7 +123,7 @@ def render_hatch_entities():
             definition=MY_PATTERN,
         )
         # Adding LINE entities to the modelspace instead of HATCH entities:
-        attribs = GfxAttribs(color=ezdxf.colors.RED)
+        attribs = GfxAttribs(color=dxfpy.colors.RED)
         for start, end in hatching.hatch_entity(hatch):
             msp.add_line(start, end, dxfattribs=attribs)
 

@@ -4,9 +4,9 @@
 import pytest
 
 pytest.importorskip("matplotlib")
-from ezdxf import path
-from ezdxf.math import Vec2
-from ezdxf import npshapes
+from dxfpy import path
+from dxfpy.math import Vec2
+from dxfpy import npshapes
 
 
 class MC:

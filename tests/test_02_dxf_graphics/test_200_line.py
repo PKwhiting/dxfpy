@@ -3,10 +3,10 @@
 import pytest
 import math
 
-from ezdxf.entities.line import Line
-from ezdxf.lldxf.const import DXF12, DXF2000, DXFValueError
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Matrix44, Z_AXIS, Y_AXIS
+from dxfpy.entities.line import Line
+from dxfpy.lldxf.const import DXF12, DXF2000, DXFValueError
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Matrix44, Z_AXIS, Y_AXIS
 
 TEST_CLASS = Line
 TEST_TYPE = "LINE"
@@ -64,7 +64,7 @@ def line(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert TEST_TYPE in ENTITY_CLASSES
 

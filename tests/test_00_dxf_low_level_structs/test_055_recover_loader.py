@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 from io import BytesIO
-from ezdxf.recover import (
+from dxfpy.recover import (
     bytes_loader,
     detect_encoding,
     synced_bytes_loader,
@@ -11,8 +11,8 @@ from ezdxf.recover import (
     _search_float,
     byte_tag_compiler,
 )
-from ezdxf.lldxf import const
-from ezdxf.audit import AuditError
+from dxfpy.lldxf import const
+from dxfpy.audit import AuditError
 
 HEADER = """  0
 SECTION

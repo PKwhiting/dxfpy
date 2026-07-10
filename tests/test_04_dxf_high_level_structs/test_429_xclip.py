@@ -1,19 +1,19 @@
 # Copyright (c) 2023, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.entities import factory, Dictionary, XRecord
-from ezdxf import xclip
-from ezdxf.math import BoundingBox2d
-from ezdxf.entities.acad_xrec_roundtrip import RoundtripXRecord
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.entities import factory, Dictionary, XRecord
+from dxfpy import xclip
+from dxfpy.math import BoundingBox2d
+from dxfpy.entities.acad_xrec_roundtrip import RoundtripXRecord
 
 TEST_BLK = "TEST_BLK"
 
 
 @pytest.fixture(scope="module")
 def doc() -> Drawing:
-    _doc = ezdxf.new()
+    _doc = dxfpy.new()
     blk = _doc.blocks.new(TEST_BLK)
     blk.add_line((0, 0), (10, 10))
     return _doc

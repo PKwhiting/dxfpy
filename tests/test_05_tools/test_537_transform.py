@@ -4,9 +4,9 @@
 import pytest
 import math
 
-import ezdxf
-from ezdxf import transform
-from ezdxf.layouts import VirtualLayout
+import dxfpy
+from dxfpy import transform
+from dxfpy.layouts import VirtualLayout
 
 
 class TestInplaceMethod:
@@ -17,7 +17,7 @@ class TestInplaceMethod:
     @pytest.fixture
     def msp(self, request):
         if request.param == "doc":
-            doc = ezdxf.new()
+            doc = dxfpy.new()
             msp = doc.modelspace()
         elif request.param == "virtual":
             # The matrix() function supports virtual entities as well.
@@ -51,7 +51,7 @@ class TestInplaceMethod:
         assert entity.dxftype() == "ELLIPSE"
 
     def test_entities_without_transformation_support(self):
-        from ezdxf.entities import Layer
+        from dxfpy.entities import Layer
 
         m = transform.Matrix44.translate(1, 0, 0)
         log = transform.inplace([Layer.new()], m)
@@ -60,7 +60,7 @@ class TestInplaceMethod:
     def test_acis_entities(self):
         # new in v1.3.0: ACIS entities support a temporary transformation
         #
-        # This way a temporary transformation of ACIS entities is stored by ezdxf.
+        # This way a temporary transformation of ACIS entities is stored by dxfpy.
         # This temp. transformation has to be applied before export otherwise a warning 
         # will be logged.
 
@@ -114,7 +114,7 @@ class TestConvenientFunctions:
 
 
 def test_circle_non_uniform_scaling():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_circle((0, 0), radius=1)
     transform.scale(msp, sx=3, sy=2, sz=1)
@@ -127,7 +127,7 @@ def test_circle_non_uniform_scaling():
 
 
 def test_polyline_non_uniform_scaling():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     # semi-circle: center=(0, 0); radius=1
     msp.add_lwpolyline([(-1, 0, 0, 0, 1), (1, 0)])
@@ -186,10 +186,10 @@ class TestVirtualCopies:
 class TestMLeaderNonUniformScaling:
     @pytest.fixture(scope="class")
     def msp(self):
-        from ezdxf.render import mleader
-        from ezdxf.math import Vec2
+        from dxfpy.render import mleader
+        from dxfpy.math import Vec2
 
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         msp = doc.modelspace()
         ml_builder = msp.add_multileader_mtext("Standard")
         ml_builder.set_content("Line1\nLine2")

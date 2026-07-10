@@ -2,10 +2,10 @@
 # License: MIT License
 import pytest
 
-from ezdxf.math import Vec2
-from ezdxf.addons.drawing.backend import BackendProperties, BkPoints2d, BkPath2d
-from ezdxf.addons.drawing import json
-from ezdxf import path
+from dxfpy.math import Vec2
+from dxfpy.addons.drawing.backend import BackendProperties, BkPoints2d, BkPath2d
+from dxfpy.addons.drawing import json
+from dxfpy import path
 
 
 class TestCustomJSONBackend:

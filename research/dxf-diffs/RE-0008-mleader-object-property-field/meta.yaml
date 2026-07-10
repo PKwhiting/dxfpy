@@ -11,10 +11,10 @@ source_artifacts:
   edited_after_dxf: experiments/field-mleader-object/manual/after-length-field.dxf
   validation_before_dxf: experiments/field-mleader-object/validate-manual-after-length-field/before.dxf
   validation_after_dxf: experiments/field-mleader-object/validate-manual-after-length-field/after.dxf
-target_ezdxf_modules:
-  - src/ezdxf/entities/dxfobj.py
-  - src/ezdxf/entities/mleader.py
-  - src/ezdxf/render/mleader.py
+target_dxfpy_modules:
+  - src/dxfpy/entities/dxfobj.py
+  - src/dxfpy/entities/mleader.py
+  - src/dxfpy/render/mleader.py
 notes:
   - Baseline contains one LINE and one plain MULTILEADER placeholder with text FIELD_MLEADER_OBJECT_BASE.
   - Edited file was created manually in AutoCAD by replacing the MULTILEADER placeholder with a line Length field.

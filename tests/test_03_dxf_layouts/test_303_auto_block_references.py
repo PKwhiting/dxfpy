@@ -1,14 +1,14 @@
 # Copyright (c) 2011-2024, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.lldxf import const
-from ezdxf.entities import MText, Insert
+import dxfpy
+from dxfpy.lldxf import const
+from dxfpy.entities import MText, Insert
 
 
 @pytest.fixture
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 @pytest.fixture
@@ -67,7 +67,7 @@ def test_add_auto_attribs_with_default_text(doc, block):
 
 
 def test_add_auto_attribs_with_missing_tag():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     blocks = doc.blocks.new("TEST")
     attdef = blocks.add_attdef("TAG1", (0, 0))
@@ -78,7 +78,7 @@ def test_add_auto_attribs_with_missing_tag():
 
 
 def test_add_auto_attribs_with_missing_location():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     blocks = doc.blocks.new("TEST")
     attdef = blocks.add_attdef("TAG1", (0, 0))
@@ -137,7 +137,7 @@ def test_attdef_setter_properties(block):
 class TestMultiLineAttribs:
     @pytest.fixture
     def doc(self):
-        return ezdxf.new()
+        return dxfpy.new()
 
     @pytest.fixture
     def block(self, doc):

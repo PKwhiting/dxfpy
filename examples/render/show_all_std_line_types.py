@@ -1,18 +1,18 @@
 # Copyright (c) 2019-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.tools.standards import linetypes
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.tools.standards import linetypes
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
 # ------------------------------------------------------------------------------
-# This example shows the standard linetypes supported by ezdxf.
+# This example shows the standard linetypes supported by dxfpy.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/linetypes.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/linetypes.html
 # ------------------------------------------------------------------------------
 
 
@@ -20,7 +20,7 @@ def main():
     # IMPORTANT:
     # The argument setup=True is REQUIRED to create these linetypes otherwise
     # the linetypes are undefined and AutoCAD will not open the DXf file!
-    doc = ezdxf.new("R2007", setup=True)
+    doc = dxfpy.new("R2007", setup=True)
     msp = doc.modelspace()
 
     # How to change the global linetype scaling:

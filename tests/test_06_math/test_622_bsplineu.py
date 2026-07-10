@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 from math import isclose
-from ezdxf.math import open_uniform_bspline
+from dxfpy.math import open_uniform_bspline
 
 
 DEFPOINTS = [

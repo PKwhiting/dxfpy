@@ -2,7 +2,7 @@
 # License: MIT License
 import os
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(params=["AC1009", "AC1015"])
@@ -32,14 +32,14 @@ POINTS = [
 def test_entities_iterator(dxfversion, tmpdir):
     filename = tmpdir.join("polyline_{}.dxf".format(dxfversion))
     filename = str(filename)
-    drawing = ezdxf.new(dxfversion)
+    drawing = dxfpy.new(dxfversion)
     modelspace = drawing.modelspace()
     modelspace.add_polyline3d(POINTS)
     drawing.saveas(filename)
 
     assert os.path.exists(filename)
 
-    dxf = ezdxf.readfile(filename)
+    dxf = dxfpy.readfile(filename)
     for entity in dxf.entities:
         if entity.dxftype() == "POLYLINE":  # iterator ok
             points = list(entity.points())

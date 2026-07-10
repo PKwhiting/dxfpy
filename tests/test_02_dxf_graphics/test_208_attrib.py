@@ -3,13 +3,13 @@
 import pytest
 import math
 
-import ezdxf
-from ezdxf.entities import Attrib, MText
-from ezdxf.entities.attrib import EmbeddedMText, EmbeddedMTextNS
-from ezdxf.lldxf import const
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Matrix44
-from ezdxf.audit import Auditor
+import dxfpy
+from dxfpy.entities import Attrib, MText
+from dxfpy.entities.attrib import EmbeddedMText, EmbeddedMTextNS
+from dxfpy.lldxf import const
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Matrix44
+from dxfpy.audit import Auditor
 
 TEST_CLASS = Attrib
 TEST_TYPE = "ATTRIB"
@@ -111,7 +111,7 @@ TAG
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 @pytest.fixture(params=[ENTITY_R12, ENTITY_R2000])
@@ -120,7 +120,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert TEST_TYPE in ENTITY_CLASSES
 
@@ -228,7 +228,7 @@ class TestEmbeddedMTextSupport:
         assert mtext.dxf.line_spacing_factor == 1.0
 
     def test_dxf_export_matches_test_data(self, attrib):
-        result = TagCollector.dxftags(attrib, dxfversion=ezdxf.const.DXF2018)
+        result = TagCollector.dxftags(attrib, dxfversion=dxfpy.const.DXF2018)
         expected = basic_tags_from_text(EMBEDDED_MTEXT)
         assert result == expected
 
@@ -306,7 +306,7 @@ def test_version_without_lock_position():
 def test_single_line_attrib_export_omits_r2018_feature_tags():
     attrib = Attrib.new(dxfattribs={"tag": "TAG1", "text": "X", "insert": (0, 0)})
 
-    tags = TagCollector.dxftags(attrib, dxfversion=ezdxf.const.DXF2018)
+    tags = TagCollector.dxftags(attrib, dxfversion=dxfpy.const.DXF2018)
 
     assert 71 not in [tag.code for tag in tags]
     assert 72 not in [tag.code for tag in tags]

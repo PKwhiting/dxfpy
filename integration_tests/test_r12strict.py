@@ -2,10 +2,10 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.entities import DXFEntity
-from ezdxf.document import Drawing
-from ezdxf import r12strict
+import dxfpy
+from dxfpy.entities import DXFEntity
+from dxfpy.document import Drawing
+from dxfpy import r12strict
 
 
 def set_xdata(entity: DXFEntity):
@@ -62,7 +62,7 @@ def setup_drawing(doc: Drawing):
 
 @pytest.fixture(scope="module")
 def doc():
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     setup_drawing(doc)
     r12strict.translate_names(doc)
     return doc
@@ -175,7 +175,7 @@ def test_translated_block_content_attributes(doc: Drawing):
 
 
 def test_clean_xdata_from_table_entries():
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     doc.appids.new("MY_ID")
     layer = doc.layers.new("MY_LAYER")
     layer.set_xdata("MY_ID", [(1000, "Test")])
@@ -185,7 +185,7 @@ def test_clean_xdata_from_table_entries():
 
 
 def test_remove_legacy_blocks():
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     doc.blocks.new("$Model_Space")
     doc.blocks.new("$Paper_Space")
 

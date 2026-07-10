@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.tools.text import TextScanner
+from dxfpy.tools.text import TextScanner
 
 
 class TestTextScanner:

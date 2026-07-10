@@ -1,8 +1,8 @@
 #  Copyright (c) 2021, Manfred Moitzi
 #  License: MIT License
 import pytest
-from ezdxf.entities import Hatch
-from ezdxf.math import Vec2
+from dxfpy.entities import Hatch
+from dxfpy.math import Vec2
 
 
 @pytest.fixture

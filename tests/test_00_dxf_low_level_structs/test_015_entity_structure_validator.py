@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-from ezdxf.lldxf.validator import entity_structure_validator
-from ezdxf.lldxf.tagger import internal_tag_compiler
-from ezdxf import DXFAppDataError, DXFXDataError
+from dxfpy.lldxf.validator import entity_structure_validator
+from dxfpy.lldxf.tagger import internal_tag_compiler
+from dxfpy import DXFAppDataError, DXFXDataError
 
 
 def compile(s):

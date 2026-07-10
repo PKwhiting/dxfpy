@@ -1,14 +1,14 @@
 # Copyright (c) 2021-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.math import Vec3, UCS
+import dxfpy
+from dxfpy.math import Vec3, UCS
 import logging
 
 # ------------------------------------------------------------------------------
 # This example shows how to use ordinate dimension.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/ordinate_dimension.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/ordinate_dimension.html
 # ------------------------------------------------------------------------------
 
 logging.basicConfig(level="WARNING")
@@ -22,9 +22,9 @@ if not CWD.exists():
 # Default text attributes:
 TEXT_ATTRIBS = {
     "height": 0.25,
-    "style": ezdxf.options.default_dimension_text_style,
+    "style": dxfpy.options.default_dimension_text_style,
 }
-DIM_TEXT_STYLE = ezdxf.options.default_dimension_text_style
+DIM_TEXT_STYLE = dxfpy.options.default_dimension_text_style
 
 # Discarding the dimension rendering is possible for BricsCAD,
 # but it is incompatible to AutoCAD -> error
@@ -61,7 +61,7 @@ def add_x_and_y_type(
     # DIMENSION entity, they are just used to render the DIMENSION entity.
     # The return value `dim` is not a DIMENSION entity, instead a
     # DimStyleOverride object is returned, the DIMENSION entity is stored
-    # as dim.dimension, see also ezdxf.override.DimStyleOverride class.
+    # as dim.dimension, see also dxfpy.override.DimStyleOverride class.
     dim.render(discard=BRICSCAD)
 
     # swap x, y axis of the offset for the y-type
@@ -79,7 +79,7 @@ def ordinate_wcs(
     rotate: float = 0.0,
     override: dict = None,
 ):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     if override is None:
         override = dict()
@@ -106,7 +106,7 @@ def ordinate_ucs(
     filename: str,
     rotate: float = 30.0,
 ):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     dimstyle = doc.dimstyles.duplicate_entry("EZDXF", "ORD_CENTER")
     dimstyle.dxf.dimtad = 0
     msp = doc.modelspace()

@@ -1,8 +1,8 @@
 #  Copyright (c) 2020, Manfred Moitzi
 #  License: MIT License
 import pytest
-from ezdxf.entities import DXFEntity
-from ezdxf import reorder
+from dxfpy.entities import DXFEntity
+from dxfpy import reorder
 
 
 @pytest.fixture()

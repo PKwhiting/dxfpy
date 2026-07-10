@@ -1,9 +1,9 @@
 #  Copyright (c) 2020, Manfred Moitzi
 #  License: MIT License
 
-import ezdxf
+import dxfpy
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 width = 40

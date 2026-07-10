@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.entities.spatial_filter import SpatialFilter
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.spatial_filter import SpatialFilter
 
 
 def test_setup_from_tags():

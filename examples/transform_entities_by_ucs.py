@@ -2,9 +2,9 @@
 # License: MIT License
 import pathlib
 import math
-import ezdxf
-from ezdxf import zoom
-from ezdxf.math import UCS, Vec3
+import dxfpy
+from dxfpy import zoom
+from dxfpy.math import UCS, Vec3
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,13 +15,13 @@ if not CWD.exists():
 # interface and the UCS class.
 #
 # docs:
-# https://ezdxf.mozman.at/docs/dxfentities/dxfgfx.html#ezdxf.entities.DXFGraphic.transform
-# https://ezdxf.mozman.at/docs/math/core.html#ucs-class
-# tutorial for UCS based transformations: https://ezdxf.mozman.at/docs/tutorials/ucs_transform.html
+# https://dxfpy.mozman.at/docs/dxfentities/dxfgfx.html#dxfpy.entities.DXFGraphic.transform
+# https://dxfpy.mozman.at/docs/math/core.html#ucs-class
+# tutorial for UCS based transformations: https://dxfpy.mozman.at/docs/tutorials/ucs_transform.html
 #
-# IMPORTANT: the ezdxf.math.UCS is not identical to the UCSTableEntry in
+# IMPORTANT: the dxfpy.math.UCS is not identical to the UCSTableEntry in
 # the TABLE section, but you can acquire the USC by UCSTableEntry.ucs():
-# https://ezdxf.mozman.at/docs/tables/ucs_table_entry.html#ezdxf.entities.UCSTableEntry.ucs
+# https://dxfpy.mozman.at/docs/tables/ucs_table_entry.html#dxfpy.entities.UCSTableEntry.ucs
 # ------------------------------------------------------------------------------
 
 NARROW = "OpenSansCondensed-Light"
@@ -133,7 +133,7 @@ def add_mtext(msp, ucs):
 
 
 def scene1(filename):
-    doc = ezdxf.new("R2010", setup=True)
+    doc = dxfpy.new("R2010", setup=True)
     msp = doc.modelspace()
 
     ucs = UCS()
@@ -188,7 +188,7 @@ def add_excentric_text(msp, ucs, location, text):
 
 
 def scene2(filename):
-    doc = ezdxf.new("R2010", setup=True)
+    doc = dxfpy.new("R2010", setup=True)
     msp = doc.modelspace()
     delta = 6
     for z in range(-2, 3):

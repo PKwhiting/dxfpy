@@ -1,13 +1,13 @@
 # Copyright (C) 2011-2021, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.entities import DXFGraphic, DXFTagStorage
+import dxfpy
+from dxfpy.entities import DXFGraphic, DXFTagStorage
 
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     return doc.modelspace()
 
 
@@ -65,7 +65,7 @@ def test_delete_unsupported_graphic_entity(msp):
 
 
 def test_cannot_add_invalid_dxf_objects(msp):
-    with pytest.raises(ezdxf.DXFTypeError):
+    with pytest.raises(dxfpy.DXFTypeError):
         msp.add_entity(DXFTagStorage())
 
 

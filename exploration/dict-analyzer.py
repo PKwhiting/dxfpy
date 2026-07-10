@@ -2,14 +2,14 @@
 # License: MIT License
 from __future__ import annotations
 
-import ezdxf
-from ezdxf.entities import Dictionary, DXFEntity
+import dxfpy
+from dxfpy.entities import Dictionary, DXFEntity
 
 EX1 = r"C:\Source\dxftest\ACAD_R2010.dxf"
 EX2 = r"C:\Source\dxftest\AutodeskSamples\title_block-iso.dxf"
-ISSUE_1203 = r"C:\Users\mozman\Desktop\Now\ezdxf\1203\dynblock.dxf"
-ISSUE_1279 = r"C:\Users\mozman\Desktop\Now\ezdxf\1279\1279_orig.dxf"
-ISSUE_1285 = r"C:\Users\mozman\Desktop\Now\ezdxf\1285\add_clipping_path_in_block_coordinates.dxf"
+ISSUE_1203 = r"C:\Users\mozman\Desktop\Now\dxfpy\1203\dynblock.dxf"
+ISSUE_1279 = r"C:\Users\mozman\Desktop\Now\dxfpy\1279\1279_orig.dxf"
+ISSUE_1285 = r"C:\Users\mozman\Desktop\Now\dxfpy\1285\add_clipping_path_in_block_coordinates.dxf"
 
 """
 Analyze DICTIONARY
@@ -71,7 +71,7 @@ Undocumented extension dict of the INSERT(#1E98) entity:
     3. Extension-dicts and contained dictionaries do have the flag and the value is set to 1
     
 
-Current implementation of ezdxf for new DXF files
+Current implementation of dxfpy for new DXF files
 -------------------------------------------------
 
     1. The root-dict does have the flag and the state is 0.
@@ -86,7 +86,7 @@ Related issues:
 
     - #1203: Copying dynamic blocks via clipboard removes dynamic features
     - #1276: Copy to clipboard failed issue found from version 1.3.5 (no example file)
-    - #1279: ezdxf audit does not repair the drawing (crash on ctrl+c)
+    - #1279: dxfpy audit does not repair the drawing (crash on ctrl+c)
     - #1285: Copying clipped blocks via clipboard removes clipping
 
 Tests:
@@ -152,7 +152,7 @@ def print_dict_info(d: Dictionary) -> None:
 
 
 def main(filename: str):
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     dicts = doc.entitydb.query("DICTIONARY")
     for d in dicts:
         print_dict_info(d)
@@ -161,7 +161,7 @@ def main(filename: str):
 
 
 def new_doc():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (1, 0))
     ext_dict = line.new_extension_dict()

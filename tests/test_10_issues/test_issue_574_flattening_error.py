@@ -3,8 +3,8 @@
 
 import pytest
 
-from ezdxf.entities import LWPolyline, Ellipse
-from ezdxf import path
+from dxfpy.entities import LWPolyline, Ellipse
+from dxfpy import path
 
 
 @pytest.fixture

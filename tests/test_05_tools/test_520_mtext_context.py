@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.enums import MTextParagraphAlignment
-from ezdxf.tools.text import MTextContext, ParagraphProperties
+from dxfpy.enums import MTextParagraphAlignment
+from dxfpy.tools.text import MTextContext, ParagraphProperties
 
 
 def test_underline():

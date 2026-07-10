@@ -3,7 +3,7 @@
 
 import pytest
 import struct
-from ezdxf.tools.binarydata import ByteStream
+from dxfpy.tools.binarydata import ByteStream
 
 
 def test_init():

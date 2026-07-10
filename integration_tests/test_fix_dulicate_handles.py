@@ -3,8 +3,8 @@
 
 import os
 import pytest
-import ezdxf
-from ezdxf import recover
+import dxfpy
+from dxfpy import recover
 
 BASEDIR = os.path.dirname(__file__)
 DATADIR = "data"
@@ -25,7 +25,7 @@ def test_recover_duplicate_handles(filename, tmp_path):
     assert doc.layers.head.dxf.handle != "2"
     assert doc.linetypes.head.dxf.handle != "4"
 
-    doc2 = ezdxf.readfile(fixed_dxf_name)
+    doc2 = dxfpy.readfile(fixed_dxf_name)
     auditor = doc2.audit()
     assert len(auditor.fixes) == 0
     assert len(doc2.modelspace()) == 132

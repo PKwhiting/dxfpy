@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.tools.complex_ltype import (
+from dxfpy.tools.complex_ltype import (
     lin_tokenizer,
     lin_parser,
     lin_compiler,
@@ -169,9 +169,9 @@ def test_tags_from_complex_shape():
 
 
 def test_new_table_entry_has_text_style_handle():
-    import ezdxf
+    import dxfpy
 
-    doc = ezdxf.new("R2013")
+    doc = dxfpy.new("R2013")
     ltype = doc.linetypes.new(
         "GASLEITUNG2",
         dxfattribs={

@@ -1,6 +1,6 @@
 # Copyright (c) 2019-2020, Manfred Moitzi
 # License: MIT License
-from ezdxf.math import ConstructionLine, Vec2
+from dxfpy.math import ConstructionLine, Vec2
 
 
 class TestConstructionLine:

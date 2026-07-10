@@ -1,6 +1,6 @@
 # Copyright (c) 2018-2020 Manfred Moitzi
 # License: MIT License
-from ezdxf.math import PassTroughUCS, UCS, Vec3, X_AXIS, Y_AXIS, Z_AXIS
+from dxfpy.math import PassTroughUCS, UCS, Vec3, X_AXIS, Y_AXIS, Z_AXIS
 
 
 def test_u_vectors():

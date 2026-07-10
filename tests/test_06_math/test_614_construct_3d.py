@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 import math
-from ezdxf.math import (
+from dxfpy.math import (
     is_planar_face,
     Vec3,
     Vec2,
@@ -24,7 +24,7 @@ from ezdxf.math import (
     is_vertex_order_ccw_3d,
 )
 
-from ezdxf.render.forms import square, circle
+from dxfpy.render.forms import square, circle
 
 REGULAR_FACE = Vec3.list([(0, 0, 0), (1, 0, 1), (1, 1, 1), (0, 1, 0)])
 IRREGULAR_FACE = Vec3.list([(0, 0, 0), (1, 0, 1), (1, 1, 0), (0, 1, 0)])

@@ -2,7 +2,7 @@
 # Created: 12.03.2011
 # Copyright (c) 2011-2019, Manfred Moitzi
 # License: MIT License
-from ezdxf.sections.header import HeaderVar
+from dxfpy.sections.header import HeaderVar
 
 
 class TestDXFValue:

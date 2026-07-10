@@ -3,8 +3,8 @@
 
 import pytest
 
-from ezdxf.math import Vec2
-from ezdxf.addons.drawing import layout
+from dxfpy.math import Vec2
+from dxfpy.addons.drawing import layout
 
 
 class TestPage:

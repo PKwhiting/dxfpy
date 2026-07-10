@@ -1,13 +1,13 @@
 # Copyright (c) 2011-2022, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.entitydb import EntityDB
-from ezdxf.entities.dxfentity import DXFEntity
-from ezdxf.audit import Auditor
+import dxfpy
+from dxfpy.entitydb import EntityDB
+from dxfpy.entities.dxfentity import DXFEntity
+from dxfpy.audit import Auditor
 
 ENTITY = DXFEntity.new(handle="FFFF")
-auditor = Auditor(ezdxf.new())
+auditor = Auditor(dxfpy.new())
 
 
 @pytest.fixture

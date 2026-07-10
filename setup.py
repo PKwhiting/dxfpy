@@ -16,17 +16,17 @@ from setuptools import Extension
 #
 # All Cython modules are optional:
 ext_modules = [
-    Extension("ezdxf.acc.vector", ["src/ezdxf/acc/vector.pyx"], optional=True),
-    Extension("ezdxf.acc.matrix44", ["src/ezdxf/acc/matrix44.pyx"], optional=True),
-    Extension("ezdxf.acc.bezier4p", ["src/ezdxf/acc/bezier4p.pyx"], optional=True),
-    Extension("ezdxf.acc.bezier3p", ["src/ezdxf/acc/bezier3p.pyx"], optional=True),
-    Extension("ezdxf.acc.bspline", ["src/ezdxf/acc/bspline.pyx"], optional=True),
-    Extension("ezdxf.acc.construct", ["src/ezdxf/acc/construct.pyx"], optional=True),
+    Extension("dxfpy.acc.vector", ["src/dxfpy/acc/vector.pyx"], optional=True),
+    Extension("dxfpy.acc.matrix44", ["src/dxfpy/acc/matrix44.pyx"], optional=True),
+    Extension("dxfpy.acc.bezier4p", ["src/dxfpy/acc/bezier4p.pyx"], optional=True),
+    Extension("dxfpy.acc.bezier3p", ["src/dxfpy/acc/bezier3p.pyx"], optional=True),
+    Extension("dxfpy.acc.bspline", ["src/dxfpy/acc/bspline.pyx"], optional=True),
+    Extension("dxfpy.acc.construct", ["src/dxfpy/acc/construct.pyx"], optional=True),
     Extension(
-        "ezdxf.acc.mapbox_earcut", ["src/ezdxf/acc/mapbox_earcut.pyx"], optional=True
+        "dxfpy.acc.mapbox_earcut", ["src/dxfpy/acc/mapbox_earcut.pyx"], optional=True
     ),
-    Extension("ezdxf.acc.linetypes", ["src/ezdxf/acc/linetypes.pyx"], optional=True),
-    Extension("ezdxf.acc.np_support", ["src/ezdxf/acc/np_support.pyx"], optional=True),
+    Extension("dxfpy.acc.linetypes", ["src/dxfpy/acc/linetypes.pyx"], optional=True),
+    Extension("dxfpy.acc.np_support", ["src/dxfpy/acc/np_support.pyx"], optional=True),
 ]
 commands = {}
 try:
@@ -49,7 +49,7 @@ if PYPY:
 
 def get_version() -> str:
     v = {}
-    for line in open("./src/ezdxf/version.py").readlines():
+    for line in open("./src/dxfpy/version.py").readlines():
         if line.strip().startswith("__version__"):
             exec(line, v)
             return v["__version__"]

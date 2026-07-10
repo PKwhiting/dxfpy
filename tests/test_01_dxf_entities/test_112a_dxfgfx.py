@@ -1,14 +1,14 @@
 # Copyright (c) 2019-2022 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.entities.dxfgfx import DXFGraphic, is_graphic_entity
-from ezdxf.math import Matrix44
-from ezdxf.lldxf.tags import Tags, DXFTag
-from ezdxf.entities.dxfns import recover_graphic_attributes
-from ezdxf.lldxf.const import DXFValueError
-from ezdxf import colors
+from dxfpy.entities.dxfgfx import DXFGraphic, is_graphic_entity
+from dxfpy.math import Matrix44
+from dxfpy.lldxf.tags import Tags, DXFTag
+from dxfpy.entities.dxfns import recover_graphic_attributes
+from dxfpy.lldxf.const import DXFValueError
+from dxfpy import colors
 
 
 @pytest.fixture
@@ -138,7 +138,7 @@ def test_basic_transformation_interfaces():
 
 
 def test_unlink_from_layout(entity):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     point = msp.add_point((0, 0))
     assert point.dxf.owner is not None

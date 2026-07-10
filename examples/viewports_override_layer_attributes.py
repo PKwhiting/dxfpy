@@ -2,8 +2,8 @@
 # License: MIT License
 from typing import cast
 import pathlib
-import ezdxf
-from ezdxf.layouts import Paperspace
+import dxfpy
+from dxfpy.layouts import Paperspace
 
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -13,9 +13,9 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to override layer properties in VIEWPORT entities.
 #
-# VIEWPORT: https://ezdxf.mozman.at/docs/dxfentities/viewport.html
-# LAYER: https://ezdxf.mozman.at/docs/tables/layer_table_entry.html
-# TUTORIAL: https://ezdxf.mozman.at/docs/tutorials/psp_viewports.html
+# VIEWPORT: https://dxfpy.mozman.at/docs/dxfentities/viewport.html
+# LAYER: https://dxfpy.mozman.at/docs/tables/layer_table_entry.html
+# TUTORIAL: https://dxfpy.mozman.at/docs/tutorials/psp_viewports.html
 # ------------------------------------------------------------------------------
 
 MESH_SIZE = 20
@@ -132,7 +132,7 @@ def create_viewports(paperspace: Paperspace):
 
 def main():
     def make(dxfversion):
-        doc = ezdxf.new(dxfversion, setup=True)
+        doc = dxfpy.new(dxfversion, setup=True)
         doc.header["$LWDISPLAY"] = 1  # show lineweight in DXF viewer
         msp = doc.modelspace()
 

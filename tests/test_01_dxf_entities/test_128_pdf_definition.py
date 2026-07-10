@@ -3,8 +3,8 @@
 # created 2019-02-15
 import pytest
 
-from ezdxf.entities.underlay import PdfDefinition, DgnDefinition, DwfDefinition
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.underlay import PdfDefinition, DgnDefinition, DwfDefinition
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 PDFDEFINITION = """0
 PDFDEFINITION
@@ -27,7 +27,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "PDFDEFINITION" in ENTITY_CLASSES
 

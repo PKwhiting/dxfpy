@@ -2,13 +2,13 @@
 # License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.audit import Auditor
+import dxfpy
+from dxfpy.audit import Auditor
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_new_group(doc):
@@ -50,7 +50,7 @@ def test_can_not_add_invalid_block_entities(doc):
     group = doc.groups.new("test4")
     block = doc.blocks.new("Block4")
     point = block.add_point((0, 0))
-    with pytest.raises(ezdxf.DXFStructureError):
+    with pytest.raises(dxfpy.DXFStructureError):
         with group.edit_data() as g:
             g.append(point)
 
@@ -58,7 +58,7 @@ def test_can_not_add_invalid_block_entities(doc):
 def test_can_not_add_invalid_table_entry(doc):
     group = doc.groups.new("test5")
     layer = doc.layers.get("0")
-    with pytest.raises(ezdxf.DXFStructureError):
+    with pytest.raises(dxfpy.DXFStructureError):
         with group.edit_data() as g:
             g.append(layer)
 

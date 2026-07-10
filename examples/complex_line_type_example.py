@@ -1,9 +1,9 @@
 # Copyright (c) 2018-2023 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import zoom
-from ezdxf.fonts import shapefile
+import dxfpy
+from dxfpy import zoom
+from dxfpy.fonts import shapefile
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,10 +13,10 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to create complex linetypes.
 #
-# docs: https://ezdxf.mozman.at/docs/concepts/linetypes.html
+# docs: https://dxfpy.mozman.at/docs/concepts/linetypes.html
 # ------------------------------------------------------------------------------
 
-doc = ezdxf.new("R2018")  # DXF R13 or later is required
+doc = dxfpy.new("R2018")  # DXF R13 or later is required
 
 # This linetype contains the text "GAS" with text-style "STANDARD"
 doc.linetypes.add(
@@ -39,7 +39,7 @@ doc.linetypes.add(
     # shape-number 132.
     # Find the shape-number by function find_shape_number(), the SHX file "ltypeshp.shx"
     # will be searched in the current directory and the directories stored in
-    # `ezdxf.options.support_dirs`.
+    # `dxfpy.options.support_dirs`.
     pattern="A,.25,-.1,[132,ltypeshp.shx,x=-.1,s=.1],-.1,1",
     description="Grenze eckig -[]-----[]-----[]-----[]-----[]----",
     length=1.45,  # required for complex line types

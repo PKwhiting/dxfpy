@@ -5,9 +5,9 @@ import time
 import random
 import math
 import numpy as np
-from ezdxf.acc import USE_C_EXT
-from ezdxf.math import Matrix44, Vec2
-from ezdxf.math._matrix44 import Matrix44 as PyMatrix44
+from dxfpy.acc import USE_C_EXT
+from dxfpy.math import Matrix44, Vec2
+from dxfpy.math._matrix44 import Matrix44 as PyMatrix44
 
 RUNS = 10_000
 POINT_COUNT = 1000

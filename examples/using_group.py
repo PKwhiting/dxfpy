@@ -1,7 +1,7 @@
 # Copyright (c) 2015-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,7 +13,7 @@ if not CWD.exists():
 
 
 def create_group():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     msp = doc.modelspace()
 
     # Create a new unnamed GROUP, in reality they have a name like '*Annnn' and
@@ -31,7 +31,7 @@ def create_group():
 
 
 def read_group():
-    doc = ezdxf.readfile(CWD / "group.dxf")
+    doc = dxfpy.readfile(CWD / "group.dxf")
     for name, group in doc.groups:
         print(f"GROUP: {name}\n")
         for entity in group:

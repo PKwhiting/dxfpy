@@ -4,18 +4,18 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from ezdxf.acc import USE_C_EXT
+from dxfpy.acc import USE_C_EXT
 
 if USE_C_EXT is False:
     print("C-extension disabled or not available.")
     sys.exit(1)
 
-from ezdxf.math._vector import Vec3, Vec2  # Python implementation
-from ezdxf.acc.vector import (
+from dxfpy.math._vector import Vec3, Vec2  # Python implementation
+from dxfpy.acc.vector import (
     Vec3 as CVec3,
     Vec2 as CVec2,
 )  # Cython Implementation
-from ezdxf.version import __version__
+from dxfpy.version import __version__
 
 
 def open_log(name: str):
@@ -25,7 +25,7 @@ def open_log(name: str):
         with open(p, mode="wt") as fp:
             fp.write(
                 '"timestamp"; "pytime"; "cytime"; '
-                '"python_version"; "ezdxf_version"\n'
+                '"python_version"; "dxfpy_version"\n'
             )
     log_file = open(p, mode="at")
     return log_file

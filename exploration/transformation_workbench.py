@@ -6,11 +6,11 @@ import math
 import random
 import numpy as np
 
-import ezdxf
-from ezdxf import zoom
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.math import Vec3, Matrix44, Z_AXIS, Y_AXIS, X_AXIS
-from ezdxf.entities import Circle, Arc, Ellipse, Insert, Text, MText, Hatch
+import dxfpy
+from dxfpy import zoom
+from dxfpy.enums import TextEntityAlignment
+from dxfpy.math import Vec3, Matrix44, Z_AXIS, Y_AXIS, X_AXIS
+from dxfpy.entities import Circle, Arc, Ellipse, Insert, Text, MText, Hatch
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -542,7 +542,7 @@ def add_hatch_for_all_ellipses(layout):
 
 
 if __name__ == "__main__":
-    doc = ezdxf.new("R2000", setup=True)
+    doc = dxfpy.new("R2000", setup=True)
     setup_csys_blk("UCS")
     msp = doc.modelspace()
     main_ellipse(msp)

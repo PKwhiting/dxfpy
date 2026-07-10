@@ -4,8 +4,8 @@ from typing import Iterator
 import pathlib
 import random
 
-import ezdxf
-from ezdxf.addons.drawing import (
+import dxfpy
+from dxfpy.addons.drawing import (
     RenderContext,
     Frontend,
     recorder,
@@ -13,20 +13,20 @@ from ezdxf.addons.drawing import (
     layout,
     pymupdf,
 )
-from ezdxf.math import BoundingBox2d
+from dxfpy.math import BoundingBox2d
 
 # ------------------------------------------------------------------------------
 # This example renders the DXF file in rows by cols tiles including filtering
 # the DXF entities outside the rendering area.
 #
 # This example is a reimplementation of the "render_model_space_as_tiles.py" example
-# nut uses the new RecorderBackend introduced in ezdxf v1.1.
+# nut uses the new RecorderBackend introduced in dxfpy v1.1.
 # The RecorderBackend stores the output of the Frontend as compact objects based on
 # numpy arrays.  The recordings can be replayed on any other backend, including the
 # older Matplotlib- and PyQt backends.  The player class provides fast bounding box
 # detection, inplace transformation and rectangular content cropping.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -66,7 +66,7 @@ def render_areas(extents, grid=(2, 2)) -> Iterator[BoundingBox2d]:
 
 
 def main(rows: int, cols: int):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     create_content(msp)
 

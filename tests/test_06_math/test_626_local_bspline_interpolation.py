@@ -1,11 +1,11 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
-from ezdxf.math import (
+from dxfpy.math import (
     Vec3,
     estimate_tangents,
     local_cubic_bspline_interpolation,
 )
-from ezdxf.math.bspline import local_cubic_bspline_interpolation_from_tangents
+from dxfpy.math.bspline import local_cubic_bspline_interpolation_from_tangents
 
 
 POINTS1 = [(1, 1), (2, 4), (4, 1), (7, 6)]

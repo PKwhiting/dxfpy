@@ -1,7 +1,7 @@
 # Copyright (c) 2014-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,14 +12,14 @@ if not CWD.exists():
 # This example shows the usage of the LWPOLYLINE entity, which is the default
 # 2D polyline entity (LW stands for LightWeight).
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/lwpolyline.html
-# circular arc segments: https://ezdxf.mozman.at/docs/dxfentities/lwpolyline.html#bulge-value
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/lwpolyline.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/lwpolyline.html
+# circular arc segments: https://dxfpy.mozman.at/docs/dxfentities/lwpolyline.html#bulge-value
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/lwpolyline.html
 # ------------------------------------------------------------------------------
 
 
 def create_lwpolyline():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     msp = doc.modelspace()
 
     points = [(0, 0), (3, 0), (6, 3), (6, 6)]
@@ -28,7 +28,7 @@ def create_lwpolyline():
 
 
 def append_points_to_lwpolyline():
-    doc = ezdxf.readfile(CWD / "lwpolyline1.dxf")
+    doc = dxfpy.readfile(CWD / "lwpolyline1.dxf")
     msp = doc.modelspace()
 
     pline = msp.query("LWPOLYLINE").first
@@ -37,7 +37,7 @@ def append_points_to_lwpolyline():
 
 
 def edit_lwpolyline():
-    doc = ezdxf.readfile(CWD / "lwpolyline2.dxf")
+    doc = dxfpy.readfile(CWD / "lwpolyline2.dxf")
     msp = doc.modelspace()
 
     pline = msp.query("LWPOLYLINE").first
@@ -52,7 +52,7 @@ def edit_lwpolyline():
 
 
 def lwpolyline_width():
-    doc = ezdxf.new("AC1015")
+    doc = dxfpy.new("AC1015")
     msp = doc.modelspace()
 
     # Each line segment can have a different start/end width, if omitted
@@ -69,7 +69,7 @@ def lwpolyline_width():
 
 
 def lwpolyline_with_circular_arcs():
-    doc = ezdxf.new("AC1015")
+    doc = dxfpy.new("AC1015")
     msp = doc.modelspace()
 
     # LWPolyline can also have curved elements, they are defined by the bulge value.

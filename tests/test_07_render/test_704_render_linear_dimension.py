@@ -1,17 +1,17 @@
 # Copyright (c) 2019-2021 Manfred Moitzi
 # License: MIT License
 
-import ezdxf
+import dxfpy
 import pytest
 
-from ezdxf.render.dimension import LinearDimension, DimStyleOverride
-from ezdxf.render.dim_base import compile_mtext
-from ezdxf.math import Vec3
+from dxfpy.render.dimension import LinearDimension, DimStyleOverride
+from dxfpy.render.dim_base import compile_mtext
+from dxfpy.math import Vec3
 
 
 @pytest.fixture(scope="module")
 def dwg():
-    return ezdxf.new("R2007", setup=True)
+    return dxfpy.new("R2007", setup=True)
 
 
 def test_linear_dimension_with_one_tolerance(dwg):
@@ -86,7 +86,7 @@ def test_linear_dimension_with_limits(dwg):
 
 
 def test_dimension_insert_attribute_translates_the_block_content():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     dimline = msp.add_linear_dim(base=(0, 10), p1=(0, 0), p2=(100, 0))
     dimline.render()
@@ -113,7 +113,7 @@ def test_dimension_insert_attribute_translates_the_block_content():
 
 @pytest.mark.parametrize("color", [1, 7])
 def test_override_all_colors(color):
-    new_doc = ezdxf.new()
+    new_doc = dxfpy.new()
     new_msp = new_doc.modelspace()
     style_override = {"dimclrt": color, "dimclrd": color, "dimclre": color}
     dim_renderer = new_msp.add_linear_dim(

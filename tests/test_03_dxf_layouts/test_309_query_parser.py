@@ -2,7 +2,7 @@
 # License: MIT-License
 import pytest
 
-from ezdxf.queryparser import EntityQueryParser, ParseException, InfixBoolQuery
+from dxfpy.queryparser import EntityQueryParser, ParseException, InfixBoolQuery
 
 
 class TestEntityQueryParserWithoutAttributes:

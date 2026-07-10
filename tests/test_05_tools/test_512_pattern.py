@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.tools import pattern
+from dxfpy.tools import pattern
 
 
 def test_load_iso_pattern():

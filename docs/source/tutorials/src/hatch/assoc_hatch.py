@@ -1,8 +1,8 @@
 from pathlib import Path
-import ezdxf
+import dxfpy
 
 DIR = Path("~/Desktop/Outbox").expanduser()
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 # Create base geometry

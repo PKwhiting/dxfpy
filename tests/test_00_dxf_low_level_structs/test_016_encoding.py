@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 import codecs
-from ezdxf.lldxf.encoding import dxf_backslash_replace, encode
+from dxfpy.lldxf.encoding import dxf_backslash_replace, encode
 from pathlib import Path
 
 # setup DXF unicode encoder -> '\U+nnnn'

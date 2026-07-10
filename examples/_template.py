@@ -5,7 +5,7 @@
 import pathlib
 import sys
 import argparse
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 
@@ -36,8 +36,8 @@ def parse_args():
 
 def main(filename, arg, option):
     try:
-        doc = ezdxf.readfile(filename)
-    except (IOError, ezdxf.DXFStructureError):
+        doc = dxfpy.readfile(filename)
+    except (IOError, dxfpy.DXFStructureError):
         print(f"IOError or invalid DXF file: '{filename}'")
         sys.exit(1)
 

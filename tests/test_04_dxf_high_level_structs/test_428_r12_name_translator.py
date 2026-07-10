@@ -3,7 +3,7 @@
 
 import pytest
 import string
-from ezdxf.r12strict import R12NameTranslator
+from dxfpy.r12strict import R12NameTranslator
 
 
 @pytest.fixture

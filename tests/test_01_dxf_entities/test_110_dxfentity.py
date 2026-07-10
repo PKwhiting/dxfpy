@@ -2,13 +2,13 @@
 # License: MIT License
 # created 2019-02-14
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.lldxf.const import DXFAttributeError, DXF12, DXFValueError
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.entities import DXFEntity, is_graphic_entity, Insert
-from ezdxf.lldxf.extendedtags import DXFTag
-from ezdxf.entities.line import Line
+from dxfpy.lldxf.const import DXFAttributeError, DXF12, DXFValueError
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.entities import DXFEntity, is_graphic_entity, Insert
+from dxfpy.lldxf.extendedtags import DXFTag
+from dxfpy.entities.line import Line
 
 ENTITY = """0
 DXFENTITY
@@ -48,7 +48,7 @@ def test_init_with_tags(entity):
     assert str(entity) == "DXFENTITY(#FFFF)"
     assert (
         repr(entity)
-        == "<class 'ezdxf.entities.dxfentity.DXFEntity'> DXFENTITY(#FFFF)"
+        == "<class 'dxfpy.entities.dxfentity.DXFEntity'> DXFENTITY(#FFFF)"
     )
 
 
@@ -104,7 +104,7 @@ def test_calling_destroy_multiple_times(entity):
 
 
 def test_dont_write_handles_for_R12(entity):
-    from ezdxf.lldxf.tagwriter import TagWriter
+    from dxfpy.lldxf.tagwriter import TagWriter
     from io import StringIO
 
     s = StringIO()
@@ -220,7 +220,7 @@ def line():
 
 def test_str(line):
     assert str(line) == "LINE(#0)"
-    assert repr(line) == "<class 'ezdxf.entities.line.Line'> LINE(#0)"
+    assert repr(line) == "<class 'dxfpy.entities.line.Line'> LINE(#0)"
 
 
 def test_get_dxf_defaul(line):
@@ -442,7 +442,7 @@ class TestReactors:
 class TestGetLayout:
     @pytest.fixture(scope="class")
     def doc(self):
-        return ezdxf.new()
+        return dxfpy.new()
 
     def test_get_layout_model_space(self, doc):
         msp = doc.modelspace()

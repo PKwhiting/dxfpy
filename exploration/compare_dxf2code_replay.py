@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-import ezdxf
-from ezdxf._fidelity_compare import compare_replay_documents, format_replay_comparison
+import dxfpy
+from dxfpy._fidelity_compare import compare_replay_documents, format_replay_comparison
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -25,8 +25,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    source_doc = ezdxf.readfile(args.source)
-    replay_doc = ezdxf.readfile(args.replay)
+    source_doc = dxfpy.readfile(args.source)
+    replay_doc = dxfpy.readfile(args.replay)
     comparison = compare_replay_documents(source_doc, replay_doc)
     print(format_replay_comparison(comparison, sample_limit=args.sample_limit))
     return 1 if comparison.has_issues(

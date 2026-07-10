@@ -1,8 +1,8 @@
 # Copyright (c) 2014-2019, Manfred Moitzi
 # License: MIT License
 from binascii import unhexlify
-from ezdxf.tools.binarydata import hex_strings_to_bytes
-from ezdxf.tools.binarydata import bytes_to_hexstr
+from dxfpy.tools.binarydata import hex_strings_to_bytes
+from dxfpy.tools.binarydata import bytes_to_hexstr
 
 
 def test_hexstr_to_bytes():

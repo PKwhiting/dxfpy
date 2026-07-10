@@ -3,12 +3,12 @@
 import time
 import random
 
-from ezdxf.math.linalg import (
+from dxfpy.math.linalg import (
     Matrix,
     numpy_matrix_solver,
     numpy_vector_solver,
 )
-from ezdxf.math.legacy import (
+from dxfpy.math.legacy import (
     gauss_vector_solver,
     gauss_matrix_solver,
     gauss_jordan_solver,

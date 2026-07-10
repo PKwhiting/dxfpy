@@ -3,8 +3,8 @@
 
 import pytest
 import math
-from ezdxf.math import basic_transformation, BoundingBox, Matrix44
-from ezdxf.path import shapes, bbox, triangulate
+from dxfpy.math import basic_transformation, BoundingBox, Matrix44
+from dxfpy.path import shapes, bbox, triangulate
 
 
 def test_unit_circle():

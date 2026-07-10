@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.math import Matrix44
-from ezdxf.layouts import Modelspace
+import dxfpy
+from dxfpy.math import Matrix44
+from dxfpy.layouts import Modelspace
 
 SAT = ("INVALID", "DUMMY", "SAT", "DATA")
 SAB = b"INVALID_DUMMY_SAB_DATA"
@@ -13,7 +13,7 @@ SAB = b"INVALID_DUMMY_SAB_DATA"
 class TestCopySAT:
     @pytest.fixture(scope="module")
     def msp(self):
-        doc = ezdxf.new("R2007")  # SAT
+        doc = dxfpy.new("R2007")  # SAT
         return doc.modelspace()
 
     def test_copy_body(self, msp: Modelspace):
@@ -105,7 +105,7 @@ class TestCopySAT:
 class TestCopySAB:
     @pytest.fixture(scope="module")
     def msp(self):
-        doc = ezdxf.new("R2013")  # SAT
+        doc = dxfpy.new("R2013")  # SAT
         return doc.modelspace()
 
     def test_copy_body(self, msp: Modelspace):

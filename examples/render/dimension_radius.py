@@ -2,14 +2,14 @@
 # License: MIT License
 import pathlib
 import math
-import ezdxf
-from ezdxf.math import Vec3, UCS
+import dxfpy
+from dxfpy.math import Vec3, UCS
 import logging
 
 # ------------------------------------------------------------------------------
 # This example shows how to use radius dimension.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/radius_dimension.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/radius_dimension.html
 # ------------------------------------------------------------------------------
 
 logging.basicConfig(level="WARNING")
@@ -23,9 +23,9 @@ if not CWD.exists():
 # Default text attributes:
 TEXT_ATTRIBS = {
     "height": 0.25,
-    "style": ezdxf.options.default_dimension_text_style,
+    "style": dxfpy.options.default_dimension_text_style,
 }
-DIM_TEXT_STYLE = ezdxf.options.default_dimension_text_style
+DIM_TEXT_STYLE = dxfpy.options.default_dimension_text_style
 
 # Discarding the dimension rendering is possible for BricsCAD,
 # but it is incompatible to AutoCAD -> error
@@ -47,7 +47,7 @@ def multiple_locations(delta=10, center=(0, 0)):
 
 
 def radius_default_outside(dxfversion=DXFVERSION, delta=10):
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
     for x, y in multiple_locations(delta=delta):
         angle = Vec3(x, y).angle_deg
@@ -81,7 +81,7 @@ def radius_default_outside(dxfversion=DXFVERSION, delta=10):
         # DIMENSION entity, they are just used to render the DIMENSION entity.
         # The return value `dim` is not a DIMENSION entity, instead a
         # DimStyleOverride object is returned, the DIMENSION entity is stored
-        # as dim.dimension, see also ezdxf.override.DimStyleOverride class.
+        # as dim.dimension, see also dxfpy.override.DimStyleOverride class.
         dim.render(discard=BRICSCAD)
     doc.set_modelspace_vport(height=3 * delta)
     doc.saveas(CWD / f"dim_radius_{dxfversion}_default_outside.dxf")
@@ -101,7 +101,7 @@ def radius_default_inside(dxfversion=DXFVERSION, delta=10, dimtmove=0):
         )
         dim.render(discard=BRICSCAD)
 
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     style = doc.dimstyles.get("EZ_RADIUS_INSIDE")
     style.dxf.dimtmove = dimtmove
 
@@ -121,7 +121,7 @@ def radius_default_inside(dxfversion=DXFVERSION, delta=10, dimtmove=0):
     #   force text inside, required by BricsCAD (AutoCAD)
     # dimtad = 0:
     #   center text vertical, BricsCAD (AutoCAD) always creates vertical
-    #   centered text, ezdxf let you choose the vertical placement (above,
+    #   centered text, dxfpy let you choose the vertical placement (above,
     #   below, center), but editing the DIMENSION in BricsCAD will reset text
     #   to center placement.
 
@@ -153,7 +153,7 @@ def radius_default_outside_horizontal(dxfversion=DXFVERSION, delta=10):
         )
         dim.render(discard=BRICSCAD)
 
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
     for x, y in multiple_locations(delta=delta):
         angle = Vec3(x, y).angle_deg
@@ -166,7 +166,7 @@ def radius_default_outside_horizontal(dxfversion=DXFVERSION, delta=10):
 
 
 def radius_default_inside_horizontal(dxfversion=DXFVERSION, delta=10, dimtmove=0):
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     style = doc.dimstyles.get("EZ_RADIUS_INSIDE")
     style.dxf.dimtmove = dimtmove
 
@@ -208,7 +208,7 @@ def radius_user_defined_outside(dxfversion=DXFVERSION, delta=15):
         )
         dim.render(discard=BRICSCAD)
 
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
     for x, y in multiple_locations(delta=delta):
         angle = Vec3(x, y).angle_deg
@@ -237,7 +237,7 @@ def radius_user_defined_outside_horizontal(dxfversion=DXFVERSION, delta=15):
         )
         dim.render(discard=BRICSCAD)
 
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
     for x, y in multiple_locations(delta=delta):
         angle = Vec3(x, y).angle_deg
@@ -267,7 +267,7 @@ def radius_user_defined_inside(dxfversion=DXFVERSION, delta=10, dimtmove=0):
         )
         dim.render(discard=BRICSCAD)
 
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     style = doc.dimstyles.get("EZ_RADIUS")
     style.dxf.dimtmove = dimtmove
 
@@ -302,7 +302,7 @@ def radius_user_defined_inside_horizontal(dxfversion=DXFVERSION, delta=10):
         )
         dim.render(discard=BRICSCAD)
 
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
     for x, y in multiple_locations(delta=delta):
         angle = Vec3(x, y).angle_deg
@@ -317,7 +317,7 @@ def radius_user_defined_inside_horizontal(dxfversion=DXFVERSION, delta=10):
 
 
 def radius_3d(dxfversion=DXFVERSION, delta=10):
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     msp = doc.modelspace()
 
     for x, y in multiple_locations(delta=delta):

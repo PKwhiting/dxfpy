@@ -3,8 +3,8 @@
 # created 2019-02-15
 import pytest
 
-from ezdxf.entities.image import ImageDef
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.image import ImageDef
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 IMAGEDEF = """0
 IMAGEDEF
@@ -45,7 +45,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "IMAGEDEF" in ENTITY_CLASSES
 

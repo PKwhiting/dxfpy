@@ -1,7 +1,7 @@
 # Created: 12.03.2011, 2018 rewritten for pytest
 # Copyright (C) 2011-2019, Manfred Moitzi
 # License: MIT License
-from ezdxf.tools.codepage import toencoding, tocodepage
+from dxfpy.tools.codepage import toencoding, tocodepage
 
 
 def test_ansi_1250():

@@ -2,13 +2,13 @@
 # License: MIT License
 import os
 import pytest
-import ezdxf
-from ezdxf.lldxf.const import versions_supported_by_new
+import dxfpy
+from dxfpy.lldxf.const import versions_supported_by_new
 
 
 @pytest.fixture(params=versions_supported_by_new)
 def drawing(request):
-    return ezdxf.new(request.param)
+    return dxfpy.new(request.param)
 
 
 def create_block(dwg):
@@ -57,7 +57,7 @@ def test_rotated_block(drawing, tmpdir):
     )
     try:
         drawing.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(
             "DXFError: {0} for DXF version {1}".format(
                 str(e), drawing.dxfversion

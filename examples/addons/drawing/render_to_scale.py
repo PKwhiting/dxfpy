@@ -4,11 +4,11 @@ from __future__ import annotations
 import pathlib
 import matplotlib.pyplot as plt
 
-import ezdxf
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
-from ezdxf.math import Vec2
-from ezdxf.enums import TextEntityAlignment, MTextEntityAlignment
+import dxfpy
+from dxfpy.addons.drawing import RenderContext, Frontend
+from dxfpy.addons.drawing.matplotlib import MatplotlibBackend
+from dxfpy.math import Vec2
+from dxfpy.enums import TextEntityAlignment, MTextEntityAlignment
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -18,12 +18,12 @@ if not CWD.exists():
 # This example shows how to render the modelspace by the drawing add-on and the
 # Matplotlib backend to a certain scale.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 
 def make_doc(offset=(0, 0), size=(3, 4)):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     x, y = offset
     sx, sy = size

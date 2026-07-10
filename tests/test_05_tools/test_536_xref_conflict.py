@@ -2,9 +2,9 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf import xref, colors
-from ezdxf.document import Drawing
+import dxfpy
+from dxfpy import xref, colors
+from dxfpy.document import Drawing
 
 
 def document_has_no_errors(doc: Drawing) -> bool:
@@ -15,7 +15,7 @@ def document_has_no_errors(doc: Drawing) -> bool:
 class TestLoadLayers:
     @pytest.fixture(scope="class")
     def sdoc(self) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.filename = "xref.dxf"
         doc.layers.add("Layer0", color=colors.RED)
         doc.layers.add("Layer1", color=colors.GREEN)
@@ -30,7 +30,7 @@ class TestLoadLayers:
 
     def test_conflict_policy_keep(self, sdoc):
         """KEEP: Layer0 of the target doc shouldn't be renamed."""
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.layers.add("Layer0", color=colors.CYAN)
         self.load_layers(sdoc, tdoc, xref.ConflictPolicy.KEEP)
         assert document_has_no_errors(tdoc) is True
@@ -46,7 +46,7 @@ class TestLoadLayers:
 
         Layers "0" and "Defpoints" are always preserved, never renamed.
         """
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.layers.add("Layer0", color=colors.CYAN)
         self.load_layers(sdoc, tdoc, xref.ConflictPolicy.XREF_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -68,7 +68,7 @@ class TestLoadLayers:
         """At the 2nd loading process the layer names conflict with the names of the
         1st loading process.
         """
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.layers.add("Layer0", color=colors.CYAN)
         self.load_layers(sdoc, tdoc, xref.ConflictPolicy.XREF_PREFIX)
         self.load_layers(sdoc, tdoc, xref.ConflictPolicy.XREF_PREFIX)
@@ -84,7 +84,7 @@ class TestLoadLayers:
 
         Layers "0" and "Defpoints" are always preserved, never renamed.
         """
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.layers.add("Layer0", color=colors.CYAN)
         self.load_layers(sdoc, tdoc, xref.ConflictPolicy.NUM_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -108,7 +108,7 @@ class TestLoadLayers:
         """At the 2nd loading process the layer names conflict with the names of the
         1st loading process.
         """
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.layers.add("Layer0", color=colors.CYAN)
         self.load_layers(sdoc, tdoc, xref.ConflictPolicy.NUM_PREFIX)
         self.load_layers(sdoc, tdoc, xref.ConflictPolicy.NUM_PREFIX)
@@ -134,7 +134,7 @@ class TestLoadLinetypes:
 
     @pytest.fixture(scope="class")
     def sdoc(self) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.filename = "xref.dxf"
         doc.linetypes.add("LType0", [0.0], description="xref0")
         doc.linetypes.add("LType1", [0.0], description="xref1")
@@ -147,7 +147,7 @@ class TestLoadLinetypes:
         loader.execute()
 
     def test_conflict_policy_keep(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.linetypes.add("LType0", [0.0], description="preserve")
         self.load_linetypes(sdoc, tdoc, xref.ConflictPolicy.KEEP)
         assert document_has_no_errors(tdoc) is True
@@ -160,7 +160,7 @@ class TestLoadLinetypes:
         assert tdoc.linetypes.has_entry("LType1")
 
     def test_xref_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.linetypes.add("LType0", [0.0], description="preserve")
         self.load_linetypes(sdoc, tdoc, xref.ConflictPolicy.XREF_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -174,7 +174,7 @@ class TestLoadLinetypes:
         assert tdoc.linetypes.has_entry("xref$0$LType1") is True
 
     def test_numbered_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.linetypes.add("LType0", [0.0], description="preserve")
         self.load_linetypes(sdoc, tdoc, xref.ConflictPolicy.NUM_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -195,7 +195,7 @@ class TestLoadTextStyles:
 
     @pytest.fixture(scope="class")
     def sdoc(self) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.filename = "xref.dxf"
         doc.styles.add("Style0", font="style0.ttf")
         doc.styles.add("Style1", font="style1.ttf")
@@ -208,7 +208,7 @@ class TestLoadTextStyles:
         loader.execute()
 
     def test_conflict_policy_keep(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.styles.add("Style0", font="preserve.ttf")
         self.load_styles(sdoc, tdoc, xref.ConflictPolicy.KEEP)
 
@@ -220,7 +220,7 @@ class TestLoadTextStyles:
         assert tdoc.styles.has_entry("Style1")
 
     def test_xref_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.styles.add("Style0", font="preserve.ttf")
         self.load_styles(sdoc, tdoc, xref.ConflictPolicy.XREF_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -237,7 +237,7 @@ class TestLoadTextStyles:
         assert tdoc.styles.get("xref$0$Standard").dxf.name == "xref$0$Standard"
 
     def test_numbered_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.styles.add("Style0", font="preserve.ttf")
         self.load_styles(sdoc, tdoc, xref.ConflictPolicy.NUM_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -261,7 +261,7 @@ class TestLoadDimStyles:
 
     @pytest.fixture(scope="class")
     def sdoc(self) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.filename = "xref.dxf"
         doc.dimstyles.add("Style0", dxfattribs={"dimpost": "xref"})
         doc.dimstyles.add("Style1", dxfattribs={"dimpost": "xref"})
@@ -274,7 +274,7 @@ class TestLoadDimStyles:
         loader.execute()
 
     def test_conflict_policy_keep(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.dimstyles.add("Style0", dxfattribs={"dimpost": "preserve"})
         self.load_styles(sdoc, tdoc, xref.ConflictPolicy.KEEP)
         assert document_has_no_errors(tdoc) is True
@@ -285,7 +285,7 @@ class TestLoadDimStyles:
         assert tdoc.dimstyles.has_entry("Style1")
 
     def test_xref_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.dimstyles.add("Style0", dxfattribs={"dimpost": "preserve"})
         self.load_styles(sdoc, tdoc, xref.ConflictPolicy.XREF_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -302,7 +302,7 @@ class TestLoadDimStyles:
         assert tdoc.dimstyles.get("xref$0$Standard").dxf.name == "xref$0$Standard"
 
     def test_numbered_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.dimstyles.add("Style0", dxfattribs={"dimpost": "preserve"})
         self.load_styles(sdoc, tdoc, xref.ConflictPolicy.NUM_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -324,7 +324,7 @@ class TestLoadMaterials:
 
     @pytest.fixture(scope="class")
     def sdoc(self) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.filename = "xref.dxf"
         doc.materials.new("Mat0").dxf.description = "XrefMat0"
         doc.materials.new("Mat1").dxf.description = "XrefMat1"
@@ -337,7 +337,7 @@ class TestLoadMaterials:
         loader.execute()
 
     def test_conflict_policy_keep(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.materials.new("Mat0").dxf.description = "preserve"
         self.load_materials(sdoc, tdoc, xref.ConflictPolicy.KEEP)
         assert document_has_no_errors(tdoc) is True
@@ -350,7 +350,7 @@ class TestLoadMaterials:
         assert tdoc.materials.has_entry("Mat1") is True
 
     def test_xref_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.materials.new("Mat0").dxf.description = "preserve"
         self.load_materials(sdoc, tdoc, xref.ConflictPolicy.XREF_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -364,7 +364,7 @@ class TestLoadMaterials:
         assert tdoc.materials.has_entry("xref$0$Mat1") is True
 
     def test_numbered_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.materials.new("Mat0").dxf.description = "preserve"
         self.load_materials(sdoc, tdoc, xref.ConflictPolicy.NUM_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -383,7 +383,7 @@ class TestLoadMLineStyles:
 
     @pytest.fixture(scope="class")
     def sdoc(self) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.filename = "xref.dxf"
         mline_style0 = doc.mline_styles.new("Style0")
         mline_style0.dxf.description = "XrefStyle0"
@@ -401,7 +401,7 @@ class TestLoadMLineStyles:
         loader.execute()
 
     def test_conflict_policy_keep(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         mline_style0 = tdoc.mline_styles.new("Style0")
         mline_style0.dxf.description = "preserve"
         mline_style0.elements.append(1)  # type: ignore
@@ -417,7 +417,7 @@ class TestLoadMLineStyles:
         assert tdoc.mline_styles.has_entry("Style1") is True
 
     def test_xref_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         mline_style0 = tdoc.mline_styles.new("Style0")
         mline_style0.dxf.description = "preserve"
         mline_style0.elements.append(1)  # type: ignore
@@ -434,7 +434,7 @@ class TestLoadMLineStyles:
         assert tdoc.mline_styles.has_entry("xref$0$Style1") is True
 
     def test_numbered_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         mline_style0 = tdoc.mline_styles.new("Style0")
         mline_style0.dxf.description = "preserve"
         mline_style0.elements.append(1)  # type: ignore
@@ -456,7 +456,7 @@ class TestLoadMLeaderStyles:
 
     @pytest.fixture(scope="class")
     def sdoc(self) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.filename = "xref.dxf"
         doc.mleader_styles.new("Style0").dxf.default_text_content = "XrefStyle0"
         doc.mleader_styles.new("Style1").dxf.default_text_content = "XrefStyle1"
@@ -469,7 +469,7 @@ class TestLoadMLeaderStyles:
         loader.execute()
 
     def test_conflict_policy_keep(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.mleader_styles.new("Style0").dxf.default_text_content = "preserve"
         self.load_mleader_styles(sdoc, tdoc, xref.ConflictPolicy.KEEP)
         assert document_has_no_errors(tdoc) is True
@@ -482,7 +482,7 @@ class TestLoadMLeaderStyles:
         assert tdoc.mleader_styles.has_entry("Style1") is True
 
     def test_xref_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.mleader_styles.new("Style0").dxf.default_text_content = "preserve"
         self.load_mleader_styles(sdoc, tdoc, xref.ConflictPolicy.XREF_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -496,7 +496,7 @@ class TestLoadMLeaderStyles:
         assert tdoc.mleader_styles.has_entry("xref$0$Style1") is True
 
     def test_numbered_rename_policy(self, sdoc):
-        tdoc = ezdxf.new()
+        tdoc = dxfpy.new()
         tdoc.mleader_styles.new("Style0").dxf.default_text_content = "preserve"
         self.load_mleader_styles(sdoc, tdoc, xref.ConflictPolicy.NUM_PREFIX)
         assert document_has_no_errors(tdoc) is True
@@ -512,7 +512,7 @@ class TestLoadMLeaderStyles:
 
 class TestLoadTextWithExistingTextstyle:
     def make_doc(self, font: str) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.styles.add("Style0", font=font)
         msp = doc.modelspace()
         msp.add_text("MyText", dxfattribs={"style": "Style0"})
@@ -553,7 +553,7 @@ class TestLoadTextWithExistingTextstyle:
 
 class TestLoadLineWithExistingLinetype:
     def make_doc(self, desc: str) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.linetypes.add("LType0", [0.0], description=desc)
         msp = doc.modelspace()
         msp.add_line((0, 0), (1, 0), dxfattribs={"linetype": "LType0"})
@@ -596,7 +596,7 @@ class TestLoadLineWithExistingLinetype:
 
 class TestLoadLineWithExistingComplexLinetype:
     def make_doc(self) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.styles.add_shx("ltypeshp.shx")
         doc.linetypes.add(  # see also: complex_line_type_example.py
             "SQUARE",
@@ -634,7 +634,7 @@ class TestLoadLineWithExistingComplexLinetype:
 
 class TestLoadEntityWithExistingMaterial:
     def make_doc(self, desc: str) -> Drawing:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         mat0 = doc.materials.new("Mat0")
         mat0.dxf.description = desc
         msp = doc.modelspace()

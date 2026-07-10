@@ -1,6 +1,6 @@
 # License: MIT License
-from ezdxf.addons.pycsg import CSG, Vec3, BSPNode, Polygon
-from ezdxf.render.forms import cube, sphere, cone_2p, cylinder_2p
+from dxfpy.addons.pycsg import CSG, Vec3, BSPNode, Polygon
+from dxfpy.render.forms import cube, sphere, cone_2p, cylinder_2p
 
 
 def test_cube_intersect():

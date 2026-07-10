@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.math import Vec2, distance_point_line_2d, is_point_on_line_2d
+from dxfpy.math import Vec2, distance_point_line_2d, is_point_on_line_2d
 
 
 def test_distance_point_horiz_line():

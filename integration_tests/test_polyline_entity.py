@@ -4,8 +4,8 @@ import os
 import math
 import random
 import pytest
-import ezdxf
-from ezdxf.lldxf.const import versions_supported_by_new
+import dxfpy
+from dxfpy.lldxf.const import versions_supported_by_new
 
 MSIZE = 20
 HEIGHT = 3.0
@@ -13,7 +13,7 @@ HEIGHT = 3.0
 
 @pytest.fixture(params=versions_supported_by_new)
 def drawing(request):
-    return ezdxf.new(request.param)
+    return dxfpy.new(request.param)
 
 
 def build_mesh(polymesh):
@@ -107,7 +107,7 @@ def test_create_polyline_entities(drawing, tmpdir):
     filename = str(tmpdir.join("polyline_entities_%s.dxf" % drawing.dxfversion))
     try:
         drawing.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(
             "DXFError: {0} for DXF version {1}".format(
                 str(e), drawing.dxfversion

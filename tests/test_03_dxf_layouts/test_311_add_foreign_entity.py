@@ -1,12 +1,12 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture
 def src():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("EXTRA_LAYER")
     doc.linetypes.new("EXTRA_LT")
     doc.styles.new("EXTRA_STYLE")
@@ -30,7 +30,7 @@ def src():
 
 @pytest.fixture
 def target():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     # for different handles
     for x in range(10):
         doc.entitydb.next_handle()

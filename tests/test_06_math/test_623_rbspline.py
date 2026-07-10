@@ -4,7 +4,7 @@
 import math
 from math import isclose
 
-from ezdxf.math import (
+from dxfpy.math import (
     rational_bspline_from_arc,
     rational_bspline_from_ellipse,
     ConstructionEllipse,
@@ -12,7 +12,7 @@ from ezdxf.math import (
     BSpline,
     open_uniform_bspline,
 )
-from ezdxf.math.bspline import nurbs_arc_parameters, required_knot_values
+from dxfpy.math.bspline import nurbs_arc_parameters, required_knot_values
 
 DEFPOINTS = [
     (0.0, 0.0, 0.0),
@@ -273,7 +273,7 @@ RBSPLINEU = [
 
 
 def test_flattening_issue():
-    from ezdxf.layouts import VirtualLayout
+    from dxfpy.layouts import VirtualLayout
 
     layout = VirtualLayout()
     # this configuration caused an math domain error in distance_point_line_3d()

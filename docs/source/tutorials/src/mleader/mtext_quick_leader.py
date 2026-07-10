@@ -1,12 +1,12 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import colors
+import dxfpy
+from dxfpy import colors
 
-from ezdxf.gfxattribs import GfxAttribs
-from ezdxf.math import Vec2
-from ezdxf.render import mleader
+from dxfpy.gfxattribs import GfxAttribs
+from dxfpy.math import Vec2
+from dxfpy.render import mleader
 
 # ========================================
 # Setup your preferred output directory
@@ -17,10 +17,10 @@ if not OUTDIR.exists():
 
 
 def quick_mtext_horizontal(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     # Create a new custom MLEADERSTYLE:
     mleaderstyle = doc.mleader_styles.duplicate_entry("Standard", "EZDXF")
-    # The required TEXT style "OpenSans" was created by ezdxf.new() because setup is True:
+    # The required TEXT style "OpenSans" was created by dxfpy.new() because setup is True:
     mleaderstyle.set_mtext_style("OpenSans")
     msp = doc.modelspace()
     target_point = Vec2(40, 15)
@@ -41,7 +41,7 @@ def quick_mtext_horizontal(filename: str):
 
 
 def quick_mtext_vertical(filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     mleaderstyle = doc.mleader_styles.duplicate_entry("Standard", "EZDXF")
     mleaderstyle.set_mtext_style("OpenSans")
     mleaderstyle.dxf.char_height = 2.0  # set the default char height of MTEXT

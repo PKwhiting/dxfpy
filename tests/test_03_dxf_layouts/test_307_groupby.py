@@ -1,15 +1,15 @@
 # Copyright (C) 2018, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.groupby import groupby
-from ezdxf import DXFValueError
+from dxfpy.groupby import groupby
+from dxfpy import DXFValueError
 
 
 @pytest.fixture(scope="module")
 def modelspace():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_line((0, 0), (10, 0), {"layer": "lay_lines", "color": 7})
     msp.add_polyline2d(

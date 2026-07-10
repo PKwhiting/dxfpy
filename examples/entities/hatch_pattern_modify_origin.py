@@ -2,9 +2,9 @@
 # License: MIT License
 
 import pathlib
-import ezdxf
-from ezdxf.entities import Hatch, Pattern
-from ezdxf.math import Vec2
+import dxfpy
+from dxfpy.entities import Hatch, Pattern
+from dxfpy.math import Vec2
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -33,7 +33,7 @@ def reset_pattern_origin_of_first_pattern_line(hatch: Hatch, origin: Vec2):
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     points = [(0, 0), (10, 0), (10, 10), (0, 10)]

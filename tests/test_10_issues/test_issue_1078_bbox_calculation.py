@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities import LWPolyline
-from ezdxf.math import BoundingBox
-from ezdxf import bbox
+from dxfpy.entities import LWPolyline
+from dxfpy.math import BoundingBox
+from dxfpy import bbox
 
 POINTS = [
     (218969.6310157223, 112295.8227786999, 0.0, 0.0, 0.0),

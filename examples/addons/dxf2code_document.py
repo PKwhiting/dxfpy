@@ -2,9 +2,9 @@
 #  License: MIT License
 import pathlib
 
-import ezdxf
+import dxfpy
 
-from ezdxf.addons.dxf2code import document_to_code_file
+from dxfpy.addons.dxf2code import document_to_code_file
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,11 +13,11 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to generate a full-document replay script from a DXF.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/dxf2code.html
+# docs: https://dxfpy.mozman.at/docs/addons/dxf2code.html
 # ------------------------------------------------------------------------------
 
 FILENAME = "A_000217"
-CADKIT = ezdxf.options.test_files_path / "CADKitSamples"
+CADKIT = dxfpy.options.test_files_path / "CADKitSamples"
 DXF_FILE = CADKIT / f"{FILENAME}.dxf"
 SCRIPT_FILE = CWD / f"{FILENAME}_replay.py"
 OUTPUT_FILE = CWD / f"{FILENAME}_replay.dxf"

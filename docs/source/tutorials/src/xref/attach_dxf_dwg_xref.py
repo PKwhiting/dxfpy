@@ -1,10 +1,10 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
-import ezdxf
-from ezdxf.addons import odafc
-from ezdxf.document import Drawing
-from ezdxf import xref, units, colors
-from ezdxf.render import forms
+import dxfpy
+from dxfpy.addons import odafc
+from dxfpy.document import Drawing
+from dxfpy import xref, units, colors
+from dxfpy.render import forms
 
 DXFVERSION = "R2013"
 DXF_NAME = "attached_xref.dxf"
@@ -12,7 +12,7 @@ DWG_NAME = "attached_xref.dwg"
 
 
 def make_dxf_xref_document(name: str) -> Drawing:
-    ref_doc = ezdxf.new(DXFVERSION, units=units.M)
+    ref_doc = dxfpy.new(DXFVERSION, units=units.M)
     ref_doc.layers.add("GEAR", color=colors.YELLOW)
     msp = ref_doc.modelspace()
     gear = forms.gear(
@@ -39,14 +39,14 @@ def create_xrefs():
 
 
 def attach_dxf() -> None:
-    host_doc = ezdxf.new(DXFVERSION, units=units.M)
+    host_doc = dxfpy.new(DXFVERSION, units=units.M)
     xref.attach(host_doc, block_name="dxf_xref", insert=(0, 0), filename=DXF_NAME)
     host_doc.set_modelspace_vport(height=10, center=(0, 0))
     host_doc.saveas("attach_host_dxf.dxf")
 
 
 def attach_dwg() -> None:
-    host_doc = ezdxf.new(DXFVERSION, units=units.M)
+    host_doc = dxfpy.new(DXFVERSION, units=units.M)
     xref.attach(host_doc, block_name="dwg_xref", filename=DWG_NAME, insert=(0, 0))
     host_doc.set_modelspace_vport(height=10, center=(0, 0))
     host_doc.saveas("attach_host_dwg.dxf")

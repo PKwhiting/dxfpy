@@ -2,8 +2,8 @@
 # License: MIT License
 from typing import cast
 import pathlib
-import ezdxf
-from ezdxf.document import Drawing
+import dxfpy
+from dxfpy.document import Drawing
 
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -16,7 +16,7 @@ if not CWD.exists():
 # The single paperspace layout of DXF R12 is not well-supported, it is preferable
 # to use DXF R2000 or later if paperspace layouts are important for your project.
 #
-# docs about layouts: https://ezdxf.mozman.at/docs/layouts/index.html
+# docs about layouts: https://dxfpy.mozman.at/docs/layouts/index.html
 # ------------------------------------------------------------------------------
 
 FILENAME = "page_setup_R12.dxf"
@@ -89,7 +89,7 @@ def setup_active_viewport_configuration(doc: Drawing):
 
 
 def setup_paperspace(doc: Drawing):
-    from ezdxf.layouts import Paperspace
+    from dxfpy.layouts import Paperspace
 
     # DXF R12 supports just one paperspace layout
     layout = cast(Paperspace, doc.layout())
@@ -104,7 +104,7 @@ def setup_paperspace(doc: Drawing):
 
 
 def main():
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     draw_raster(doc)
     setup_active_viewport_configuration(doc)
     setup_paperspace(doc)

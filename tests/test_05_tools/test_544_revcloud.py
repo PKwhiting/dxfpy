@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf import revcloud
+import dxfpy
+from dxfpy import revcloud
 
 
 def test_create_revcloud():
@@ -26,7 +26,7 @@ def test_too_small_segment_length_raises_exception():
 
 
 def test_add_entity():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     # counter-clockwise oriented revision cloud:
     lwp = revcloud.add_entity(msp, [(0, 0), (1, 0), (1, 1), (0, 1)], 0.1)

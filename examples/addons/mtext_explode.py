@@ -1,9 +1,9 @@
 #  Copyright (c) 2021-2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import zoom
-from ezdxf.addons import MTextExplode
+import dxfpy
+from dxfpy import zoom
+from dxfpy.addons import MTextExplode
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,7 +12,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to explode MTEXT entities into TEXT and LINE primitives.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/mtxpl.html
+# docs: https://dxfpy.mozman.at/docs/addons/mtxpl.html
 # ------------------------------------------------------------------------------
 
 
@@ -30,7 +30,7 @@ JUSTIFIED = r"\pi1,qj;" + LOREM_IPSUM + "\n\n"
 
 
 def new_doc(content: str, width: float = 30):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     mtext = msp.add_mtext(
         content,
@@ -40,7 +40,7 @@ def new_doc(content: str, width: float = 30):
             "char_height": 1,
             "color": 7,
             "style": "OpenSans",
-            "line_spacing_style": ezdxf.const.MTEXT_EXACT,
+            "line_spacing_style": dxfpy.const.MTEXT_EXACT,
         },
     )
     mtext.set_bg_color(None, text_frame=True)
@@ -79,7 +79,7 @@ def create(filename):
 
 
 def load(filename):
-    return ezdxf.readfile(CWD / filename)
+    return dxfpy.readfile(CWD / filename)
 
 
 if __name__ == "__main__":

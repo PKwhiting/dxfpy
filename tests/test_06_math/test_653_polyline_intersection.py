@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import (
+from dxfpy.math import (
     intersect_polylines_2d,
     intersect_polylines_3d,
     Vec2,
@@ -10,7 +10,7 @@ from ezdxf.math import (
     ConstructionEllipse,
     BSpline,
 )
-from ezdxf.render import forms
+from dxfpy.render import forms
 
 
 class TestIntersectPolylines2d:

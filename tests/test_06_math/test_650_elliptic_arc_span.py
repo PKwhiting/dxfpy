@@ -4,7 +4,7 @@
 import pytest
 import math
 
-from ezdxf.math import ellipse_param_span, arc_angle_span_deg, arc_angle_span_rad
+from dxfpy.math import ellipse_param_span, arc_angle_span_deg, arc_angle_span_rad
 
 
 class TestArcParamSpan:

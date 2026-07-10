@@ -1,7 +1,7 @@
 # Copyright (c) 2013-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -10,12 +10,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example adds a MTEXT entity to the modelspace.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/mtext.html
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/mtext.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/mtext.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/mtext.html
 # ------------------------------------------------------------------------------
 
 
-doc = ezdxf.new("R2007", setup=True)
+doc = dxfpy.new("R2007", setup=True)
 msp = doc.modelspace()
 attribs = {
     "char_height": 0.7,

@@ -2,20 +2,20 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.lldxf import const
-from ezdxf.math import (
+import dxfpy
+from dxfpy.lldxf import const
+from dxfpy.math import (
     required_fit_points,
     required_control_points,
     required_knot_values,
     uniform_knot_vector,
 )
-from ezdxf.audit import Auditor, AuditError
+from dxfpy.audit import Auditor, AuditError
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 @pytest.fixture

@@ -2,9 +2,9 @@
 #  License: MIT License
 import pathlib
 
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.path import chamfer, chamfer2, fillet, polygonal_fillet, Path
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.path import chamfer, chamfer2, fillet, polygonal_fillet, Path
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,13 +14,13 @@ if not CWD.exists():
 # This example shows how to use the chamfer and fillet tools.
 #
 # docs:
-# chamfer: https://ezdxf.mozman.at/docs/path.html#ezdxf.path.chamfer
-# fillet: https://ezdxf.mozman.at/docs/path.html#ezdxf.path.fillet
+# chamfer: https://dxfpy.mozman.at/docs/path.html#dxfpy.path.chamfer
+# fillet: https://dxfpy.mozman.at/docs/path.html#dxfpy.path.fillet
 # ------------------------------------------------------------------------------
 
 
 def chamfer_tool():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     for angle in range(-165, 180, 15):
@@ -32,7 +32,7 @@ def chamfer_tool():
 
 
 def chamfer2_tool():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     for angle in range(-165, 180, 15):
@@ -44,7 +44,7 @@ def chamfer2_tool():
 
 
 def fillet_tool():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     for angle in range(-165, 180, 15):
@@ -58,7 +58,7 @@ def fillet_tool():
 
 
 def polygonal_fillet_tool():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     for angle in range(-165, 180, 15):
@@ -80,7 +80,7 @@ def square_with_single_edge_fillet():
     p.append_path(f)
     p.close()
 
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.modelspace().add_polyline2d(p.flattening(0.1))
     doc.saveas(CWD / "square_with_single_edge_fillet.dxf")
 

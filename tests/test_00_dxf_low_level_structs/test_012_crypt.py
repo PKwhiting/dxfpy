@@ -1,7 +1,7 @@
 # Created: 01.05.2014, 2018 rewritten for pytest
 # Copyright (C) 2014-2019, Manfred Moitzi
 # License: MIT License
-from ezdxf.tools.crypt import decode, encode
+from dxfpy.tools.crypt import decode, encode
 
 
 def test_decode():

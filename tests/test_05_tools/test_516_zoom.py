@@ -2,14 +2,14 @@
 #  License: MIT License
 from typing import cast
 import pytest
-import ezdxf
-from ezdxf import zoom, bbox
+import dxfpy
+from dxfpy import zoom, bbox
 
 
 class TestModelSpace:
     @pytest.fixture(scope="class")
     def msp(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         msp_ = doc.modelspace()
         msp_.add_point((-25, -25))
         msp_.add_point((25, 25))
@@ -63,7 +63,7 @@ class TestModelSpace:
 class TestPaperSpace:
     @pytest.fixture(scope="class")
     def psp(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         psp_ = cast("Paperspace", doc.layout("Layout1"))
         psp_.add_viewport(
             center=(40, 40),

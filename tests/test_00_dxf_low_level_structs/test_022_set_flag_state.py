@@ -1,6 +1,6 @@
 # Copyright (C) 2019, Manfred Moitzi
 # License: MIT License
-from ezdxf.tools import set_flag_state
+from dxfpy.tools import set_flag_state
 
 
 def test_set_flag_state():

@@ -3,10 +3,10 @@
 from pathlib import Path
 import time
 
-import ezdxf
-from ezdxf.math import Vec2, Matrix44
-from ezdxf.render import forms, hatching
-from ezdxf import path
+import dxfpy
+from dxfpy.math import Vec2, Matrix44
+from dxfpy.render import forms, hatching
+from dxfpy import path
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,7 +14,7 @@ if not CWD.exists():
 
 
 def polygon_hatching(filename: str):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     setup(doc)
     msp = doc.modelspace()
     polygon = Vec2.list(
@@ -32,10 +32,10 @@ SIZE = 0.1
 
 
 def setup(doc):
-    doc.layers.add("POLYGON", color=ezdxf.colors.BLUE)
-    doc.layers.add("MARKERS", color=ezdxf.colors.GREEN)
-    doc.layers.add("POINTS", color=ezdxf.colors.RED)
-    doc.layers.add("HATCH", color=ezdxf.colors.YELLOW)
+    doc.layers.add("POLYGON", color=dxfpy.colors.BLUE)
+    doc.layers.add("MARKERS", color=dxfpy.colors.GREEN)
+    doc.layers.add("POINTS", color=dxfpy.colors.RED)
+    doc.layers.add("HATCH", color=dxfpy.colors.YELLOW)
     marker = doc.blocks.new("MARKER")
     marker.add_line((-SIZE, -SIZE), (SIZE, SIZE))
     marker.add_line((-SIZE, SIZE), (SIZE, -SIZE))
@@ -91,7 +91,7 @@ POLYGONS = [
 
 
 def collinear_horizontal_hatching(filename: str):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     setup(doc)
     for index, polygon in enumerate(POLYGONS):
@@ -103,7 +103,7 @@ def collinear_horizontal_hatching(filename: str):
 
 
 def collinear_vertical_hatching(filename: str):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     setup(doc)
     for index, polygon in enumerate(POLYGONS):
@@ -116,9 +116,9 @@ def collinear_vertical_hatching(filename: str):
 
 def explode_hatch_pattern(filename: str):
     example = Path(__file__).parent.parent / "examples_dxf" / filename
-    doc = ezdxf.readfile(example)
+    doc = dxfpy.readfile(example)
     msp = doc.modelspace()
-    attribs = {"layer": "EXPLODE", "color": ezdxf.colors.RED}
+    attribs = {"layer": "EXPLODE", "color": dxfpy.colors.RED}
     t0 = time.perf_counter()
     for hatch in msp.query("HATCH"):
         for start, end in hatching.hatch_entity(hatch):  # type: ignore
@@ -129,7 +129,7 @@ def explode_hatch_pattern(filename: str):
 
 
 def hatch_circular_path(filename: str, size=10, angle=0):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     setup(doc)
     msp = doc.modelspace()
     m = Matrix44.scale(size)
@@ -150,7 +150,7 @@ def hatch_circular_path(filename: str, size=10, angle=0):
 
 
 def hole_examples(filename: str, size=10, dx=13, angle=0):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     setup(doc)
     msp = doc.modelspace()
     # overlapping holes
@@ -198,7 +198,7 @@ def hole_examples(filename: str, size=10, dx=13, angle=0):
 
 def debug_hatch():
     # earth1 pattern
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     e = msp.add_hatch(
         color=7,

@@ -2,7 +2,7 @@
 # Copyright (c) 2019-2020, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.entitydb import EntitySpace
+from dxfpy.entitydb import EntitySpace
 
 
 class Entity:

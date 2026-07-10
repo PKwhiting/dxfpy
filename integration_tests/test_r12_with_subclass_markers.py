@@ -2,15 +2,15 @@
 #  License: MIT License
 from pathlib import Path
 import pytest
-import ezdxf
-from ezdxf import recover
+import dxfpy
+from dxfpy import recover
 
 DATADIR = Path(__file__).parent / "data"
 
 
 def test_read_sublass_markers_in_r12_entities():
     """DXF R12 file with subclass markers (100, ...) in DXF entities."""
-    doc = ezdxf.readfile(DATADIR / "Leica_Disto_S910.dxf")
+    doc = dxfpy.readfile(DATADIR / "Leica_Disto_S910.dxf")
     msp = doc.modelspace()
     points = list(msp.query("POINT"))
     assert len(points) == 11

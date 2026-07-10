@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.addons.hpgl2.tokenizer import pe_encode, pe_decode, fractional_bits
+from dxfpy.addons.hpgl2.tokenizer import pe_encode, pe_decode, fractional_bits
 
 
 class TestPolylineEncoding:

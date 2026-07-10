@@ -3,26 +3,26 @@
 import pytest
 from pathlib import Path
 
-import ezdxf
-from ezdxf import xref
-from ezdxf.document import Drawing
+import dxfpy
+from dxfpy import xref
+from dxfpy.document import Drawing
 
 DATA = Path(__file__).parent / "data"
 
 
 @pytest.fixture(scope="module")
 def doc1():
-    return ezdxf.readfile(DATA / "issue_1359_1.dxf")
+    return dxfpy.readfile(DATA / "issue_1359_1.dxf")
 
 
 @pytest.fixture(scope="module")
 def doc2():
-    return ezdxf.readfile(DATA / "issue_1359_2.dxf")
+    return dxfpy.readfile(DATA / "issue_1359_2.dxf")
 
 
 @pytest.fixture(scope="module")
 def mdoc(doc1: Drawing, doc2: Drawing):
-    merged_doc = ezdxf.new(dxfversion=doc1.dxfversion)
+    merged_doc = dxfpy.new(dxfversion=doc1.dxfversion)
     xref.load_modelspace(doc1, merged_doc, conflict_policy=xref.ConflictPolicy.KEEP)
     xref.load_modelspace(doc2, merged_doc, conflict_policy=xref.ConflictPolicy.KEEP)
     return merged_doc

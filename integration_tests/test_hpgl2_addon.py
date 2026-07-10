@@ -4,7 +4,7 @@
 import pytest
 from pathlib import Path
 from xml.etree import ElementTree as ET
-from ezdxf.addons.hpgl2 import api as hpgl2
+from dxfpy.addons.hpgl2 import api as hpgl2
 
 DATA = Path(__file__).parent / "data"
 PLOTFILE = DATA / "PLOTFILE.plt"

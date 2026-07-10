@@ -1,10 +1,10 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
-import ezdxf
-from ezdxf.addons import odafc
-from ezdxf.document import Drawing
-from ezdxf import xref, colors
-from ezdxf.render import forms
+import dxfpy
+from dxfpy.addons import odafc
+from dxfpy.document import Drawing
+from dxfpy import xref, colors
+from dxfpy.render import forms
 
 
 def make_block(doc: Drawing, name: str) -> None:
@@ -20,7 +20,7 @@ def make_block(doc: Drawing, name: str) -> None:
 
 
 def detach_dxf() -> None:
-    host_doc = ezdxf.new()
+    host_doc = dxfpy.new()
     make_block(host_doc, "GEAR")
     block_layout = host_doc.blocks.get("GEAR")
     detached_block_doc = xref.detach(block_layout, xref_filename="detached_gear.dxf")
@@ -30,7 +30,7 @@ def detach_dxf() -> None:
 
 
 def detach_dwg() -> None:
-    host_doc = ezdxf.new()
+    host_doc = dxfpy.new()
     make_block(host_doc, "GEAR")
     block_layout = host_doc.blocks.get("GEAR")
     detached_block_doc = xref.detach(block_layout, xref_filename="detached_gear.dwg")

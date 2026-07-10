@@ -14,8 +14,8 @@ try:
 except ImportError:
     plt = None
 
-import ezdxf.addons.binpacking as bp
-import ezdxf.addons.genetic_algorithm as ga
+import dxfpy.addons.binpacking as bp
+import dxfpy.addons.genetic_algorithm as ga
 
 SEED = 47856535
 

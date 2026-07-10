@@ -2,7 +2,7 @@
 # License: MIT License
 import pathlib
 import random
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,7 +11,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to create a WIPEOUT entity.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/wipeout.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/wipeout.html
 # ------------------------------------------------------------------------------
 
 MAX_SIZE = 100
@@ -22,7 +22,7 @@ def random_point():
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     for _ in range(30):

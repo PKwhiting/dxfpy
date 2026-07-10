@@ -5,11 +5,11 @@ from typing import Sequence
 import pytest
 
 import math
-from ezdxf import edgesmith as es
-from ezdxf import edgeminer as em
-from ezdxf.entities import Circle, Arc, Ellipse, LWPolyline, Spline
-from ezdxf.math import fit_points_to_cad_cv
-from ezdxf.layouts import VirtualLayout
+from dxfpy import edgesmith as es
+from dxfpy import edgeminer as em
+from dxfpy.entities import Circle, Arc, Ellipse, LWPolyline, Spline
+from dxfpy.math import fit_points_to_cad_cv
+from dxfpy.layouts import VirtualLayout
 
 
 def test_circle_is_a_closed_entity():
@@ -73,7 +73,7 @@ def test_closed_ellipse_is_a_closed_entity(start, end):
 
 
 # Note: Ellipses with major_axis == (0, 0, 0) are not valid.
-# They cannot be created by ezdxf and loading such ellipses raises an DXFStructureError.
+# They cannot be created by dxfpy and loading such ellipses raises an DXFStructureError.
 
 
 def test_closed_lwpolyline_is_a_closed_entity():
@@ -153,7 +153,7 @@ class TestLineAndArcToPolyline:
         assert int_pnt(pl.vertices[2]) == (6, 6, 0)
 
     def test_create_polyline_path(self, edges: Sequence[em.Edge]):
-        # HATCH boundary path: ezdxf.entities.PolylinePath
+        # HATCH boundary path: dxfpy.entities.PolylinePath
         def int_pnt(point):
             return tuple(round(v) for v in point)
 
@@ -163,11 +163,11 @@ class TestLineAndArcToPolyline:
         assert int_pnt(pl_path.vertices[2]) == (6, 6, 0)
 
     def test_create_edge_path(self, edges: Sequence[em.Edge]):
-        # HATCH boundary path: ezdxf.entities.EdgePath
+        # HATCH boundary path: dxfpy.entities.EdgePath
         pass
 
     def test_create_path(self, edges: Sequence[em.Edge]):
-        # ezdxf.path.Path
+        # dxfpy.path.Path
         path = es.path2d_from_chain(edges)
         commands = path.commands()
         assert len(commands) == 5

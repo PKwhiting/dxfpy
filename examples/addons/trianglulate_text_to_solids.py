@@ -1,11 +1,11 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 from pathlib import Path
-import ezdxf
-from ezdxf import path, zoom
-from ezdxf.tools import fonts
-from ezdxf.addons import text2path
-from ezdxf.enums import TextEntityAlignment
+import dxfpy
+from dxfpy import path, zoom
+from dxfpy.tools import fonts
+from dxfpy.addons import text2path
+from dxfpy.enums import TextEntityAlignment
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,12 +13,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to triangulate text-strings into SOLID entities.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/text2path.html
+# docs: https://dxfpy.mozman.at/docs/addons/text2path.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("OUTLINE")
     doc.layers.new("FILLING")
     msp = doc.modelspace()

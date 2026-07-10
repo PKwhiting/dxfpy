@@ -2,7 +2,7 @@
 #  License: MIT License
 import pytest
 
-from ezdxf.fonts import fonts
+from dxfpy.fonts import fonts
 from pathlib import Path
 
 

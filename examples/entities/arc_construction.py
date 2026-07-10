@@ -1,8 +1,8 @@
 # Copyright (c) 2018-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.math import Vec3, ConstructionArc, UCS
+import dxfpy
+from dxfpy.math import Vec3, ConstructionArc, UCS
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,10 +15,10 @@ if not CWD.exists():
 # - ARC from 2 points and the enclosing angle
 # - ARC from 2 points and a radius
 #
-# ConstructionArc: https://ezdxf.mozman.at/docs/math/core.html#constructionarc
+# ConstructionArc: https://dxfpy.mozman.at/docs/math/core.html#constructionarc
 # ------------------------------------------------------------------------------
 
-doc = ezdxf.new("R2000")
+doc = dxfpy.new("R2000")
 modelspace = doc.modelspace()
 
 # ------------------------------------------------------------------------------

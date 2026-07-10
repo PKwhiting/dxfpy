@@ -4,9 +4,9 @@
 import pytest
 from io import StringIO
 
-from ezdxf.entities.lwpolyline import LWPolyline
-from ezdxf.lldxf.tagwriter import TagCollector, TagWriter, basic_tags_from_text
-from ezdxf.lldxf.const import DXFAttributeError, DXFStructureError
+from dxfpy.entities.lwpolyline import LWPolyline
+from dxfpy.lldxf.tagwriter import TagCollector, TagWriter, basic_tags_from_text
+from dxfpy.lldxf.const import DXFAttributeError, DXFStructureError
 
 LWPOLYLINE = """0
 LWPOLYLINE
@@ -47,7 +47,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "LWPOLYLINE" in ENTITY_CLASSES
 

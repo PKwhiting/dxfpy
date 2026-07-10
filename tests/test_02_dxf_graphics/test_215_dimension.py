@@ -3,12 +3,12 @@
 import pytest
 import math
 
-import ezdxf
-from ezdxf.math import Vec3, Matrix44
-from ezdxf.entities.dimension import Dimension, linear_measurement
-from ezdxf.lldxf.const import DXF12, DXF2000
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.render.dim_base import format_text, DXFValueError, apply_dimpost
+import dxfpy
+from dxfpy.math import Vec3, Matrix44
+from dxfpy.entities.dimension import Dimension, linear_measurement
+from dxfpy.lldxf.const import DXF12, DXF2000
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.render.dim_base import format_text, DXFValueError, apply_dimpost
 
 TEST_CLASS = Dimension
 TEST_TYPE = "DIMENSION"
@@ -186,7 +186,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert TEST_TYPE in ENTITY_CLASSES
 
@@ -250,7 +250,7 @@ def test_write_dxf_preserves_omitted_default_dimension_tags():
 
 
 def test_missing_block_geometry_name():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     dim = Dimension.new(doc=doc)
     assert dim.get_geometry_block() is None
 
@@ -324,7 +324,7 @@ def test_dimension_transform_interface():
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_audit_invalid_dimstyle(doc):

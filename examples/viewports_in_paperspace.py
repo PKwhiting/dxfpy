@@ -4,12 +4,12 @@ from __future__ import annotations
 import math
 import pathlib
 
-import ezdxf
-from ezdxf.layouts import Paperspace, Modelspace
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.render import forms
-from ezdxf.math import Vec2
-from ezdxf import colors
+import dxfpy
+from dxfpy.layouts import Paperspace, Modelspace
+from dxfpy.enums import TextEntityAlignment
+from dxfpy.render import forms
+from dxfpy.math import Vec2
+from dxfpy import colors
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -18,7 +18,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to create VIEWPORT entities in paperspace layouts.
 #
-# VIEWPORT: https://ezdxf.mozman.at/docs/dxfentities/viewport.html
+# VIEWPORT: https://dxfpy.mozman.at/docs/dxfentities/viewport.html
 # ------------------------------------------------------------------------------
 
 MESH_SIZE = 20
@@ -145,7 +145,7 @@ def draw_border_lines(psp: Paperspace, start: Vec2, size: Vec2):
 
 
 def make_dxf(dxfversion: str):
-    doc = ezdxf.new(dxfversion, setup=True)
+    doc = dxfpy.new(dxfversion, setup=True)
     # create/get the default layer for VIEWPORT entities:
     if "VIEWPORTS" not in doc.layers:
         vp_layer = doc.layers.add("VIEWPORTS")

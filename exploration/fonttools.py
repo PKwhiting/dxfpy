@@ -9,11 +9,11 @@ CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
-import ezdxf
-import ezdxf.path
-from ezdxf.math import Matrix44
-from ezdxf.fonts.font_manager import FontManager, FontNotFoundError
-from ezdxf.fonts.ttfonts import TTFontRenderer
+import dxfpy
+import dxfpy.path
+from dxfpy.math import Matrix44
+from dxfpy.fonts.font_manager import FontManager, FontNotFoundError
+from dxfpy.fonts.ttfonts import TTFontRenderer
 
 font_manager = FontManager()
 
@@ -40,7 +40,7 @@ def make_example(doc, font_name: str, y: float, text: str, kerning: bool):
     msp.add_text(
         s, height=cap_height, dxfattribs={"color": 6, "layer": "TEXT", "style": style}
     ).set_placement((0, y))
-    ezdxf.path.render_hatches(
+    dxfpy.path.render_hatches(
         msp,
         [text_path.transform(Matrix44.translate(0, y, 0))],
         dxfattribs={"color": 7, "layer": "HATCH"},
@@ -67,7 +67,7 @@ FONTS = [
 
 
 def latin():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("TEXT")
     doc.layers.add("HATCH").off()
 
@@ -86,7 +86,7 @@ def latin():
 
 
 def chinese():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("TEXT")
     doc.layers.add("HATCH").off()
 

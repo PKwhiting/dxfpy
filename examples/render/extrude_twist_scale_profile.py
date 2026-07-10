@@ -2,8 +2,8 @@
 #  License: MIT License
 import pathlib
 import math
-import ezdxf
-from ezdxf.render import forms
+import dxfpy
+from dxfpy.render import forms
 
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -11,15 +11,15 @@ if not CWD.exists():
     CWD = pathlib.Path(".")
 
 # ------------------------------------------------------------------------------
-# This example shows how to use the extended ezdxf.forms.extrude_twist_scale
+# This example shows how to use the extended dxfpy.forms.extrude_twist_scale
 # method to create a 3D figure from a base polygon (profile).
 #
-# docs: https://ezdxf.mozman.at/docs/render/forms.html#ezdxf.render.forms.extrude_twist_scale
+# docs: https://dxfpy.mozman.at/docs/render/forms.html#dxfpy.render.forms.extrude_twist_scale
 # ------------------------------------------------------------------------------
 
-DEBUG_COLOR = ezdxf.colors.CYAN
+DEBUG_COLOR = dxfpy.colors.CYAN
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 
@@ -28,5 +28,5 @@ extrusion_path = [(0, 0, 0), (1, 0, 10)]
 mesh = forms.extrude_twist_scale(
     circle, extrusion_path, close=True, caps=True, scale=2, twist=math.pi / 2
 )
-mesh.render_mesh(msp, dxfattribs={"color": ezdxf.colors.MAGENTA})
+mesh.render_mesh(msp, dxfattribs={"color": dxfpy.colors.MAGENTA})
 doc.saveas(CWD / "extrude_twist_scale_profile.dxf")

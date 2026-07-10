@@ -4,16 +4,16 @@
 from typing import cast
 import pytest
 
-import ezdxf
-from ezdxf.entities.image import Wipeout
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.layouts import VirtualLayout
-from ezdxf.math import Vec2
+import dxfpy
+from dxfpy.entities.image import Wipeout
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.layouts import VirtualLayout
+from dxfpy.math import Vec2
 
 
 @pytest.fixture
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_wipeout_default_new():
@@ -90,7 +90,7 @@ def test_wipeout_vars(doc):
 
 
 def test_boundary_path_wcs():
-    from ezdxf.layouts import VirtualLayout
+    from dxfpy.layouts import VirtualLayout
 
     layout = VirtualLayout()
     e = cast(

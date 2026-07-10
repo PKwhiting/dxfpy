@@ -2,7 +2,7 @@
 #  License: MIT License
 from pathlib import Path
 import pytest
-import ezdxf
+import dxfpy
 
 DATA = Path(__file__).parent / "data"
 GROUPS = "groups.dxf"
@@ -10,7 +10,7 @@ GROUPS = "groups.dxf"
 
 @pytest.fixture
 def doc():
-    return ezdxf.readfile(DATA / GROUPS)
+    return dxfpy.readfile(DATA / GROUPS)
 
 
 def test_load_dxf_with_groups(doc):
@@ -39,7 +39,7 @@ def test_reload_dxf_with_empty_group_content(doc, tmp_path):
     doc.saveas(tmp_path / GROUPS)
     del doc
 
-    reload = ezdxf.readfile(tmp_path / GROUPS)
+    reload = dxfpy.readfile(tmp_path / GROUPS)
     assert len(reload.groups) == 2
     (name1, g1), (name2, g2) = reload.groups
     assert name1 == "G1"

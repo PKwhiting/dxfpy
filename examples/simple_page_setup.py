@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pathlib
-import ezdxf
-from ezdxf.layouts import Paperspace
+import dxfpy
+from dxfpy.layouts import Paperspace
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -30,7 +30,7 @@ def draw_crossings_lines(psp: Paperspace):
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     layout1 = doc.page_setup("Layout1", "ISO A0", landscape=True)
     layout2 = doc.page_setup("Layout2", "ISO A0", landscape=False)
     draw_crossings_lines(layout1)

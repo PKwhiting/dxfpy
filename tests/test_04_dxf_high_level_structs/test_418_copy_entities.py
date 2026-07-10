@@ -2,12 +2,12 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.entities import Dictionary, Placeholder, LWPolyline
+import dxfpy
+from dxfpy.entities import Dictionary, Placeholder, LWPolyline
 
 
 def test_copy_entity_with_extension_dict():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     entity = msp.add_point((0, 0))
     xdict = entity.new_extension_dict()
@@ -41,7 +41,7 @@ def test_copy_entity_with_extension_dict():
 
 
 def test_virtual_copy_with_extension_dict():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     block = doc.blocks.new("TEST")
     entity = block.add_point((0, 0))
@@ -96,7 +96,7 @@ def test_virtual_copy_with_extension_dict():
 
 
 def test_source_of_copy_for_bound_entity():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     e = doc.modelspace().add_lwpolyline([(0, 0), (1, 0), (1, 1)])
     assert e.is_virtual is False
 
@@ -112,7 +112,7 @@ def test_source_of_copy_for_bound_entity():
 
 
 def test_is_copy_state():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     e = doc.modelspace().add_lwpolyline([(0, 0), (1, 0), (1, 1)])
     assert e.is_copy is False
     c0 = e.copy()
@@ -122,7 +122,7 @@ def test_is_copy_state():
 
 
 def test_origin_of_copy_for_copy_chains():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     e = doc.modelspace().add_lwpolyline([(0, 0), (1, 0), (1, 1)])
 
     # first level copy

@@ -2,11 +2,11 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.addons.drawing.gfxproxy import DXFGraphicProxy
-from ezdxf.entities import DXFObject, factory
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.protocols import SupportsVirtualEntities, query_virtual_entities
-from ezdxf.entities.copy import CopyNotSupported
+from dxfpy.addons.drawing.gfxproxy import DXFGraphicProxy
+from dxfpy.entities import DXFObject, factory
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.protocols import SupportsVirtualEntities, query_virtual_entities
+from dxfpy.entities.copy import CopyNotSupported
 
 class FakeObject(DXFObject):
     # does not support any graphical DXF attributes like layer, linetype ...

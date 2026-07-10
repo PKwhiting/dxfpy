@@ -3,18 +3,18 @@
 from typing import cast
 import pytest
 import copy
-import ezdxf
-from ezdxf.math import Vec3, Matrix44
-from ezdxf.entities import (
+import dxfpy
+from dxfpy.math import Vec3, Matrix44
+from dxfpy.entities import (
     factory,
     Hatch,
     MPolygon,
     LWPolyline,
     BoundaryPathType,
 )
-from ezdxf.entities.polygon import DXFPolygon
-from ezdxf.addons import geo
-from ezdxf.render.forms import square, translate
+from dxfpy.entities.polygon import DXFPolygon
+from dxfpy.addons import geo
+from dxfpy.render.forms import square, translate
 
 EXTERIOR = [(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)]
 EXTERIOR_Z = [(0, 0, 1), (10, 0, 1), (10, 10, 1), (0, 10, 1), (0, 0, 1)]
@@ -536,7 +536,7 @@ def test_three_polygons_from_one_hatch():
     ],
 )
 def test_from_dxf_entities_given_arc_returns_linestring(radius: float) -> None:
-    drawing = ezdxf.new()
+    drawing = dxfpy.new()
     msp = drawing.modelspace()
     arc = msp.add_arc(
         center=(0, 0, 0),

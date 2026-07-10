@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.ucs import UCSTableEntry
+from dxfpy.entities.ucs import UCSTableEntry
 
 
 @pytest.fixture

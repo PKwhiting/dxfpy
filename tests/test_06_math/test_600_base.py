@@ -4,8 +4,8 @@ import pytest
 from math import radians
 import numpy as np
 
-from ezdxf.math import xround, Vec2
-from ezdxf.math.construct2d import *
+from dxfpy.math import xround, Vec2
+from dxfpy.math.construct2d import *
 
 
 def test_left_of_line():

@@ -1,9 +1,9 @@
 # Copyright (c) 2010-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import dimstyles, LinearDimension, AngularDimension
-from ezdxf.addons import ArcDimension, RadialDimension
+import dxfpy
+from dxfpy.addons import dimstyles, LinearDimension, AngularDimension
+from dxfpy.addons import ArcDimension, RadialDimension
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,12 +11,12 @@ if not CWD.exists():
 
 # ------------------------------------------------------------------------------
 # These add-ons are obsolete since the rendering of DIMENSION entities is
-# supported by ezdxf but these add-ons will be preserved as they are!
+# supported by dxfpy but these add-ons will be preserved as they are!
 # ------------------------------------------------------------------------------
 
 # create a new drawing: dxfwrite.DXFEngine.drawing(filename)
 NAME = "dimlines.dxf"
-doc = ezdxf.new("R12")
+doc = dxfpy.new("R12")
 msp = doc.modelspace()
 
 

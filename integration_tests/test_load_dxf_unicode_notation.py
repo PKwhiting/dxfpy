@@ -2,7 +2,7 @@
 #  License: MIT License
 import os
 import pytest
-from ezdxf import recover
+from dxfpy import recover
 
 BASEDIR = os.path.dirname(__file__)
 DATADIR = "data"

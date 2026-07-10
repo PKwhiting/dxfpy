@@ -1,8 +1,8 @@
 # Copyright (c) 2024, Manfred Moitzi
 # License: MIT License
 from pathlib import Path
-import ezdxf
-from ezdxf import revcloud
+import dxfpy
+from dxfpy import revcloud
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -10,7 +10,7 @@ if not CWD.exists():
 
 
 def revcloud_manually():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     # These conditions must be met to create a true REVCLOUD representation:
@@ -33,14 +33,14 @@ def revcloud_manually():
 
 
 def revcloud_entity():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     revcloud.add_entity(msp, [(0, 0), (1, 0), (1, 1), (0, 1)], segment_length=0.1)
     doc.saveas(CWD / "revcloud-entity.dxf")
 
 def revcloud_reverse_entity():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     revcloud.add_entity(msp, [(0, 0), (0, 1), (1, 1), (1, 0)], segment_length=0.1)

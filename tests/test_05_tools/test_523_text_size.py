@@ -3,19 +3,19 @@
 
 import pytest
 
-import ezdxf
-from ezdxf.entities import MText, Text
-from ezdxf.layouts import VirtualLayout
-from ezdxf.tools.text_size import (
+import dxfpy
+from dxfpy.entities import MText, Text
+from dxfpy.layouts import VirtualLayout
+from dxfpy.tools.text_size import (
     text_size,
     mtext_size,
     estimate_mtext_extents,
 )
-from ezdxf.tools.text import (
+from dxfpy.tools.text import (
     set_estimation_safety_factor,
     reset_estimation_safety_factor,
 )
-from ezdxf.tools.text_layout import leading
+from dxfpy.tools.text_layout import leading
 
 
 @pytest.fixture
@@ -90,7 +90,7 @@ def test_measurement_of_plain_text(msp, s):
 
 def test_support_for_text_size():
     test_string = "TestString"
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.styles.add("OpenSans", font="OpenSans-Regular.ttf")
     text = doc.modelspace().add_text(
         test_string,

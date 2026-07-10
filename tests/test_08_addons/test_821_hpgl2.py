@@ -2,12 +2,12 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import BoundingBox2d
-from ezdxf.addons.hpgl2 import api
-from ezdxf.addons.hpgl2.properties import RGB, FillType
-from ezdxf.addons.hpgl2.backend import Backend, placement_matrix
-from ezdxf.addons.hpgl2.deps import Vec2
-from ezdxf.addons.hpgl2.page import Page
+from dxfpy.math import BoundingBox2d
+from dxfpy.addons.hpgl2 import api
+from dxfpy.addons.hpgl2.properties import RGB, FillType
+from dxfpy.addons.hpgl2.backend import Backend, placement_matrix
+from dxfpy.addons.hpgl2.deps import Vec2
+from dxfpy.addons.hpgl2.page import Page
 
 
 def hpgl2(s: bytes):
@@ -396,7 +396,7 @@ class TestPageIsotropicScaling:
 
 
 def test_arc_angles():
-    from ezdxf.addons.hpgl2.plotter import arc_angles
+    from dxfpy.addons.hpgl2.plotter import arc_angles
 
     angles = list(arc_angles(0, 360, 5))
     assert len(angles) == 73
@@ -408,7 +408,7 @@ def test_arc_angles():
 
 
 def test_sweeping_angle():
-    from ezdxf.addons.hpgl2.plotter import sweeping_angle
+    from dxfpy.addons.hpgl2.plotter import sweeping_angle
 
     assert sweeping_angle(0, 45, 90) == 90
     assert sweeping_angle(90, 45, 0) == -90

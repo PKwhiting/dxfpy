@@ -1,12 +1,12 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 def test_layout_dict_is_not_hard_owner(doc):
@@ -17,7 +17,7 @@ def test_create_new_layout(doc):
     NAME = "CreateNewLayout"
 
     new_layout = doc.new_layout(NAME)
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         doc.new_layout(NAME), "Same name for another layout is invalid."
 
     assert NAME == new_layout.name, "Has incorrect name"
@@ -37,15 +37,15 @@ def test_create_new_layout(doc):
 
 @pytest.mark.parametrize("name", ["Model", "MODEL", "model"])
 def test_reserved_model_space_name(doc, name):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         doc.new_layout(name), f'Creating a layout "{name}" is not allowed'
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         doc.layouts.delete(name), f'Deleting "{name}" is not allowed'
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         doc.layouts.rename(
             name, "XXX"
         ), f'Renaming layout "{name}" is not allowed'
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         doc.layouts.rename(
             "XXX", name
         ), f'Renaming a layout to "{name}" is not allowed'
@@ -62,7 +62,7 @@ def test_case_insensitive_layout_names(doc):
         NAME.upper()
     ), "get() should be case insensitive"
 
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         doc.layouts.new(
             NAME.upper()
         ), "Can not create layout with existing name"
@@ -128,5 +128,5 @@ def test_rename_layout(doc):
 
 
 def test_rename_not_existing_layout(doc):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         doc.layouts.rename("LayoutDoesNotExist", "XXX")

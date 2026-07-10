@@ -1,12 +1,12 @@
 # Copyright (c) 2018-2019 Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.entities.dxfobj import VBAProject
-from ezdxf.lldxf.tagwriter import TagCollector
+import dxfpy
+from dxfpy.entities.dxfobj import VBAProject
+from dxfpy.lldxf.tagwriter import TagCollector
 
 
 def test_vba_project():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     vba = doc.objects.new_entity("VBA_PROJECT", {})  # type: VBAProject
     assert vba.dxftype() == "VBA_PROJECT"
     assert len(vba.data) == 0

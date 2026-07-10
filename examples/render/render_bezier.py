@@ -1,20 +1,20 @@
 # Copyright (c) 2010-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.render import Bezier
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.render import Bezier
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
 # ------------------------------------------------------------------------------
-# This example shows how to use the ezdxf.render.Bezier class.
+# This example shows how to use the dxfpy.render.Bezier class.
 # The DXF format does not support Bézier curves, therefore they can only be
 # approximated by polylines.
 #
-# docs: https://ezdxf.mozman.at/docs/render/curves.html#bezier
+# docs: https://dxfpy.mozman.at/docs/render/curves.html#bezier
 # ------------------------------------------------------------------------------
 
 
@@ -29,7 +29,7 @@ def draw_control_point(msp, point, tangent1, tangent2=(0, 0)):
 
 
 def main():
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     msp = doc.modelspace()
 
     bezier = Bezier()

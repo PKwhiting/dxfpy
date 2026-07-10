@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.lldxf.validator import (
+from dxfpy.lldxf.validator import (
     is_in_integer_range,
     is_valid_aci_color,
     is_valid_layer_name,
@@ -27,7 +27,7 @@ from ezdxf.lldxf.validator import (
     is_transparency,
     is_valid_rgb,
 )
-from ezdxf.entities.layer import is_valid_layer_color_index, fix_layer_color
+from dxfpy.entities.layer import is_valid_layer_color_index, fix_layer_color
 
 
 def test_invalid_layer_name():

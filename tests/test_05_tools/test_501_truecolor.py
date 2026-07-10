@@ -1,7 +1,7 @@
 # Copyright (c) 2014-2023, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.colors import int2rgb, rgb2int, aci2rgb, luminance, RGB, RGBA
+from dxfpy.colors import int2rgb, rgb2int, aci2rgb, luminance, RGB, RGBA
 
 
 def test_rgb():

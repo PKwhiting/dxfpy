@@ -5,15 +5,15 @@ import time
 import random
 from datetime import datetime
 from pathlib import Path
-from ezdxf.acc import USE_C_EXT
+from dxfpy.acc import USE_C_EXT
 
 if USE_C_EXT is False:
     print("C-extension disabled or not available.")
     sys.exit(1)
 
-from ezdxf.math._matrix44 import Matrix44  # Python implementation
-from ezdxf.acc.matrix44 import Matrix44 as CMatrix44  # Cython implementation
-from ezdxf.version import __version__
+from dxfpy.math._matrix44 import Matrix44  # Python implementation
+from dxfpy.acc.matrix44 import Matrix44 as CMatrix44  # Cython implementation
+from dxfpy.version import __version__
 
 
 def open_log(name: str):
@@ -23,7 +23,7 @@ def open_log(name: str):
         with open(p, mode="wt") as fp:
             fp.write(
                 '"timestamp"; "pytime"; "cytime"; '
-                '"python_version"; "ezdxf_version"\n'
+                '"python_version"; "dxfpy_version"\n'
             )
     log_file = open(p, mode="at")
     return log_file

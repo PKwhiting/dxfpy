@@ -1,10 +1,10 @@
 #  Copyright (c) 2020, Manfred Moitzi
 #  License: MIT License
 import pytest
-from ezdxf.entities import factory
-from ezdxf.render.forms import square, translate
-from ezdxf.lldxf import const
-from ezdxf.addons import geo
+from dxfpy.entities import factory
+from dxfpy.render.forms import square, translate
+from dxfpy.lldxf import const
+from dxfpy.addons import geo
 
 shapely_geometry = pytest.importorskip("shapely.geometry")
 

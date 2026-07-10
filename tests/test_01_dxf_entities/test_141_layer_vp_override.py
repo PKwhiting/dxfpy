@@ -2,18 +2,18 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.layouts import Paperspace
-from ezdxf.entities.layer import LayerOverrides
-from ezdxf.lldxf import const
+from dxfpy.layouts import Paperspace
+from dxfpy.entities.layer import LayerOverrides
+from dxfpy.lldxf import const
 
 
 @pytest.fixture(scope="module")
 def doc():
-    doc_ = ezdxf.new(setup=["linetypes"])
-    doc_.layers.add("LayerA", color=ezdxf.colors.RED)
-    doc_.layers.add("LayerB", color=ezdxf.colors.YELLOW)
+    doc_ = dxfpy.new(setup=["linetypes"])
+    doc_.layers.add("LayerA", color=dxfpy.colors.RED)
+    doc_.layers.add("LayerB", color=dxfpy.colors.YELLOW)
     return doc_
 
 
@@ -45,7 +45,7 @@ def test_get_default_layer_values_for_missing_overrides(layer_a):
     vp_handle = "ABBA"
     overrides = layer_a.get_vp_overrides()
     assert overrides.has_overrides(vp_handle) is False
-    assert overrides.get_color(vp_handle) == ezdxf.colors.RED
+    assert overrides.get_color(vp_handle) == dxfpy.colors.RED
     assert overrides.get_rgb(vp_handle) is None
     assert overrides.get_transparency(vp_handle) == 0.0
     assert overrides.get_linetype(vp_handle) == "Continuous"
@@ -60,7 +60,7 @@ class TestSetOverridesWithoutCommit:
         assert vp_overrides.get_color(vp_handle) == 6
 
     @pytest.mark.parametrize(
-        "value", [300, ezdxf.colors.BYLAYER, ezdxf.colors.BYBLOCK]
+        "value", [300, dxfpy.colors.BYLAYER, dxfpy.colors.BYBLOCK]
     )
     def test_invalid_color_raises_value_error(self, layer_a, value):
         vp_overrides = layer_a.get_vp_overrides()

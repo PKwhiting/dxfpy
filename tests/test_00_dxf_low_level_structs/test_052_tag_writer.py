@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 from io import StringIO
-from ezdxf.lldxf.tagwriter import TagWriter, TagCollector
-from ezdxf.lldxf.types import DXFTag, DXFVertex
+from dxfpy.lldxf.tagwriter import TagWriter, TagCollector
+from dxfpy.lldxf.types import DXFTag, DXFVertex
 
 
 def setup_stream():

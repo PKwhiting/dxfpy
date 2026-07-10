@@ -2,14 +2,14 @@
 # License: MIT License
 import pytest
 from io import StringIO
-import ezdxf
-from ezdxf.lldxf import const
-from ezdxf.lldxf.tags import internal_tag_compiler
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.sections.classes import ClassesSection, snapshot_raw_classes, restore_raw_classes
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.tools.test import load_section
-from ezdxf.entities import factory
+import dxfpy
+from dxfpy.lldxf import const
+from dxfpy.lldxf.tags import internal_tag_compiler
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.sections.classes import ClassesSection, snapshot_raw_classes, restore_raw_classes
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.tools.test import load_section
+from dxfpy.entities import factory
 
 
 @pytest.fixture(scope="module")
@@ -45,7 +45,7 @@ def test_count_class_instances():
     def instance_count(name):
         return doc.classes.get(name).dxf.instance_count
 
-    doc = ezdxf.new("R2004")
+    doc = dxfpy.new("R2004")
 
     doc.classes.add_class("IMAGE")
     doc.classes.add_class("IMAGEDEF")
@@ -70,10 +70,10 @@ def test_count_class_instances():
 
 
 def test_add_required_classes_registers_multileader_class_if_used():
-    from ezdxf.render.mleader import ConnectionSide
-    from ezdxf.math import Vec2
+    from dxfpy.render.mleader import ConnectionSide
+    from dxfpy.math import Vec2
 
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     builder = doc.modelspace().add_multileader_mtext()
     builder.set_content("note")
     builder.add_leader_line(ConnectionSide.left, [Vec2(0, 0), Vec2(1, 0)])
@@ -87,7 +87,7 @@ def test_add_required_classes_registers_multileader_class_if_used():
 
 
 def test_add_required_classes_does_not_force_layout_or_placeholder_classes():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
 
     doc.classes.add_required_classes(doc.dxfversion)
 
@@ -98,7 +98,7 @@ def test_add_required_classes_does_not_force_layout_or_placeholder_classes():
 
 
 def test_add_required_classes_does_not_force_sun_or_render_settings_classes():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
 
     doc.classes.add_required_classes(doc.dxfversion)
 
@@ -109,7 +109,7 @@ def test_add_required_classes_does_not_force_sun_or_render_settings_classes():
 
 
 def test_add_class_wipeout_uses_full_oracle_metadata():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
 
     doc.classes.add_class("WIPEOUT")
 
@@ -123,12 +123,12 @@ def test_add_class_wipeout_uses_full_oracle_metadata():
 
 
 def test_snapshot_and_restore_raw_classes_preserves_oracle_text():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.classes.add_class("WIPEOUT")
     source_doc.classes.add_class("MULTILEADER")
     snapshot = snapshot_raw_classes(source_doc.classes)
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     restore_raw_classes(target_doc.classes, snapshot)
 
     stream = StringIO()

@@ -5,10 +5,10 @@ import os
 
 import pytest
 
-import ezdxf
-from ezdxf.entities.geodata import GeoData, EPSG_3395
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Vec3, Matrix44
+import dxfpy
+from dxfpy.entities.geodata import GeoData, EPSG_3395
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Vec3, Matrix44
 
 GEODATA = """0
 GEODATA
@@ -85,7 +85,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "GEODATA" in ENTITY_CLASSES
 
@@ -239,7 +239,7 @@ def test_geodata_coordinate_system_definition(geodata):
 
 
 def test_create_new_geo_data_for_model_space():
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     msp = doc.modelspace()
     assert msp.get_geodata() is None
     geodata = msp.new_geodata()
@@ -368,14 +368,14 @@ def test_interpreting_geodata(georeferenced_test_file_path):
     # It is unclear how to create a georeferenced file from scratch. Copying
     #     # every GeoData attribute and document header value across was not enough
     #     # for AutoCAD to correctly interpret the coordinates.
-    doc = ezdxf.readfile(georeferenced_test_file_path)
+    doc = dxfpy.readfile(georeferenced_test_file_path)
     geodata = doc.modelspace().get_geodata()
 
     assert geodata.decoded_units() == ("in", "in")  # inches
 
     coordinate_system_definition = geodata.coordinate_system_definition
     geodata.coordinate_system_definition = ""
-    with pytest.raises(ezdxf.InvalidGeoDataException):
+    with pytest.raises(dxfpy.InvalidGeoDataException):
         geodata.get_crs()
     geodata.coordinate_system_definition = coordinate_system_definition
 
@@ -426,7 +426,7 @@ def test_interpreting_geodata(georeferenced_test_file_path):
 
 
 def test_setup_local_grid_epsg_3395():
-    doc = ezdxf.new("R2010", units=5)  # cm
+    doc = dxfpy.new("R2010", units=5)  # cm
     msp = doc.modelspace()
     geodata = msp.new_geodata()
     geodata.setup_local_grid(

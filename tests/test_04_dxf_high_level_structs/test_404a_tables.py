@@ -1,15 +1,15 @@
 # Copyright (c) 2011-2022, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.sections.tables import TablesSection
-from ezdxf.lldxf.tagwriter import TagCollector
+import dxfpy
+from dxfpy.sections.tables import TablesSection
+from dxfpy.lldxf.tagwriter import TagCollector
 
 
 class TestGenericTableFeatures:
     @pytest.fixture(scope="class")
     def tables(self) -> TablesSection:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         return doc.tables
 
     def test_constructor(self, tables):
@@ -53,14 +53,14 @@ class TestGenericTableFeatures:
 class TestLayerTableEntry:
     @pytest.fixture(scope="class")
     def tables(self) -> TablesSection:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         return doc.tables
 
     def test_add_layer(self, tables):
         layer = tables.layers.add(
             "NEW_LAYER",
             color=2,
-            true_color=ezdxf.rgb2int((0x10, 0x20, 0x30)),
+            true_color=dxfpy.rgb2int((0x10, 0x20, 0x30)),
             linetype="DASHED",
             lineweight=18,
             plot=True,
@@ -92,7 +92,7 @@ class TestLayerTableEntry:
 class TestTextStyleTable:
     @pytest.fixture(scope="class")
     def tables(self) -> TablesSection:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         return doc.tables
 
     def test_add_new_ttf_font_text_style(self, tables):
@@ -111,7 +111,7 @@ class TestTextStyleTable:
         assert style.is_shape_file is True
 
         # can not add same shape file twice:
-        with pytest.raises(ezdxf.const.DXFTableEntryError):
+        with pytest.raises(dxfpy.const.DXFTableEntryError):
             tables.styles.add_shx("shapes1.shx")
 
     def test_add_multiple_shape_files(self, tables):
@@ -150,7 +150,7 @@ class TestTextStyleTable:
         tables.styles.discard_shx("shapes8.shx")  # should not raise an exception
 
     def test_export_multiple_shape_file_entries(self, tables):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.styles.add_shx("export1.shx")
         doc.styles.add_shx("export2.shx")
 
@@ -166,7 +166,7 @@ class TestTextStyleTable:
 class TestLineTypeTable:
     @pytest.fixture(scope="class")
     def tables(self) -> TablesSection:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         return doc.tables
 
     def test_add_new_line_type(self, tables):

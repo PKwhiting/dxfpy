@@ -12,8 +12,8 @@ except ImportError:
     print("    python setup.py build_ext -i")
     exit(1)
 
-from ezdxf.render import forms
-from ezdxf.math.triangulation import mapbox_earcut_2d
+from dxfpy.render import forms
+from dxfpy.math.triangulation import mapbox_earcut_2d
 
 SMALL_GEAR = list(
     forms.gear(8, top_width=1, bottom_width=3, height=2, outside_radius=10)

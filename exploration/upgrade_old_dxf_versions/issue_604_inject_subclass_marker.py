@@ -3,17 +3,17 @@
 import argparse
 import sys
 import glob
-import ezdxf
-from ezdxf import recover
-from ezdxf.addons import Importer
+import dxfpy
+from dxfpy import recover
+from dxfpy.addons import Importer
 
 
-def fixed_by_ezdxf(filename):
+def fixed_by_dxfpy(filename):
     new_filename = filename.replace(".dxf", ".fix.dxf")
     # The original file is only readable but not to fix!
     doc, auditor = recover.readfile(filename)
     # Create a new valid DXF document:
-    doc2 = ezdxf.new()
+    doc2 = dxfpy.new()
     # Import data into new document:
     importer = Importer(doc, doc2)
     importer.import_modelspace()
@@ -22,7 +22,7 @@ def fixed_by_ezdxf(filename):
     print(f'saved fixed DXF file "{new_filename}"')
 
 
-def recover_by_ezdxf(filename):
+def recover_by_dxfpy(filename):
     # The original file is only readable but not to fix!
     new_filename = filename.replace(".dxf", ".rec.dxf")
     doc, auditor = recover.readfile(filename)
@@ -43,8 +43,8 @@ def main():
         for filename in glob.glob(pattern):
             # Injecting the subclass markers is no longer necessary due to the
             # use of the simple_dxfattribs_loader().
-            recover_by_ezdxf(filename)
-            fixed_by_ezdxf(filename)
+            recover_by_dxfpy(filename)
+            fixed_by_dxfpy(filename)
 
 
 # This fixes are specific to the DXF file provided for issue #604

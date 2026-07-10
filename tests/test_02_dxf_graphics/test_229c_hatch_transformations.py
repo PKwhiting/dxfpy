@@ -3,10 +3,10 @@
 import pytest
 import math
 
-from ezdxf.entities import Hatch
-from ezdxf.render.forms import box
-from ezdxf.math import Vec2, Vec3, Matrix44, arc_angle_span_deg
-from ezdxf.path import make_path, have_close_control_vertices
+from dxfpy.entities import Hatch
+from dxfpy.render.forms import box
+from dxfpy.math import Vec2, Vec3, Matrix44, arc_angle_span_deg
+from dxfpy.path import make_path, have_close_control_vertices
 
 
 @pytest.fixture()

@@ -1,8 +1,8 @@
 #  Copyright (c) 2020-2023, Manfred Moitzi
 #  License: MIT License
-import ezdxf
-from ezdxf.lldxf import const
-from ezdxf.math import Shape2d
+import dxfpy
+from dxfpy.lldxf import const
+from dxfpy.math import Shape2d
 
 def add_top_zero_bottom_mlines(
     msp, vertices, closed: bool = False, style: str = "Standard"
@@ -37,7 +37,7 @@ def add_top_zero_bottom_mlines(
 
 
 def create_simple_mline(style="Standard"):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     setup_styles(doc)
     msp = doc.modelspace()
     add_top_zero_bottom_mlines(msp, [(0, 0), (10, 0)], style=style)
@@ -46,7 +46,7 @@ def create_simple_mline(style="Standard"):
 
 
 def create_3seg_mline(style="Standard"):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     setup_styles(doc)
     msp = doc.modelspace()
     add_top_zero_bottom_mlines(
@@ -57,7 +57,7 @@ def create_3seg_mline(style="Standard"):
 
 
 def create_square_mline(style="Standard"):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     setup_styles(doc)
     msp = doc.modelspace()
     add_top_zero_bottom_mlines(

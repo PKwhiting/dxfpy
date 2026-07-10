@@ -2,14 +2,14 @@
 #  License: MIT License
 from typing import List
 import pytest
-import ezdxf
-from ezdxf.disassemble import recursive_decompose
-from ezdxf.entities import Point, Insert
+import dxfpy
+from dxfpy.disassemble import recursive_decompose
+from dxfpy.entities import Point, Insert
 
 
 @pytest.fixture(scope="module")
 def doc():
-    d = ezdxf.new()
+    d = dxfpy.new()
     l0 = d.blocks.new("L0")
     build_level_0(l0)
     l1 = d.blocks.new("L1")
@@ -118,7 +118,7 @@ def test_decompose_minsert_level_1(doc):
 class TestSourceBlockReferences:
     @pytest.fixture(scope="class")
     def doc(self):
-        doc_ = ezdxf.new()
+        doc_ = dxfpy.new()
         blk0 = doc_.blocks.new("BLK0")
         blk1 = doc_.blocks.new("BLK1")
         blk2 = doc_.blocks.new("BLK2")

@@ -6,12 +6,12 @@ from __future__ import annotations
 from typing import Iterable, Iterator, List, Tuple
 import sys
 import math
-from ezdxf.math import Vec2, UVec, has_clockwise_orientation
+from dxfpy.math import Vec2, UVec, has_clockwise_orientation
 
 EPSILON = math.sqrt(sys.float_info.epsilon)
 
-# This module was replaced by the faster ezdxf.math._mapbox_earcut.py module!
-# This file just preserves the invested time and effort for the ezdxf
+# This module was replaced by the faster dxfpy.math._mapbox_earcut.py module!
+# This file just preserves the invested time and effort for the dxfpy
 # integration ;)
 
 

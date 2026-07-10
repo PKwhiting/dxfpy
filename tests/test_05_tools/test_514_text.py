@@ -3,9 +3,9 @@
 
 import pytest
 import math
-import ezdxf
-from ezdxf.entities import Text, DXFEntity
-from ezdxf.tools.text import (
+import dxfpy
+from dxfpy.entities import Text, DXFEntity
+from dxfpy.tools.text import (
     TextLine,
     plain_text,
     caret_decode,
@@ -24,10 +24,10 @@ from ezdxf.tools.text import (
     reset_estimation_safety_factor,
     valid_text_height,
 )
-from ezdxf.fonts.fonts import MonospaceFont
-from ezdxf.enums import TextEntityAlignment
-from ezdxf.math import Vec3
-from ezdxf.lldxf import const
+from dxfpy.fonts.fonts import MonospaceFont
+from dxfpy.enums import TextEntityAlignment
+from dxfpy.math import Vec3
+from dxfpy.lldxf import const
 
 
 @pytest.fixture
@@ -390,7 +390,7 @@ class TestIsTextVerticalStacked:
 
     @pytest.fixture(scope="class")
     def doc(self):
-        d = ezdxf.new()
+        d = dxfpy.new()
         style = d.styles.new("Stacked")
         style.is_vertical_stacked = True
         return d

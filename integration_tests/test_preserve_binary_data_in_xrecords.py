@@ -3,11 +3,11 @@
 import pytest
 import os
 from io import StringIO
-import ezdxf
-from ezdxf.lldxf.tagwriter import TagWriter
+import dxfpy
+from dxfpy.lldxf.tagwriter import TagWriter
 
 CIVIL_3D = os.path.join(
-    ezdxf.EZDXF_TEST_FILES, "AutodeskProducts/Civil3D_2018.dxf"
+    dxfpy.DXFPY_TEST_FILES, "AutodeskProducts/Civil3D_2018.dxf"
 )
 
 
@@ -15,7 +15,7 @@ CIVIL_3D = os.path.join(
 def doc():
     try:
         # Recover mode is not necessary:
-        return ezdxf.readfile(CIVIL_3D)
+        return dxfpy.readfile(CIVIL_3D)
     except IOError:
         pytest.skip(f'File "{CIVIL_3D}" not found.')
 

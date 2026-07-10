@@ -2,7 +2,7 @@
 # License: MIT License
 import time
 import string
-from ezdxf.fonts import fonts
+from dxfpy.fonts import fonts
 
 
 def ttf_text_path():

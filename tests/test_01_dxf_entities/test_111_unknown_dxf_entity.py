@@ -2,10 +2,10 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities import is_graphic_entity, is_dxf_object
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.entities.dxfentity import DXFTagStorage
-from ezdxf.protocols import SupportsVirtualEntities, query_virtual_entities
+from dxfpy.entities import is_graphic_entity, is_dxf_object
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.dxfentity import DXFTagStorage
+from dxfpy.protocols import SupportsVirtualEntities, query_virtual_entities
 
 
 @pytest.fixture

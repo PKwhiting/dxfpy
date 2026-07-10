@@ -2,14 +2,14 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.entities import get_font_name, DXFEntity
-from ezdxf.lldxf import const
+import dxfpy
+from dxfpy.entities import get_font_name, DXFEntity
+from dxfpy.lldxf import const
 
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.styles.add("ARIAL", font="arial.ttf")
     return doc.modelspace()
 

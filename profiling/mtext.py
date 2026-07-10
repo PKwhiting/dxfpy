@@ -2,7 +2,7 @@
 #  License: MIT License
 from typing import Callable
 import time
-from ezdxf.tools.text import fast_plain_mtext, plain_mtext, MTextParser
+from dxfpy.tools.text import fast_plain_mtext, plain_mtext, MTextParser
 
 SHORT = "MTEXT short string"
 LONG = (

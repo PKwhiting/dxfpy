@@ -1,7 +1,7 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.math.shape import Shape2d
+from dxfpy.math.shape import Shape2d
 
 
 @pytest.fixture()

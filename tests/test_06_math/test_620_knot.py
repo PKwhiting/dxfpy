@@ -1,6 +1,6 @@
 # Copyright (c) 2018-2020 Manfred Moitzi
 # License: MIT License
-from ezdxf.math.bspline import (
+from dxfpy.math.bspline import (
     open_uniform_knot_vector,
     uniform_knot_vector,
     required_knot_values,

@@ -5,7 +5,7 @@ from typing import Sequence, Iterable, Iterator
 import time
 
 import numpy as np
-from ezdxf.math import Bezier3P, Vec3, UVec, Bezier4P
+from dxfpy.math import Bezier3P, Vec3, UVec, Bezier4P
 
 
 class NumpyQuadraticBezier:

@@ -3,8 +3,8 @@
 from typing import Iterable, Tuple
 import pathlib
 import math
-import ezdxf
-from ezdxf import zoom
+import dxfpy
+from dxfpy import zoom
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -32,7 +32,7 @@ def maurer_rose(n: int, d: int, radius: float) -> Iterable[Tuple[float, float]]:
 
 
 def main(filename: str, n: int, d: int) -> None:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("PETALS", color=1)
     doc.layers.add("NET", color=5)
     msp = doc.modelspace()

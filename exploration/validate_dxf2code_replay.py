@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 import runpy
 
-import ezdxf
-from ezdxf._fidelity_compare import compare_replay_documents, format_replay_comparison
-from ezdxf.addons.dxf2code import document_to_code_file
+import dxfpy
+from dxfpy._fidelity_compare import compare_replay_documents, format_replay_comparison
+from dxfpy.addons.dxf2code import document_to_code_file
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,9 +37,9 @@ def main(argv: list[str] | None = None) -> int:
     runpy.run_path(args.script, run_name="__main__")
 
     print(f"Reading source DXF: {args.source}")
-    source_doc = ezdxf.readfile(args.source)
+    source_doc = dxfpy.readfile(args.source)
     print(f"Reading replay DXF: {args.output}")
-    replay_doc = ezdxf.readfile(args.output)
+    replay_doc = dxfpy.readfile(args.output)
 
     comparison = compare_replay_documents(source_doc, replay_doc)
     print(format_replay_comparison(comparison, sample_limit=args.sample_limit))

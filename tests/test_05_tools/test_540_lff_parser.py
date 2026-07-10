@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.fonts import lff
+from dxfpy.fonts import lff
 
 
 @pytest.fixture(scope="module")

@@ -3,9 +3,9 @@
 from typing import List, Iterator
 from argparse import ArgumentParser
 
-from ezdxf.acis.sat import merge_record_strings
+from dxfpy.acis.sat import merge_record_strings
 
-# The command "ezdxf browse-acis <dxf-file>" shows similar information.
+# The command "dxfpy browse-acis <dxf-file>" shows similar information.
 """
 ===============================================================================
 Notes:

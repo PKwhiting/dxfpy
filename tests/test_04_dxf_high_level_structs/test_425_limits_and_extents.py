@@ -2,12 +2,12 @@
 #  License: MIT License
 from typing import cast
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module", params=["R12", "R2000"])
 def doc(request):
-    return ezdxf.new(request.param)
+    return dxfpy.new(request.param)
 
 
 def test_new_doc_extents(doc):
@@ -134,7 +134,7 @@ def test_default_active_layout1_viewport(doc):
 
 
 def test_reset_layout1_active_viewport(doc):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     layout1 = cast("Paperspace", doc.layout("Layout1"))
     viewport = layout1.reset_main_viewport()
     assert viewport.dxf.center == (202.5, 128.5)

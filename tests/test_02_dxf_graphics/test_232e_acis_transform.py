@@ -2,16 +2,16 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.entities import Insert, Body
-from ezdxf.layouts import Modelspace
-from ezdxf.math import Matrix44, Vec3
-from ezdxf.protocols import SupportsTemporaryTransformation
+import dxfpy
+from dxfpy.entities import Insert, Body
+from dxfpy.layouts import Modelspace
+from dxfpy.math import Matrix44, Vec3
+from dxfpy.protocols import SupportsTemporaryTransformation
 
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     return doc.modelspace()
 
 

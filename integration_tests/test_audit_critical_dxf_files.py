@@ -2,12 +2,12 @@
 #  License: MIT License
 import pytest
 import os
-import ezdxf
+import dxfpy
 
 BASEDIR = os.path.dirname(__file__)
 DATADIR = "data"
 COLDFIRE = os.path.join(
-    ezdxf.EZDXF_TEST_FILES, "CADKitSamples/kit-dev-coldfire-xilinx_5213.dxf"
+    dxfpy.DXFPY_TEST_FILES, "CADKitSamples/kit-dev-coldfire-xilinx_5213.dxf"
 )
 
 
@@ -15,7 +15,7 @@ COLDFIRE = os.path.join(
     not os.path.exists(COLDFIRE), reason="test data not present"
 )
 def test_kit_dev_coldfire():
-    doc = ezdxf.readfile(COLDFIRE)
+    doc = dxfpy.readfile(COLDFIRE)
     auditor = doc.audit()
     assert len(auditor) == 0
 
@@ -29,6 +29,6 @@ def filename(request):
 
 
 def test_leica_disto_r12(filename):
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     auditor = doc.audit()
     assert len(auditor) == 0

@@ -2,11 +2,11 @@
 #  License: MIT License
 from typing import cast
 from pathlib import Path
-import ezdxf
-from ezdxf import colors
-from ezdxf.math import ConstructionBox
-from ezdxf.layouts import Paperspace, Modelspace
-from ezdxf.entities import Viewport
+import dxfpy
+from dxfpy import colors
+from dxfpy.math import ConstructionBox
+from dxfpy.layouts import Paperspace, Modelspace
+from dxfpy.entities import Viewport
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -74,7 +74,7 @@ def create_viewports(paperspace: Paperspace):
 
 
 def make(filename):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     # create/get the default layer for VIEWPORT entities:
     if "VIEWPORTS" not in doc.layers:
         vp_layer = doc.layers.add("VIEWPORTS")
@@ -114,7 +114,7 @@ def render_viewport(vp: Viewport, msp: Modelspace):
 
 
 def render_psp_in_msp(psp: Paperspace, filename: str):
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     for viewport in psp.query("VIEWPORT")[1:]:
         # skip the first viewport - defines the paperspace representation in

@@ -3,8 +3,8 @@
 import pathlib
 import shutil
 
-import ezdxf
-from ezdxf.math import basic_transformation
+import dxfpy
+from dxfpy.math import basic_transformation
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,11 +14,11 @@ if not CWD.exists():
 # This example shows how to use UNDERLAY objects.
 #
 # This does not work reliable across CAD applications - don't use UNDERLAY objects!
-# docs: https://ezdxf.mozman.at/docs/dxfentities/underlay.html
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/underlay.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/underlay.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/underlay.html
 # ------------------------------------------------------------------------------
 
-doc = ezdxf.new("R2000")  # underlay requires the DXF R2000 format or newer
+doc = dxfpy.new("R2000")  # underlay requires the DXF R2000 format or newer
 pdf_underlay_def = doc.add_underlay_def(
     filename="underlay.pdf", name="1"
 )  # name = page to display

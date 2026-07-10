@@ -3,8 +3,8 @@
 
 import pytest
 
-from ezdxf.entities import factory
-from ezdxf.path import make_path
+from dxfpy.entities import factory
+from dxfpy.path import make_path
 
 
 @pytest.fixture

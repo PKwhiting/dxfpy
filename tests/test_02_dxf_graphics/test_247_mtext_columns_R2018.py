@@ -2,16 +2,16 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.entities.mtext import (
+from dxfpy.entities.mtext import (
     load_columns_from_embedded_object,
     MText,
     ColumnType,
     MTextColumns,
 )
-from ezdxf.lldxf import const
-from ezdxf.lldxf.types import EMBEDDED_OBJ_STR, EMBEDDED_OBJ_MARKER
-from ezdxf.lldxf.tags import Tags
-from ezdxf.lldxf.tagwriter import TagCollector
+from dxfpy.lldxf import const
+from dxfpy.lldxf.types import EMBEDDED_OBJ_STR, EMBEDDED_OBJ_MARKER
+from dxfpy.lldxf.tags import Tags
+from dxfpy.lldxf.tagwriter import TagCollector
 
 DYNAMIC_MANUAL_HEIGHT = """101
 Embedded Object

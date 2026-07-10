@@ -2,7 +2,7 @@
 # License: MIT License
 
 
-from ezdxf.lldxf.repair import filter_invalid_point_codes
+from dxfpy.lldxf.repair import filter_invalid_point_codes
 
 
 def test_invalid_y_coord_after_xyz():

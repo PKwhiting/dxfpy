@@ -1,7 +1,7 @@
 # Copyright (c) 2016-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 import os
 import shutil
 
@@ -13,14 +13,14 @@ if not CWD.exists():
 # This example adds an image to the DXF file.
 #
 # My advice: Do not use pixel images in DXF files!
-# docs: https://ezdxf.mozman.at/docs/dxfentities/ellipse.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/ellipse.html
 # ------------------------------------------------------------------------------
 
 IMAGE_PATH = "mycat.jpg"
 ABS_IMAGE_PATH = os.path.abspath(IMAGE_PATH)
 
 # The IMAGE entity requires the DXF R2000 or newer format:
-doc = ezdxf.new("R2004")
+doc = dxfpy.new("R2004")
 my_image_def = doc.add_image_def(
     filename=ABS_IMAGE_PATH, size_in_pixel=(640, 360)
 )

@@ -2,12 +2,12 @@
 # Copyright (C) 2011-2019, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 @pytest.fixture(scope="module")
@@ -33,7 +33,7 @@ def test_set_units(modelspace):
 
 
 def test_delete_entity():
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     layout = doc.modelspace()
     for _ in range(5):
         layout.add_line((0, 0), (10, 0))
@@ -115,7 +115,7 @@ def test_clone_dxfattribs(modelspace):
 
 
 def test_invalid_layer_name(modelspace):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         modelspace.add_line(
             (0, 0), (1, 1), dxfattribs={"layer": "InvalidName*"}
         )
@@ -127,11 +127,11 @@ def test_create_layout(doc):
     ), "New drawing should have 1 model space and 1 paper space"
 
     # create a new layout
-    layout = doc.layouts.new("ezdxf")
-    assert "ezdxf" in doc.layouts
+    layout = doc.layouts.new("dxfpy")
+    assert "dxfpy" in doc.layouts
     assert len(layout) == 0, "New layout should contain no entities"
 
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         doc.layouts.new('invalid characters: <>/":;?*|=`')
 
     layout.page_setup()  # default paper setup
@@ -141,7 +141,7 @@ def test_create_layout(doc):
 class TestAcquireLayouts:
     @pytest.fixture(scope="class")
     def doc(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         doc.layouts.new("Layout2")
         doc.layouts.new("Layout3")
         doc.layouts.set_active_layout("Layout3")

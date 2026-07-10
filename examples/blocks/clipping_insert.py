@@ -2,16 +2,16 @@
 # License: MIT License
 from __future__ import annotations
 import pathlib
-import ezdxf
-from ezdxf import colors, xclip
-from ezdxf.document import Drawing
+import dxfpy
+from dxfpy import colors, xclip
+from dxfpy.document import Drawing
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
 # ------------------------------------------------------------------------------
-# This example shows how to use the ezdxf.xclip module to add a clipping path to
+# This example shows how to use the dxfpy.xclip module to add a clipping path to
 # INSERT entities (block references and XREFs).
 # ------------------------------------------------------------------------------
 
@@ -28,7 +28,7 @@ def make_block(doc: Drawing) -> str:
 
 
 def add_clipping_path_in_block_coordinates():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     name = make_block(doc)
@@ -56,7 +56,7 @@ def add_clipping_path_in_block_coordinates():
 
 def add_clipping_path_in_wcs_coordinates():
     # same as above but the clipping paths are set in world coordinates (WCS).
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     name = make_block(doc)
@@ -83,9 +83,9 @@ def add_clipping_path_in_wcs_coordinates():
 def add_inverted_clipping_path():
     # ------------------------------------------------------------------------------
     # WARNING: The created DXF document is not compatible to AutoCAD!
-    # AutoCAD will not load DXF files with inverted clipping paths created by ezdxf.
+    # AutoCAD will not load DXF files with inverted clipping paths created by dxfpy.
     # ------------------------------------------------------------------------------
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     name = make_block(doc)

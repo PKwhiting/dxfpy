@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.render.linetypes import LineTypeRenderer
+from dxfpy.render.linetypes import LineTypeRenderer
 
 
 def test_line_type_solid():

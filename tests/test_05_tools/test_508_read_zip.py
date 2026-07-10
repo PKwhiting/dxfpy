@@ -3,7 +3,7 @@
 import pytest
 import os
 
-import ezdxf
+import dxfpy
 
 ZIPFILE = "read_zip_test.zip"
 
@@ -21,7 +21,7 @@ def get_zip_path(zip_file_name):
     ),
 )
 def test_read_ac1009():
-    dwg = ezdxf.readzip(get_zip_path(ZIPFILE), "AC1009.dxf")
+    dwg = dxfpy.readzip(get_zip_path(ZIPFILE), "AC1009.dxf")
     msp = dwg.modelspace()
     lines = msp.query("LINE")
     assert 255 == len(lines)

@@ -1,9 +1,9 @@
 # Copyright (c) 2011-2022, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.entities import (
+from dxfpy.entities import (
     Dictionary,
     DictionaryWithDefault,
     DictionaryVar,
@@ -13,8 +13,8 @@ from ezdxf.entities import (
     XRecord,
 )
 
-from ezdxf import DXFKeyError, DXFValueError
-from ezdxf.audit import Auditor, AuditError
+from dxfpy import DXFKeyError, DXFValueError
+from dxfpy.audit import Auditor, AuditError
 
 
 class MockDoc:
@@ -45,7 +45,7 @@ class TestNoneEmptyDXFDict:
         assert 14 == len(dxfdict)
 
     def test_getitem_with_keyerror(self, dxfdict):
-        with pytest.raises(ezdxf.DXFKeyError):
+        with pytest.raises(dxfpy.DXFKeyError):
             _ = dxfdict["MOZMAN"]
 
     def test_owner(self, dxfdict):
@@ -76,7 +76,7 @@ class TestNoneEmptyDXFDict:
         assert 13 == len(dxfdict)
 
     def test_delete_not_existing_key(self, dxfdict):
-        with pytest.raises(ezdxf.DXFKeyError):
+        with pytest.raises(dxfpy.DXFKeyError):
             del dxfdict["MOZMAN"]
 
     def test_remove_existing_key(self, dxfdict):
@@ -85,7 +85,7 @@ class TestNoneEmptyDXFDict:
         assert 13 == len(dxfdict)
 
     def test_remove_not_existing_key(self, dxfdict):
-        with pytest.raises(ezdxf.DXFKeyError):
+        with pytest.raises(dxfpy.DXFKeyError):
             dxfdict.remove("MOZMAN")
 
     def test_discard_existing_key(self, dxfdict):
@@ -147,7 +147,7 @@ class TestEmptyDXFDict:
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_do_not_recover_owner_tag_at_loading_stage():
@@ -222,12 +222,12 @@ def test_add_xrecord(doc):
 def test_cannot_add_graphical_entities_to_dict(doc):
     line = doc.modelspace().add_line((0, 0), (10, 0))
     assert isinstance(line, DXFGraphic)
-    with pytest.raises(ezdxf.DXFTypeError):
+    with pytest.raises(dxfpy.DXFTypeError):
         doc.rootdict["LINE"] = line
 
 
 def test_audit_fix_invalid_root_dict_owner():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     rootdict = doc.rootdict
     auditor = Auditor(doc)
 
@@ -239,7 +239,7 @@ def test_audit_fix_invalid_root_dict_owner():
 
 
 def test_audit_ok():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     auditor = Auditor(doc)
 
     rootdict = doc.rootdict
@@ -252,7 +252,7 @@ def test_audit_ok():
 
 
 def test_audit_invalid_pointer():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     auditor = Auditor(doc)
 
     d = doc.rootdict.add_new_dict("TEST_AUDIT_2")
@@ -265,7 +265,7 @@ def test_audit_invalid_pointer():
 
 
 def test_audit_fix_invalid_pointer():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     auditor = Auditor(doc)
 
     d = doc.rootdict.add_new_dict("TEST_AUDIT_3")
@@ -284,7 +284,7 @@ def test_audit_fix_invalid_pointer():
 
 
 def test_link_dxf_object_to_dictionary():
-    from ezdxf.entities import DXFObject
+    from dxfpy.entities import DXFObject
 
     dictionary = Dictionary.new(handle="ABBA")
     obj = DXFObject.new(handle="FEFE")
@@ -318,7 +318,7 @@ class TestDXFDictWithDefault:
         assert dxfdict["Mozman"].dxf.handle == "ABBA"
 
     def test_create_place_holder_for_invalid_default_vaue(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         d = doc.objects.add_dictionary_with_default(
             owner=doc.rootdict.dxf.handle, default="0"
         )
@@ -332,7 +332,7 @@ class TestDXFDictWithDefault:
 class TestCopyHardOwnerDictionary:
     @pytest.fixture(scope="class")
     def source(self, doc) -> Dictionary:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         dictionary = doc.rootdict.get_required_dict("COPYTEST", hard_owned=True)
         dictionary.add_dict_var("DICTVAR", "VarContent")
         xrecord = dictionary.add_xrecord("XRECORD")
@@ -410,7 +410,7 @@ class TestCopyHardOwnerDictionary:
 class TestCopyNotHardOwnerDictionary:
     @pytest.fixture(scope="class")
     def source(self, doc) -> Dictionary:
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         dictionary = doc.rootdict.get_required_dict("COPYTEST", hard_owned=True)
         dict_var = dictionary.add_dict_var("DICTVAR", "VarContent")
         xrecord = dictionary.add_xrecord("XRECORD")

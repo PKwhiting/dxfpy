@@ -1,9 +1,9 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.entities.sun import Sun
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+import dxfpy
+from dxfpy.entities.sun import Sun
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 SUN = """0
 SUN
@@ -46,7 +46,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "SUN" in ENTITY_CLASSES
 
@@ -97,7 +97,7 @@ def test_write_dxf():
 
 
 def test_sun():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     sun = doc.objects.new_entity("SUN", {})
     assert sun.dxftype() == "SUN"
     assert sun.dxf.version == 1

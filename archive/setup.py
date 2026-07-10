@@ -10,7 +10,7 @@ setup(
             ["tricy.pyx"],
             language="c++",
             include_dirs=[
-                r"..\src\ezdxf\acc",
+                r"..\src\dxfpy\acc",
             ],
         ),
     ],

@@ -3,11 +3,11 @@
 import pytest
 import math
 
-from ezdxf.entities.point import Point
-from ezdxf.lldxf.const import DXF12, DXF2000
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Matrix44
-from ezdxf.explode import explode_entity
+from dxfpy.entities.point import Point
+from dxfpy.lldxf.const import DXF12, DXF2000
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Matrix44
+from dxfpy.explode import explode_entity
 
 TEST_CLASS = Point
 TEST_TYPE = "POINT"
@@ -53,7 +53,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert TEST_TYPE in ENTITY_CLASSES
 

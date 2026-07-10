@@ -1,8 +1,8 @@
 # Copyright (c) 2022, Manfred Moitzi
 # License: MIT License
 import time
-from ezdxf.render._linetypes import _LineTypeRenderer as PyRenderer
-from ezdxf.acc.linetypes import _LineTypeRenderer as CyRenderer
+from dxfpy.render._linetypes import _LineTypeRenderer as PyRenderer
+from dxfpy.acc.linetypes import _LineTypeRenderer as CyRenderer
 
 
 def dashed_lines(func, count):

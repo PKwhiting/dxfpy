@@ -5,19 +5,19 @@ import pickle
 from math import radians, sin, cos, pi, isclose
 import numpy as np
 
-# Import from 'ezdxf.math._matrix44' to test Python implementation
-from ezdxf.math import (
+# Import from 'dxfpy.math._matrix44' to test Python implementation
+from dxfpy.math import (
     close_vectors,
     has_matrix_2d_stretching,
     has_matrix_3d_stretching,
 )
-from ezdxf.math._matrix44 import Matrix44
-from ezdxf.acc import USE_C_EXT
+from dxfpy.math._matrix44 import Matrix44
+from dxfpy.acc import USE_C_EXT
 
 m44_classes = [Matrix44]
 
 if USE_C_EXT:
-    from ezdxf.acc.matrix44 import Matrix44 as CMatrix44
+    from dxfpy.acc.matrix44 import Matrix44 as CMatrix44
 
     m44_classes.append(CMatrix44)
 

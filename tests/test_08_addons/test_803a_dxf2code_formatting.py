@@ -1,14 +1,14 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 
-from ezdxf.addons.dxf2code._format import (
+from dxfpy.addons.dxf2code._format import (
     _fmt_api_call,
     _fmt_dxf_tags,
     _fmt_list,
     _fmt_mapping,
 )
-from ezdxf.lldxf.types import dxftag
-from ezdxf.math import Vec3
+from dxfpy.lldxf.types import dxftag
+from dxfpy.math import Vec3
 
 
 def test_fmt_mapping():

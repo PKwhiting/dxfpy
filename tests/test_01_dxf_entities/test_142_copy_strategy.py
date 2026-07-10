@@ -2,15 +2,15 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.entities.copy import (
+import dxfpy
+from dxfpy.entities.copy import (
     CopyStrategy,
     CopySettings,
     default_copy,
     CopyNotSupported,
 )
-from ezdxf.entities import Line, DXFObject
-from ezdxf.layouts import Modelspace
+from dxfpy.entities import Line, DXFObject
+from dxfpy.layouts import Modelspace
 
 
 class UnknownEntity(DXFObject):
@@ -20,7 +20,7 @@ class UnknownEntity(DXFObject):
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 @pytest.fixture(scope="module")

@@ -2,14 +2,14 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
+import dxfpy
 
 MAX_HANDLE = 1000
 
 
 @pytest.fixture
 def doc():
-    mydoc = ezdxf.new()
+    mydoc = dxfpy.new()
     msp = mydoc.modelspace()
     for _ in range(100):
         msp.add_point((0, 0))
@@ -61,7 +61,7 @@ def test_store_and_load_redraw_order(doc, tmp_path):
     doc.saveas(p)
     src_msp = doc.modelspace()
 
-    fs_copy = ezdxf.readfile(p)
+    fs_copy = dxfpy.readfile(p)
     result = list(fs_copy.modelspace().get_redraw_order())
 
     assert len(result) == len(

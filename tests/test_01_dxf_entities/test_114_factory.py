@@ -2,15 +2,15 @@
 # License: MIT License
 # created 2019-02-18
 import pytest
-import ezdxf
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.entities import factory
-from ezdxf.entities.factory import ENTITY_CLASSES
+import dxfpy
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.entities import factory
+from dxfpy.entities.factory import ENTITY_CLASSES
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_registered_structural_entities():

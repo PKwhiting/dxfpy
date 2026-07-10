@@ -3,24 +3,24 @@
 from __future__ import annotations
 from pathlib import Path
 
-import ezdxf
+import dxfpy
 
-from ezdxf import edgeminer as em
-from ezdxf import edgesmith as es
+from dxfpy import edgeminer as em
+from dxfpy import edgesmith as es
 
 CWD = Path(__file__).parent
 OUTBOX = Path("~/Desktop/Outbox").expanduser()
 
 
 def load(filename: str) -> list[em.Edge]:
-    doc = ezdxf.readfile(CWD / filename)
+    doc = dxfpy.readfile(CWD / filename)
     msp = doc.modelspace()
     edges = list(es.edges_from_entities_2d(msp))
     return edges
 
 
 def make_hatch_with_polyline_path(edges: list[em.Edge], outname: str) -> None:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     dxfattribs = {"layer": "HATCH"}
     deposit = em.Deposit(edges)
@@ -32,7 +32,7 @@ def make_hatch_with_polyline_path(edges: list[em.Edge], outname: str) -> None:
 
 
 def make_hatch_without_arcs(edges: list[em.Edge], outname: str) -> None:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     dxfattribs = {"layer": "HATCH"}
     deposit = em.Deposit(edges)
@@ -46,7 +46,7 @@ def make_hatch_without_arcs(edges: list[em.Edge], outname: str) -> None:
 
 
 def make_hatch_with_edge_path(edges: list[em.Edge], outname: str) -> None:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     dxfattribs = {"layer": "HATCH"}
     deposit = em.Deposit(edges)

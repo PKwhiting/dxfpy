@@ -4,14 +4,14 @@
 # License: MIT License
 # https://github.com/linuxlewis/tripy
 from typing import Iterable, Iterator, List, Tuple
-from ezdxf.math import UVec, has_clockwise_orientation
-from ezdxf.acc.vector cimport Vec2
+from dxfpy.math import UVec, has_clockwise_orientation
+from dxfpy.acc.vector cimport Vec2
 from libc.math cimport fabs
 
 cdef double EPSILON = 1e-16
 
-# This module was replaced by the faster ezdxf.math._mapbox_earcut.py module!
-# This file just preserves the invested time and effort for the ezdxf
+# This module was replaced by the faster dxfpy.math._mapbox_earcut.py module!
+# This file just preserves the invested time and effort for the dxfpy
 # integration ;)
 
 

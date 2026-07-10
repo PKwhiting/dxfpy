@@ -5,22 +5,22 @@ import pytest
 import math
 from unittest.mock import MagicMock
 
-import ezdxf
+import dxfpy
 
-from ezdxf.audit import Auditor
-from ezdxf.lldxf import const
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.lldxf.tags import Tags
-from ezdxf.entities.mline import MLineVertex, MLine, MLineStyle
-from ezdxf.math import Matrix44, Vec3
-from ezdxf.protocols import SupportsVirtualEntities, query_virtual_entities
+from dxfpy.audit import Auditor
+from dxfpy.lldxf import const
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.lldxf.tags import Tags
+from dxfpy.entities.mline import MLineVertex, MLine, MLineStyle
+from dxfpy.math import Matrix44, Vec3
+from dxfpy.protocols import SupportsVirtualEntities, query_virtual_entities
 
 
 # noinspection PyUnresolvedReferences
 class TestMLine:
     @pytest.fixture(scope="class")
     def msp(self):
-        return ezdxf.new().modelspace()
+        return dxfpy.new().modelspace()
 
     @pytest.fixture
     def mline_mock_update_geometry(self):
@@ -129,7 +129,7 @@ class TestMLine:
 class TestMLineStyle:
     @pytest.fixture(scope="class")
     def doc(self):
-        return ezdxf.new()
+        return dxfpy.new()
 
     def test_standard_mline_style(self, doc):
         mline_style = cast("MLineStyle", doc.mline_styles.get("Standard"))
@@ -232,7 +232,7 @@ class TestMLineVertex:
 class TestMLineAudit:
     @pytest.fixture(scope="class")
     def doc(self):
-        d = ezdxf.new()
+        d = dxfpy.new()
         new_style = d.mline_styles.new("NewStyle1")
         new_style.elements.append(0.5)
         new_style.elements.append(0)

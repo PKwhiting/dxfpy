@@ -3,8 +3,8 @@
 import pytest
 
 import math
-from ezdxf.math import Vec3, close_vectors, UCS, BoundingBox, Vec2
-from ezdxf.render import forms
+from dxfpy.math import Vec3, close_vectors, UCS, BoundingBox, Vec2
+from dxfpy.render import forms
 
 
 def test_circle_open():

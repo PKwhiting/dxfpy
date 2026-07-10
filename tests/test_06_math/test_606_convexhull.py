@@ -3,7 +3,7 @@
 # Created: 28.02.2010
 # License: MIT License
 import pytest
-from ezdxf.math import convex_hull_2d, Vec2
+from dxfpy.math import convex_hull_2d, Vec2
 from io import StringIO
 
 

@@ -1,12 +1,12 @@
 # Copyright (c) 2019-2020 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.entities.polyline import Polyline
-from ezdxf.lldxf.const import DXF12, DXF2000
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Vec3
+from dxfpy.entities.polyline import Polyline
+from dxfpy.lldxf.const import DXF12, DXF2000
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Vec3
 
 
 ENTITY_R12 = """0
@@ -58,7 +58,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "POLYLINE" in ENTITY_CLASSES
 
@@ -113,7 +113,7 @@ def test_polygon_mesh():
 
 
 def test_copy_polyline():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     polyline = msp.add_polyline2d([(1, 2), (7, 8), (4, 3)])
     assert isinstance(polyline, Polyline)

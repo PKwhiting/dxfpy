@@ -2,14 +2,14 @@
 # License: MIT License
 import pytest
 
-from ezdxf.math._construct import world_mercator_to_gps, gps_to_world_mercator
-from ezdxf.math import Vec2
-from ezdxf.acc import USE_C_EXT
+from dxfpy.math._construct import world_mercator_to_gps, gps_to_world_mercator
+from dxfpy.math import Vec2
+from dxfpy.acc import USE_C_EXT
 
 if USE_C_EXT:
     try:
-        from ezdxf.acc.construct import world_mercator_to_gps as cy_world_mercator_to_gps
-        from ezdxf.acc.construct import gps_to_world_mercator as cy_gps_to_world_mercator
+        from dxfpy.acc.construct import world_mercator_to_gps as cy_world_mercator_to_gps
+        from dxfpy.acc.construct import gps_to_world_mercator as cy_gps_to_world_mercator
     except ImportError:
         USE_C_EXT = False
 

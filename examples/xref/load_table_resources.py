@@ -2,9 +2,9 @@
 #  License: MIT License
 
 import pathlib
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf import xref, units
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy import xref, units
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -17,7 +17,7 @@ if not CWD.exists():
 
 
 def make_source_document(dxfversion="R2013") -> Drawing:
-    doc = ezdxf.new(dxfversion, units=units.M, setup=True)
+    doc = dxfpy.new(dxfversion, units=units.M, setup=True)
     doc.linetypes.add(
         "GAS",
         pattern='A,.5,-.2,["GAS",STANDARD,S=.1,U=0.0,X=-0.1,Y=-.05],-.25',
@@ -61,7 +61,7 @@ def load_resources(source_doc: Drawing, target_doc: Drawing) -> None:
 def main():
     dxfversion = "R2013"
     source_doc = make_source_document(dxfversion)
-    target_doc = ezdxf.new(dxfversion)
+    target_doc = dxfpy.new(dxfversion)
     load_resources(source_doc, target_doc)
     target_doc.saveas(CWD / "loaded_table_resource.dxf")
 

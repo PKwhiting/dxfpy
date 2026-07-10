@@ -2,14 +2,14 @@
 # License: MIT License
 from io import StringIO
 
-import ezdxf
-from ezdxf.addons.dxf2code import block_to_code, entities_to_code
-from ezdxf.addons.dxf2code._acad_table import _AcadTableReplayClassifier
-from ezdxf.entities.acad_table import AcadTableLinkedCellContent
-from ezdxf.entities.dxfobj import Field
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.math import Vec2
+import dxfpy
+from dxfpy.addons.dxf2code import block_to_code, entities_to_code
+from dxfpy.addons.dxf2code._acad_table import _AcadTableReplayClassifier
+from dxfpy.entities.acad_table import AcadTableLinkedCellContent
+from dxfpy.entities.dxfobj import Field
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.math import Vec2
 
 from tests.test_08_addons.dxf2code_support import (
     cmp_vertices,
@@ -20,7 +20,7 @@ from tests.test_08_addons.dxf2code_support import (
 
 
 def test_text_field_to_code():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     text = source_msp.add_text("----")
     child, _ = text.new_acvar_field("Author", text="----", register_field_list=True)
@@ -35,7 +35,7 @@ def test_text_field_to_code():
 
 
 def test_mtext_object_property_field_to_code():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     line = source_msp.add_line((0, 0), (2, 0))
     mtext = source_msp.add_mtext("0")
@@ -51,7 +51,7 @@ def test_mtext_object_property_field_to_code():
 
 
 def test_text_acexpr_field_to_code():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     line = source_msp.add_line((0, 0), (10, 0))
     circle = source_msp.add_circle((5, 0), radius=2.5)
@@ -83,7 +83,7 @@ def test_text_acexpr_field_to_code():
 
 
 def test_mtext_acexpr_field_to_code():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     line = source_msp.add_line((0, 0), (10, 0))
     circle = source_msp.add_circle((5, 0), radius=2.5)
@@ -114,7 +114,7 @@ def test_mtext_acexpr_field_to_code():
 
 
 def test_insert_attrib_field_to_code():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     insert = source_msp.add_blockref("TEST", (0, 0))
     attrib = insert.add_attrib("TAG", "VALUE", (0, 0))
@@ -135,9 +135,9 @@ def test_insert_attrib_field_to_code():
 
 
 def test_multileader_mtext_to_code():
-    from ezdxf.render.mleader import ConnectionSide, TextAlignment
+    from dxfpy.render.mleader import ConnectionSide, TextAlignment
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     builder = source_msp.add_multileader_mtext()
     builder.set_content("note", color=3, char_height=2.5, alignment=TextAlignment.right)
@@ -164,9 +164,9 @@ def test_multileader_mtext_to_code():
 
 
 def test_multileader_field_to_code():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     builder = source_msp.add_multileader_mtext()
     child, _ = builder.set_acvar_field("Author", text="----", register_field_list=True)
@@ -185,9 +185,9 @@ def test_multileader_field_to_code():
 
 
 def test_multileader_to_code_preserves_proxy_graphic_payload():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     builder = source_msp.add_multileader_mtext()
     builder.set_content("note")
@@ -206,9 +206,9 @@ def test_multileader_to_code_preserves_proxy_graphic_payload():
 
 
 def test_multileader_to_code_does_not_inject_version_tag_when_source_omits_it():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     builder = source_msp.add_multileader_mtext()
     builder.set_content("note")
@@ -226,9 +226,9 @@ def test_multileader_to_code_does_not_inject_version_tag_when_source_omits_it():
 
 
 def test_multileader_to_code_tolerates_unresolved_leader_linetype_handle():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "BROKEN_LT_STYLE")
     style.dxf.leader_linetype_handle = "25"
     source_msp = source_doc.modelspace()
@@ -248,9 +248,9 @@ def test_multileader_to_code_tolerates_unresolved_leader_linetype_handle():
 
 
 def test_multileader_acexpr_field_to_code():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     line = source_msp.add_line((0, 0), (10, 0))
     circle = source_msp.add_circle((5, 0), radius=2.5)
@@ -287,9 +287,9 @@ def test_multileader_acexpr_field_to_code():
 
 
 def test_multileader_custom_style_to_code():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "MY_STYLE")
     style.dxf.default_text_content = "STYLE_TEXT"
     style.dxf.char_height = 3.5
@@ -312,9 +312,9 @@ def test_multileader_custom_style_to_code():
 
 
 def test_multileader_custom_style_to_code_does_not_inherit_standard_extension_dict():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     standard = source_doc.mleader_styles.get("Standard")
     assert standard is not None
     if not standard.has_extension_dict:
@@ -339,9 +339,9 @@ def test_multileader_custom_style_to_code_does_not_inherit_standard_extension_di
 
 
 def test_multileader_custom_style_arrow_to_code():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "ARROW_STYLE")
     style.set_arrow_head("DOT")
     source_msp = source_doc.modelspace()
@@ -361,9 +361,9 @@ def test_multileader_custom_style_arrow_to_code():
 
 
 def test_multileader_arrow_override_to_code():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     builder = source_msp.add_multileader_mtext()
     builder.set_content("note")
@@ -379,11 +379,11 @@ def test_multileader_arrow_override_to_code():
 
 
 def test_multileader_arrow_heads_to_code():
-    from ezdxf.entities.mleader import ArrowHeadData
-    from ezdxf.render.arrows import ARROWS
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.entities.mleader import ArrowHeadData
+    from dxfpy.render.arrows import ARROWS
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
     builder = source_msp.add_multileader_mtext()
     builder.set_content("note")
@@ -407,9 +407,9 @@ def test_multileader_arrow_heads_to_code():
 
 
 def test_multileader_custom_style_block_reference_missing_is_safe():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "STYLE_BLOCK_STYLE")
     source_doc.blocks.new("STYLE_BLOCK")
     style.dxf.block_record_handle = source_doc.blocks.get("STYLE_BLOCK").block_record_handle
@@ -428,9 +428,9 @@ def test_multileader_custom_style_block_reference_missing_is_safe():
 
 
 def test_multileader_custom_style_block_reference_preserved_if_available():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "STYLE_BLOCK_STYLE")
     source_doc.blocks.new("STYLE_BLOCK")
     style.dxf.block_record_handle = source_doc.blocks.get("STYLE_BLOCK").block_record_handle
@@ -440,7 +440,7 @@ def test_multileader_custom_style_block_reference_preserved_if_available():
     builder.add_leader_line(ConnectionSide.left, [Vec2(-5, 0), Vec2(-2, 0)])
     builder.build(insert=Vec2(0, 0))
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     target_doc.blocks.new("STYLE_BLOCK")
     new_doc, _ = execute_entities_code_in_doc(source_msp, target_doc)
     new_style = new_doc.mleader_styles.get("STYLE_BLOCK_STYLE")
@@ -450,9 +450,9 @@ def test_multileader_custom_style_block_reference_preserved_if_available():
 
 
 def test_multileader_block_content_to_code():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("TEST_BLOCK")
     block.add_lwpolyline([(0, 0), (1, 0), (1, 1), (0, 1)], close=True)
     block.add_attdef("ONE", insert=(0, 0), text="ONE")
@@ -467,8 +467,8 @@ def test_multileader_block_content_to_code():
     builder.add_leader_line(ConnectionSide.right, [Vec2(5, 0)])
     builder.build(insert=Vec2(0, 0))
 
-    target_doc = ezdxf.new("R2010")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2010")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
     execute_code_in_namespace(entities_to_code(source_msp, layout="msp"), namespace)
 
@@ -493,7 +493,7 @@ def test_multileader_block_content_to_code():
 
 
 def test_acad_table_text_surface_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     table = source_msp.add_table(
         (1, 2),
@@ -535,7 +535,7 @@ def test_acad_table_text_surface_to_code():
 
 
 def test_acad_table_scalar_dxf_state_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])
     table.dxf.version = 1
     table.dxf.table_value = 99
@@ -556,7 +556,7 @@ def test_acad_table_scalar_dxf_state_to_code():
 
 
 def test_acad_table_omitted_version_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])
     table.dxf.discard("version")
     table.data.suppress_title = None
@@ -581,7 +581,7 @@ def test_acad_table_omitted_version_to_code():
 
 
 def test_acad_table_geometry_block_name_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])
     source_geometry = "*T42"
     source_doc.blocks.rename_block(table.dxf.geometry, source_geometry)
@@ -597,13 +597,13 @@ def test_acad_table_geometry_block_name_to_code():
 
 
 def test_acad_table_missing_data_uses_replay_anchor_to_code() -> None:
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])
     table.data = None
 
     code = entities_to_code(source_doc.modelspace(), layout="msp")
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(code, namespace)
     new_table = next(
         entity for entity in namespace["msp"] if entity.dxftype() == "ACAD_TABLE"
@@ -616,13 +616,13 @@ def test_acad_table_missing_data_uses_replay_anchor_to_code() -> None:
 
 
 def test_acad_table_custom_table_style_to_code_creates_style() -> None:
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_doc.table_styles.duplicate_entry("Standard", "CustomTable")
     source_msp = source_doc.modelspace()
     source_msp.add_table((0, 0), [["A"]], style_name="CustomTable")
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(entities_to_code(source_msp, layout="msp"), namespace)
     new_table = next(
         entity for entity in namespace["msp"] if entity.dxftype() == "ACAD_TABLE"
@@ -633,7 +633,7 @@ def test_acad_table_custom_table_style_to_code_creates_style() -> None:
 
 
 def test_acad_table_replay_profile_flags_merged_shape() -> None:
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])
     cell = table.get_cell(0, 0)
     cell.merged_value = 1
@@ -645,7 +645,7 @@ def test_acad_table_replay_profile_flags_merged_shape() -> None:
 
 
 def test_acad_table_replay_profile_flags_linked_content_gaps() -> None:
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])
     cell = table.get_cell(0, 0)
     cell.linked_cell_contents = [
@@ -662,7 +662,7 @@ def test_acad_table_replay_profile_flags_linked_content_gaps() -> None:
 
 
 def test_acad_table_replay_profile_accepts_generated_linked_content(tmp_path) -> None:
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     msp = source_doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     block = source_doc.blocks.new("PROFILE_TABLE_BLOCK", base_point=(0, 0))
@@ -676,7 +676,7 @@ def test_acad_table_replay_profile_accepts_generated_linked_content(tmp_path) ->
     source_path = tmp_path / "profile_linked_content.dxf"
     source_doc.saveas(source_path)
 
-    loaded = ezdxf.readfile(source_path)
+    loaded = dxfpy.readfile(source_path)
     loaded_table = next(
         entity for entity in loaded.modelspace() if entity.dxftype() == "ACAD_TABLE"
     )
@@ -686,7 +686,7 @@ def test_acad_table_replay_profile_accepts_generated_linked_content(tmp_path) ->
 
 
 def test_complex_acad_table_to_code_emits_replay_profile_comment() -> None:
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])
     table.get_cell(0, 0).merged_value = 1
 
@@ -696,15 +696,15 @@ def test_complex_acad_table_to_code_emits_replay_profile_comment() -> None:
 
 
 def test_acad_table_minimal_block_cell_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     block = source_doc.blocks.new("TABLE_BLOCK_CELL_MIN", base_point=(0, 0))
     block.add_lwpolyline([(0, 0), (2, 0), (2, 2), (0, 2)], close=True)
     source_msp = source_doc.modelspace()
     table = source_msp.add_table((0, 0), [["T"], ["H"], [""]])
     table.set_cell_block(2, 0, "TABLE_BLOCK_CELL_MIN", block_scale=1.0, alignment=1)
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
     execute_code_in_namespace(entities_to_code(source_msp, layout="msp"), namespace)
 
@@ -721,7 +721,7 @@ def test_acad_table_minimal_block_cell_to_code():
 
 
 def test_acad_table_mixed_field_and_attributed_block_cell_to_code() -> None:
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     line = source_msp.add_line((0, 0), (10, 0))
     circle = source_msp.add_circle((5, 0), radius=2.5)
@@ -759,8 +759,8 @@ def test_acad_table_mixed_field_and_attributed_block_cell_to_code() -> None:
     )
     assert _AcadTableReplayClassifier().profile(table).is_semantic_safe is True
 
-    target_doc = ezdxf.new("R2018")
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    target_doc = dxfpy.new("R2018")
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
     execute_code_in_namespace(
         entities_to_code([line, circle, table], layout="msp"), namespace
@@ -805,7 +805,7 @@ def test_acad_table_mixed_field_and_attributed_block_cell_to_code() -> None:
 
 
 def test_acad_table_acexpr_field_to_code():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_msp = source_doc.modelspace()
     line = source_msp.add_line((0, 0), (10, 0))
     circle = source_msp.add_circle((5, 0), radius=2.5)

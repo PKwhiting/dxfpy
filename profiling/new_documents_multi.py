@@ -2,12 +2,12 @@
 #  License: MIT License
 
 import time
-import ezdxf
+import dxfpy
 from multiprocessing import Pool, cpu_count
 
 
 def work():
-    ezdxf.new()
+    dxfpy.new()
 
 
 if __name__ == '__main__':

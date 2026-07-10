@@ -1,12 +1,12 @@
-import ezdxf
+import dxfpy
 
 DONOR = "torus_r2010.dxf"
 RECIPIENT = "torus_r2000.dxf"
 
-donor_doc = ezdxf.readfile(DONOR)
+donor_doc = dxfpy.readfile(DONOR)
 donor = donor_doc.modelspace()[0]
 
-recipient_doc = ezdxf.readfile(RECIPIENT)
+recipient_doc = dxfpy.readfile(RECIPIENT)
 recipient = recipient_doc.modelspace()[0]
 
 
@@ -17,7 +17,7 @@ recipient_doc.saveas(patient_name)
 
 
 # reload
-patient = ezdxf.readfile(patient_name)
+patient = dxfpy.readfile(patient_name)
 entity = patient.modelspace()[0]
 
 with open("implant.sat", "wt") as fp:

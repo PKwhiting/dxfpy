@@ -2,8 +2,8 @@
 # License: MIT License
 import sys
 import time
-import ezdxf
-from ezdxf import recover
+import dxfpy
+from dxfpy import recover
 
 # ------------------------------------------------------------------------------
 # copy DXF files by the recover module including an audit process
@@ -17,7 +17,7 @@ def copy_dxf(from_file: str, to_file: str):
     except IOError:
         print(f"Not a DXF file or a generic I/O error.")
         sys.exit(1)
-    except ezdxf.DXFStructureError:
+    except dxfpy.DXFStructureError:
         print(f"Invalid or corrupted DXF file: {from_file}.")
         sys.exit(2)
 

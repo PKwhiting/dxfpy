@@ -4,8 +4,8 @@
 from __future__ import annotations
 import pytest
 
-from ezdxf.math import Vec2
-from ezdxf.math.clipping import ConcaveClippingPolygon2d as CCP
+from dxfpy.math import Vec2
+from dxfpy.math.clipping import ConcaveClippingPolygon2d as CCP
 
 #   0123456
 # 8 .......

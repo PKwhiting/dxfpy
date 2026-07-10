@@ -1,9 +1,9 @@
 # Copyright (c) 2011-2019, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.lldxf.tagger import internal_tag_compiler
-from ezdxf.document import Drawing
-from ezdxf import DXFValueError, decode_base64
+from dxfpy.lldxf.tagger import internal_tag_compiler
+from dxfpy.document import Drawing
+from dxfpy import DXFValueError, decode_base64
 
 
 def test_dxfversion_1():

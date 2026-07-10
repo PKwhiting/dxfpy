@@ -3,10 +3,10 @@
 from __future__ import annotations
 from pathlib import Path
 import math
-import ezdxf
-from ezdxf import colors, xclip
-from ezdxf.entities import Insert
-from ezdxf.math import Vec2, Matrix44
+import dxfpy
+from dxfpy import colors, xclip
+from dxfpy.entities import Insert
+from dxfpy.math import Vec2, Matrix44
 
 OUTBOX = Path("~/Desktop/Outbox").expanduser()
 if not OUTBOX.exists():
@@ -22,7 +22,7 @@ DEFAULT_FILES = [
 
 
 def make_base_block():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     # The HEADER variable `$XCLIPFRAME` ultimately determines whether the 
     # clipping path is displayed or plotted:
     # 0= not displayed, not plotted
@@ -53,7 +53,7 @@ def copy_clipped_block_defs():
         return new_insert
 
     script_path = Path(__file__).parent
-    doc = ezdxf.readfile(script_path / "BlockClipped.dxf")
+    doc = dxfpy.readfile(script_path / "BlockClipped.dxf")
     msp = doc.modelspace()
     insert = msp[0]
     assert isinstance(insert, Insert)
@@ -86,7 +86,7 @@ def print_transform_params(insert: Insert) -> None:
 
 
 def show_clipping_paths(file_path: Path) -> None:
-    doc = ezdxf.readfile(file_path)
+    doc = dxfpy.readfile(file_path)
     msp = doc.modelspace()
     for blockref in msp.query("INSERT"):
         assert isinstance(blockref, Insert)

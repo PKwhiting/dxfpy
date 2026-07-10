@@ -7,12 +7,12 @@ import math
 from pathlib import Path
 from time import perf_counter
 
-import ezdxf
-from ezdxf.layouts import Modelspace
-from ezdxf.render import forms
-from ezdxf.math import Vec2, is_point_in_polygon_2d
-from ezdxf import edgeminer as em
-from ezdxf import edgesmith as es
+import dxfpy
+from dxfpy.layouts import Modelspace
+from dxfpy.render import forms
+from dxfpy.math import Vec2, is_point_in_polygon_2d
+from dxfpy import edgeminer as em
+from dxfpy import edgesmith as es
 
 CWD = Path(__file__).parent
 OUTBOX = Path("~/Desktop/Outbox").expanduser()
@@ -111,7 +111,7 @@ def grid_of_jiggled_squares(size: tuple[int, int], length: float) -> list[em.Edg
 
 
 def load(filename: str) -> list[em.Edge]:
-    doc = ezdxf.readfile(CWD / filename)
+    doc = dxfpy.readfile(CWD / filename)
     msp = doc.modelspace()
     edges = list(es.edges_from_entities_2d(msp))
     print(f"found {len(edges)} edges in '{filename}'")
@@ -121,7 +121,7 @@ def load(filename: str) -> list[em.Edge]:
 def export_chains(
     filename: str, chains: Sequence[Sequence[em.Edge]], gap_tol=em.GAP_TOL
 ):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     for index, chain in enumerate(chains):
         is_loop = em.is_loop_fast(chain, gap_tol=gap_tol)
@@ -140,7 +140,7 @@ def export_chains(
 
 
 def export_edges(filename: str, edges: Sequence[em.Edge]):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     for index, edge in enumerate(edges):
         color = (index % 6) + 1
@@ -273,7 +273,7 @@ def chain_type(edges: Sequence[em.Edge]) -> str:
 
 
 def export_loops(filename: str, loops: list[Sequence[em.Edge]]):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     index = 0
     for loop in loops:

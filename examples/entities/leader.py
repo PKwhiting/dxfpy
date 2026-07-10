@@ -1,8 +1,8 @@
 # Copyright (c) 2019-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.enums import TextEntityAlignment
+import dxfpy
+from dxfpy.enums import TextEntityAlignment
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,10 +11,10 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example adds a LEADER entity to the modelspace.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/leader.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/leader.html
 # ------------------------------------------------------------------------------
 
-doc = ezdxf.new("R2007", setup=True)
+doc = dxfpy.new("R2007", setup=True)
 msp = doc.modelspace()
 
 # add default leader style

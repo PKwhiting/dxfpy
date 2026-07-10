@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.acis import api as acis
+import dxfpy
+from dxfpy.acis import api as acis
 
 
 def test_create_a_new_cache():
@@ -50,7 +50,7 @@ hash_data = acis.AcisCache.hash_data
 
 class TestHashData:
     def test_empty_string(self):
-        if ezdxf.PYPY:
+        if dxfpy.PYPY:
             assert hash_data("") != 0
         else:
             assert hash_data("") == 0
@@ -80,7 +80,7 @@ class TestHashData:
         assert id(tuple()) == id(tuple())
 
     def test_empty_bytes(self):
-        if ezdxf.PYPY:
+        if dxfpy.PYPY:
             assert hash_data(b"") != 0
         else:
             assert hash_data(b"") == 0

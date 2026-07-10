@@ -2,13 +2,13 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.entities.underlay import PdfDefinition, PdfUnderlay
+import dxfpy
+from dxfpy.entities.underlay import PdfDefinition, PdfUnderlay
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 @pytest.fixture
@@ -78,7 +78,7 @@ def test_set_scale(pdf):
 @pytest.fixture
 def new_doc():
     # setting up a drawing is expensive - use as few test methods as possible
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 def test_new_pdf_underlay_def(new_doc):
@@ -116,7 +116,7 @@ def test_new_pdf(new_doc):
 class TestCopyAndTransformUnderlay:
     @pytest.fixture(scope="class")
     def doc(self):
-        return ezdxf.new()
+        return dxfpy.new()
 
     @pytest.fixture(scope="class")
     def underlay_def(self, doc):

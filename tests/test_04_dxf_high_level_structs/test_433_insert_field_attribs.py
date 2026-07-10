@@ -1,10 +1,10 @@
 # Copyright (c) 2026, Manfred Moitzi
 # License: MIT License
-import ezdxf
+import dxfpy
 
 
 def test_insert_add_attrib_acvar_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     block = doc.blocks.new("TEST")
     blockref = doc.modelspace().add_blockref("TEST", insert=(0, 0))
 
@@ -23,7 +23,7 @@ def test_insert_add_attrib_acvar_field():
 
 
 def test_insert_add_attrib_dwgprops_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     block = doc.blocks.new("TEST")
     blockref = doc.modelspace().add_blockref("TEST", insert=(0, 0))
 
@@ -42,7 +42,7 @@ def test_insert_add_attrib_dwgprops_field():
 
 
 def test_insert_add_attrib_acobjprop_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     block = doc.blocks.new("TEST")
     line = doc.modelspace().add_line((0, 0), (10, 0))
     blockref = doc.modelspace().add_blockref("TEST", insert=(0, 0))

@@ -1,10 +1,10 @@
 from typing import List
 import pytest
-import ezdxf
+import dxfpy
 import math
 from math import isclose
-from ezdxf.math import Vec3, global_bspline_interpolation, close_vectors, cad_fit_point_interpolation
-from ezdxf.math.parametrize import (
+from dxfpy.math import Vec3, global_bspline_interpolation, close_vectors, cad_fit_point_interpolation
+from dxfpy.math.parametrize import (
     uniform_t_vector,
     distance_t_vector,
     centripetal_t_vector,
@@ -12,7 +12,7 @@ from ezdxf.math.parametrize import (
     arc_distances,
     estimate_tangents,
 )
-from ezdxf.math.bspline import (
+from dxfpy.math.bspline import (
     knots_from_parametrization,
     required_knot_values,
     averaged_knots_unconstrained,
@@ -87,9 +87,9 @@ def test_arc_length_t_array(fit_points):
 def test_invalid_order_count_combination():
     count = 4
     order = 5
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         required_knot_values(count, order)
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         list(knots_from_parametrization(n=count - 1, p=order - 1, t=[]))
 
 

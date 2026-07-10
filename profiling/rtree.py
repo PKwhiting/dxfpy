@@ -1,8 +1,8 @@
 # Copyright (c) 2020-2024, Manfred Moitzi
 # License: MIT License
 import time
-from ezdxf.math import Vec3, closest_point
-from ezdxf.math.rtree import RTree
+from dxfpy.math import Vec3, closest_point
+from dxfpy.math.rtree import RTree
 
 try:
     import matplotlib.pyplot as plt

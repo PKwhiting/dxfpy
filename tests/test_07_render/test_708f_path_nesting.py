@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.render.forms import square, translate
-from ezdxf.path import Path, nesting, from_vertices
+from dxfpy.render.forms import square, translate
+from dxfpy.path import Path, nesting, from_vertices
 
 EXTERIOR = list(translate(square(10), (-5, -5)))
 EXT1_PATH = from_vertices(EXTERIOR)

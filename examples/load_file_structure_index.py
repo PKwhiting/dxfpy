@@ -2,10 +2,10 @@
 # License: MIT License
 import pathlib
 import time
-import ezdxf
-from ezdxf.lldxf.fileindex import load
+import dxfpy
+from dxfpy.lldxf.fileindex import load
 
-CADKIT = pathlib.Path(ezdxf.EZDXF_TEST_FILES) / "CADKitSamples"
+CADKIT = pathlib.Path(dxfpy.DXFPY_TEST_FILES) / "CADKitSamples"
 
 # ------------------------------------------------------------------------------
 # create FileStructure instances from CADKitSamples

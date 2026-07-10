@@ -2,9 +2,9 @@
 #  License: MIT License
 
 from pathlib import Path
-import ezdxf
-from ezdxf import path, zoom
-from ezdxf.math import Matrix44
+import dxfpy
+from dxfpy import path, zoom
+from dxfpy.math import Matrix44
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,12 +14,12 @@ if not CWD.exists():
 # This example shows how triangulate arbitrary path objects, a doughnut in this
 # special case.
 #
-# docs: https://ezdxf.mozman.at/docs/path.html#ezdxf.path.triangulate
+# docs: https://dxfpy.mozman.at/docs/path.html#dxfpy.path.triangulate
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     circle0 = path.unit_circle(segments=8)

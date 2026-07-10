@@ -5,7 +5,7 @@ from math import isclose
 
 import pytest
 
-from ezdxf.math import (
+from dxfpy.math import (
     ConstructionRay,
     ConstructionLine,
     ConstructionCircle,

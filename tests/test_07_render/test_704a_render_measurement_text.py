@@ -1,13 +1,13 @@
 # Copyright (c) 2024 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.layouts import Modelspace
+import dxfpy
+from dxfpy.layouts import Modelspace
 
 
 @pytest.fixture(scope="module")
 def msp() -> Modelspace:
-    doc = ezdxf.new("R2007", setup=True)
+    doc = dxfpy.new("R2007", setup=True)
     return doc.modelspace()
 
 

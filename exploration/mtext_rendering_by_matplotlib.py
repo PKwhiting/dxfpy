@@ -2,12 +2,12 @@
 #  License: MIT License
 from typing import List
 import pathlib
-import ezdxf
-from ezdxf.math import Vec2
-from ezdxf.tools.text_size import mtext_size, WordSizeDetector
-from ezdxf import path, colors
-from ezdxf.addons import text2path
-from ezdxf.addons import MTextExplode
+import dxfpy
+from dxfpy.math import Vec2
+from dxfpy.tools.text_size import mtext_size, WordSizeDetector
+from dxfpy import path, colors
+from dxfpy.addons import text2path
+from dxfpy.addons import MTextExplode
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -24,7 +24,7 @@ def rect(p1: Vec2, p2: Vec2) -> List[Vec2]:
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.styles.add("ARIAL", font="arial.ttf")
     box_layer = doc.layers.add(
         "bounding boxes based on Matplotlib", color=colors.MAGENTA

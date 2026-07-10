@@ -3,8 +3,8 @@
 # Created 2019-02-13
 import pytest
 import copy
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.entities.appdata import AppData
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.entities.appdata import AppData
 
 
 class TagWriter:

@@ -2,8 +2,8 @@
 # License: MIT
 import pytest
 import os
-import ezdxf
-from ezdxf.addons.importer import Importer
+import dxfpy
+from dxfpy.addons.importer import Importer
 
 
 def save_source_dwg(dwg, filename):
@@ -12,7 +12,7 @@ def save_source_dwg(dwg, filename):
 
 
 def create_source_drawing(version):
-    dwg = ezdxf.new(version)
+    dwg = dxfpy.new(version)
     # complex shape linetype
     dwg.linetypes.new(
         "BORDER",
@@ -48,7 +48,7 @@ def create_source_drawing(version):
 
 
 def create_target_drawing(version):
-    dwg = ezdxf.new(version)
+    dwg = dxfpy.new(version)
     dwg.layers.new("TestConflict", dxfattribs={"color": 19})
     conflict_block = build_block(dwg, "ConflictBlock")
     conflict_block.add_circle((1, 1), radius=7)
@@ -194,9 +194,9 @@ def test_import_entities_using_complex_linetypes(
 
 
 def test_import_polyline():
-    source = ezdxf.new()
+    source = dxfpy.new()
     source.modelspace().add_polyline3d([(0, 0), (3, 0), (3, 3), (0, 3)])
-    target = ezdxf.new()
+    target = dxfpy.new()
     importer = Importer(source, target)
     importer.import_modelspace()
     tpoly = target.modelspace()[0]
@@ -206,12 +206,12 @@ def test_import_polyline():
 
 
 def test_import_insert_with_attribs():
-    source = ezdxf.new()
+    source = dxfpy.new()
     source.blocks.new("Test")
     sinsert = source.modelspace().add_blockref("Test", insert=(0, 0))
     sinsert.add_attrib("A1", "text1")
     sinsert.add_attrib("A2", "text2")
-    target = ezdxf.new()
+    target = dxfpy.new()
     importer = Importer(source, target)
     importer.import_modelspace()
     tinsert = target.modelspace()[0]

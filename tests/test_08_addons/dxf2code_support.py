@@ -2,21 +2,21 @@ from __future__ import annotations
 
 from io import StringIO
 
-import ezdxf
-from ezdxf.addons.dxf2code import block_to_code, entities_to_code, table_entries_to_code
-from ezdxf._fidelity_compare import (
+import dxfpy
+from dxfpy.addons.dxf2code import block_to_code, entities_to_code, table_entries_to_code
+from dxfpy._fidelity_compare import (
     ReplayComparison,
     compare_replay_documents,
     format_replay_comparison,
 )
-from ezdxf.dynblkhelper import (
+from dxfpy.dynblkhelper import (
     get_dynamic_block_record_handle,
     register_source_entity_handle_mapping,
 )
-from ezdxf.fidelity import finalize_document_fidelity, prepare_document_fidelity
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.lldxf.types import is_pointer_code
-from ezdxf.math import Vec3
+from dxfpy.fidelity import finalize_document_fidelity, prepare_document_fidelity
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.lldxf.types import is_pointer_code
+from dxfpy.math import Vec3
 
 
 def execute_code_in_namespace(code, namespace):
@@ -25,14 +25,14 @@ def execute_code_in_namespace(code, namespace):
 
 def execute_entities_code_in_doc(entities, target_doc):
     target_msp = target_doc.modelspace()
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_msp}
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_msp}
     code = entities_to_code(entities, layout="msp")
     execute_code_in_namespace(code, namespace)
     return target_doc, target_msp
 
 
 def translate_entities_to_new_layout(entities):
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     return execute_entities_code_in_doc(entities, target_doc)
 
 
@@ -81,8 +81,8 @@ def _maybe_get(table, name: str):
         return None
 
 
-def _resource_entities(doc: ezdxf.document.Drawing) -> list:
-    default_doc = ezdxf.new(doc.dxfversion)
+def _resource_entities(doc: dxfpy.document.Drawing) -> list:
+    default_doc = dxfpy.new(doc.dxfversion)
     entities: list = []
 
     active_viewports = doc.viewports.get("*Active")
@@ -176,9 +176,9 @@ def sort_blocks(blocks):
     return ordered
 
 
-def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.Drawing:
-    target_doc = ezdxf.new(source_doc.dxfversion)
-    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+def replay_doc_to_new_doc(source_doc: dxfpy.document.Drawing) -> dxfpy.document.Drawing:
+    target_doc = dxfpy.new(source_doc.dxfversion)
+    namespace = {"dxfpy": dxfpy, "doc": target_doc, "msp": target_doc.modelspace()}
     resources = _resource_entities(source_doc)
     if resources:
         execute_code_in_namespace(table_entries_to_code(resources, drawing="doc"), namespace)
@@ -204,8 +204,8 @@ def replay_doc_to_new_doc(source_doc: ezdxf.document.Drawing) -> ezdxf.document.
 
 
 def assert_clean_replay(
-    source_doc: ezdxf.document.Drawing,
-    replay_doc: ezdxf.document.Drawing,
+    source_doc: dxfpy.document.Drawing,
+    replay_doc: dxfpy.document.Drawing,
     *,
     include_layout_order: bool = False,
 ) -> ReplayComparison:

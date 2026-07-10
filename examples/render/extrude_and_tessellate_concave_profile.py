@@ -2,24 +2,24 @@
 #  License: MIT License
 
 from pathlib import Path
-import ezdxf
-from ezdxf.render import forms
+import dxfpy
+from dxfpy.render import forms
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = Path(".")
 
 # ------------------------------------------------------------------------------
-# This example shows how to use the ezdxf.forms.extrude method to create a prism
+# This example shows how to use the dxfpy.forms.extrude method to create a prism
 # from a concave base polygon. The added face-normals show if the face-orientation
 # follows the usual count-clockwise order to build outside pointing faces.
 #
-# docs: https://ezdxf.mozman.at/docs/render/forms.html#ezdxf.render.forms.extrude
+# docs: https://dxfpy.mozman.at/docs/render/forms.html#dxfpy.render.forms.extrude
 # ------------------------------------------------------------------------------
 
 
 def main(filepath):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     profile = [(0, 0), (10, 0), (10, 10), (8, 10), (8, 2), (0, 2)]

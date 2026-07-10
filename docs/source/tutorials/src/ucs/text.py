@@ -4,10 +4,10 @@ from pathlib import Path
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
 import math
-import ezdxf
-from ezdxf.math import UCS
+import dxfpy
+from dxfpy.math import UCS
 
-doc = ezdxf.new('R2010')
+doc = dxfpy.new('R2010')
 msp = doc.modelspace()
 
 # thickness for text works only with shx fonts not with true type fonts

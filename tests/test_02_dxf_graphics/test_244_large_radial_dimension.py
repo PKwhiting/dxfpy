@@ -3,12 +3,12 @@
 
 import pytest
 
-import ezdxf
-from ezdxf.entities.dimension import RadialDimensionLarge
-from ezdxf.lldxf.const import DXF2010
-from ezdxf.lldxf.tagwriter import TagCollector
+import dxfpy
+from dxfpy.entities.dimension import RadialDimensionLarge
+from dxfpy.lldxf.const import DXF2010
+from dxfpy.lldxf.tagwriter import TagCollector
 
-ezdxf.options.preserve_proxy_graphics()
+dxfpy.options.preserve_proxy_graphics()
 
 
 @pytest.fixture()

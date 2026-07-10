@@ -1,8 +1,8 @@
 # Copyright (c) 2011-2019, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.layouts import VirtualLayout
-from ezdxf.enums import TextEntityAlignment
+from dxfpy.layouts import VirtualLayout
+from dxfpy.enums import TextEntityAlignment
 
 
 @pytest.fixture
@@ -69,9 +69,9 @@ def test_ac1021_default_settings(line):
 @pytest.fixture(scope="module")
 def layout():
     # Do not test VirtualLayout() here
-    import ezdxf
+    import dxfpy
 
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     return doc.modelspace()
 
 

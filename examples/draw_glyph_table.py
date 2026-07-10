@@ -4,11 +4,11 @@
 import sys
 import argparse
 
-import ezdxf
-from ezdxf import path
-from ezdxf.math import Matrix44
-from ezdxf.fonts import fonts
-from ezdxf.layouts import Layout
+import dxfpy
+from dxfpy import path
+from dxfpy.math import Matrix44
+from dxfpy.fonts import fonts
+from dxfpy.layouts import Layout
 import pathlib
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -57,7 +57,7 @@ def render_glyph_table(font: fonts.TrueTypeFont, layout: Layout):
 
 
 def render_font(font_name: str, sideload: bool):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("TEXT")
     doc.layers.add("GLYPH")
     doc.layers.add("DOTS", color=1)

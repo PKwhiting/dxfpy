@@ -1,10 +1,10 @@
 #  Copyright (c) 2021-2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.render.forms import box, translate
-from ezdxf import disassemble
-from ezdxf import path
+import dxfpy
+from dxfpy.render.forms import box, translate
+from dxfpy import disassemble
+from dxfpy import path
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -16,13 +16,13 @@ if not CWD.exists():
 # entities in CAD applications
 #
 # docs:
-# disassemble module: https://ezdxf.mozman.at/docs/disassemble.html
-# path sub-package: https://ezdxf.mozman.at/docs/path.html
+# disassemble module: https://dxfpy.mozman.at/docs/disassemble.html
+# path sub-package: https://dxfpy.mozman.at/docs/path.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("FORMS", dxfattribs={"color": 1})
     doc.layers.new("HATCHES")
 

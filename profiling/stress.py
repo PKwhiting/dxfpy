@@ -6,8 +6,8 @@ import sys
 import argparse
 
 import time
-import ezdxf
-from ezdxf import recover
+import dxfpy
+from dxfpy import recover
 from itertools import chain
 
 DIRS = [
@@ -18,7 +18,7 @@ DIRS = [
 ]
 
 files = list(
-    chain(*[(ezdxf.options.test_files_path / d).glob("*.dxf") for d in DIRS])
+    chain(*[(dxfpy.options.test_files_path / d).glob("*.dxf") for d in DIRS])
 )
 
 
@@ -26,7 +26,7 @@ files = list(
 def test_readfile(filename):
     try:
         recover.readfile(filename)
-    except ezdxf.DXFStructureError:
+    except dxfpy.DXFStructureError:
         pytest.fail(f"{filename}: DXFStructureError in recover mode.")
     else:
         assert True
@@ -34,8 +34,8 @@ def test_readfile(filename):
 
 if __name__ == "__main__":
     import logging
-    from ezdxf import bbox, print_config
-    from ezdxf.math import Vec3
+    from dxfpy import bbox, print_config
+    from dxfpy.math import Vec3
     import warnings
 
     # Suppress Matplotlib font replacement warnings
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     print_config()
     print("-" * 79)
     if args.cadkit:  # only CADKit samples
-        files = (ezdxf.options.test_files_path / "CADKitSamples").glob("*.dxf")
+        files = (dxfpy.options.test_files_path / "CADKitSamples").glob("*.dxf")
     if args.log:
         logging.basicConfig(level=logging.WARNING)
 
@@ -79,11 +79,11 @@ if __name__ == "__main__":
         print(f'Loading file: "{name}"')
         try:
             t_start = time.perf_counter()
-            doc = ezdxf.readfile(name)
+            doc = dxfpy.readfile(name)
             t_read = time.perf_counter()
             auditor = doc.audit()
             t_audit = time.perf_counter()
-        except ezdxf.DXFStructureError:
+        except dxfpy.DXFStructureError:
             if args.verbose:
                 print("Regular loading function failed, using recover mode.")
             t_start = time.perf_counter()

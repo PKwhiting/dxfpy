@@ -1,9 +1,9 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import Importer
-from ezdxf.query import EntityQuery
+import dxfpy
+from dxfpy.addons import Importer
+from dxfpy.query import EntityQuery
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -20,13 +20,13 @@ if not CWD.exists():
 # Keep things simple, more complex DXF documents may fail or at least the entities
 # will not look the same as in the source file! Read the docs!
 #
-# Basic concept of layers : https://ezdxf.mozman.at/docs/concepts/layers.html
-# Importer add-on: https://ezdxf.mozman.at/docs/addons/index.html
+# Basic concept of layers : https://dxfpy.mozman.at/docs/concepts/layers.html
+# Importer add-on: https://dxfpy.mozman.at/docs/addons/index.html
 # ------------------------------------------------------------------------------
 
 
 def main(filename: str):
-    source_doc = ezdxf.readfile(CWD / filename)
+    source_doc = dxfpy.readfile(CWD / filename)
     source_msp = source_doc.modelspace()
     # create an EntityQuery container with all entities from the modelspace
     source_entities = source_msp.query()
@@ -37,7 +37,7 @@ def main(filename: str):
     for layer_name in all_layer_names:
         # create a new document for each layer with the same DXF version as the
         # source file
-        layer_doc = ezdxf.new(dxfversion=source_doc.dxfversion)
+        layer_doc = dxfpy.new(dxfversion=source_doc.dxfversion)
         layer_msp = layer_doc.modelspace()
         importer = Importer(source_doc, layer_doc)
         # select all entities from modelspace from this layer (extended query

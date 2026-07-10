@@ -2,7 +2,7 @@
 # License: MIT License
 from random import random
 import pathlib
-from ezdxf.addons import r12writer
+from dxfpy.addons import r12writer
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,7 +11,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to use the fast DXF R12 writer add-on.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/r12writer.html
+# docs: https://dxfpy.mozman.at/docs/addons/r12writer.html
 # ------------------------------------------------------------------------------
 
 MAX_X_COORD = 1000.0

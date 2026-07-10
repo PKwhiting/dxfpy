@@ -2,9 +2,9 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.render import point
-from ezdxf.entities import Point
-from ezdxf.math.shape import Shape2d
+from dxfpy.render import point
+from dxfpy.entities import Point
+from dxfpy.math.shape import Shape2d
 
 
 def pnt(location=(0, 0), angle: float = 0):

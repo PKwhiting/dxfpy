@@ -2,7 +2,7 @@
 # License: MIT License
 import time
 
-from ezdxf.math import intersection_line_line_2d, ConstructionRay, Vec2
+from dxfpy.math import intersection_line_line_2d, ConstructionRay, Vec2
 
 P1 = Vec2((0, 0))
 P2 = Vec2((10, 10))

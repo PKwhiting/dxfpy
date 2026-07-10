@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math.clustering import dbscan
-from ezdxf.render import forms
+from dxfpy.math.clustering import dbscan
+from dxfpy.render import forms
 
 
 def make_cluster(size, dx, dy, dz):

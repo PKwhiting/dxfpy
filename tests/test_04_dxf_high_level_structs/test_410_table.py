@@ -2,15 +2,15 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.tools.test import load_entities
-from ezdxf.sections.table import Table, AppIDTable
-from ezdxf.lldxf.tagwriter import TagCollector
+import dxfpy
+from dxfpy.tools.test import load_entities
+from dxfpy.sections.table import Table, AppIDTable
+from dxfpy.lldxf.tagwriter import TagCollector
 
 
 @pytest.fixture(scope="module")
 def table():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     return doc.appids
 
 
@@ -19,7 +19,7 @@ def test_table_entry_dxf_type(table):
 
 
 def test_ac1009_load_table():
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     entities = list(load_entities(AC1009TABLE, "TABLES"))
     table = AppIDTable()
     table.load(doc, iter(entities[1:-1]))  # without SECTION tags and ENDTAB
@@ -30,7 +30,7 @@ def test_load_table_with_invalid_table_entry():
     """This LAYERS table has an invalid APPID table entry, which should be
     ignored at the loading stage.
     """
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     entities = list(load_entities(INVALID_TABLE_ENTRY, "TABLES"))
     table = Table()
     table.load(doc, iter(entities[1:-1]))  # without SECTION tags and ENDTAB
@@ -48,7 +48,7 @@ def test_ac1009_write(table):
 
 
 def test_ac1024_load_table():
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     entities = list(load_entities(AC1024TABLE, "TABLES"))
     table = AppIDTable()
     table.load(doc, iter(entities[1:-1]))  # without SECTION tags and ENDTAB
@@ -91,7 +91,7 @@ def test_duplicate_entry(table):
 
 
 def test_create_vport_table():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     assert len(doc.viewports) == 1
     # standard viewport exists
     assert "*Active" in doc.viewports
@@ -112,11 +112,11 @@ def test_create_vport_table():
     assert conf[1] in vports
 
     assert "Test" not in doc.viewports
-    with pytest.raises(ezdxf.DXFTableEntryError):
+    with pytest.raises(dxfpy.DXFTableEntryError):
         _ = doc.viewports.get_config("test")
 
     # delete: ignore not existing configurations
-    with pytest.raises(ezdxf.DXFTableEntryError):
+    with pytest.raises(dxfpy.DXFTableEntryError):
         doc.viewports.delete_config("test")
 
     # delete multi config

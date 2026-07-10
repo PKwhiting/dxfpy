@@ -5,14 +5,14 @@ import pytest
 import math
 import numpy as np
 
-from ezdxf.math.linalg import (
+from dxfpy.math.linalg import (
     Matrix,
     detect_banded_matrix,
     compact_banded_matrix,
     BandedMatrixLU,
     banded_matrix,
 )
-from ezdxf.math.legacy import gauss_vector_solver
+from dxfpy.math.legacy import gauss_vector_solver
 
 BANDED_MATRIX = Matrix(
     matrix=[

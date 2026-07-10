@@ -5,9 +5,9 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from ezdxf import path
-from ezdxf.math import quadratic_to_cubic_bezier, Bezier3P, Vec2
-from ezdxf import npshapes
+from dxfpy import path
+from dxfpy.math import quadratic_to_cubic_bezier, Bezier3P, Vec2
+from dxfpy import npshapes
 
 
 class TestNumpyPath2dToQPainterPath:

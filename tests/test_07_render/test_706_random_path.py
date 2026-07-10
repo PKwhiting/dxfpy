@@ -2,7 +2,7 @@
 # License: MIT License
 
 import pytest
-from ezdxf.render import random_2d_path, random_3d_path
+from dxfpy.render import random_2d_path, random_3d_path
 
 
 def test_random_2d_path():

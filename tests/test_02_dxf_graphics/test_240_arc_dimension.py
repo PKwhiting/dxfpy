@@ -3,12 +3,12 @@
 
 import pytest
 
-import ezdxf
-from ezdxf.entities.dimension import ArcDimension
-from ezdxf.lldxf.const import DXF2013, DXF2010, DXF2018
-from ezdxf.lldxf.tagwriter import TagCollector
+import dxfpy
+from dxfpy.entities.dimension import ArcDimension
+from dxfpy.lldxf.const import DXF2013, DXF2010, DXF2018
+from dxfpy.lldxf.tagwriter import TagCollector
 
-ezdxf.options.preserve_proxy_graphics()
+dxfpy.options.preserve_proxy_graphics()
 
 
 @pytest.fixture()

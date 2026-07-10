@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.polyline import vertex_attribs, DXFVertex
-from ezdxf.math import Vec3
-from ezdxf.layouts import VirtualLayout
+from dxfpy.entities.polyline import vertex_attribs, DXFVertex
+from dxfpy.math import Vec3
+from dxfpy.layouts import VirtualLayout
 
 
 def test_vertext_attribs_xy():

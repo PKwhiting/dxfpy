@@ -4,10 +4,10 @@
 import pytest
 import random
 
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf import xref, units
-from ezdxf.math import Vec3
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy import xref, units
+from dxfpy.math import Vec3
 
 
 FLAG_NAME = "Flag"
@@ -53,7 +53,7 @@ SAMPLE_COORDS = [get_random_point() for x in range(50)]
 
 @pytest.fixture(scope="module")
 def host_doc() -> Drawing:
-    doc = ezdxf.new("R2007", units=units.M)
+    doc = dxfpy.new("R2007", units=units.M)
     doc.layers.add("FLAGS")
     doc.layers.add("FLAG_SYMBOL")
     doc.layers.add("FLAG_ATTRIBS")

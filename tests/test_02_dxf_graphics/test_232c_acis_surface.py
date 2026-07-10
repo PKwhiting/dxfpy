@@ -1,7 +1,7 @@
 # Copyright (c) 2018-2024 Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.math import Matrix44
+import dxfpy
+from dxfpy.math import Matrix44
 import pytest
 
 IDENTITY_MATRIX = list(list(Matrix44()))
@@ -11,7 +11,7 @@ MATRIX_CHECK = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     return doc.modelspace()
 
 

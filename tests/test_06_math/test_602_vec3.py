@@ -4,14 +4,14 @@ import pytest
 import math
 import pickle
 
-# Import from 'ezdxf.math._vector' to test Python implementation
-from ezdxf.math._vector import Vec3
-from ezdxf.acc import USE_C_EXT
+# Import from 'dxfpy.math._vector' to test Python implementation
+from dxfpy.math._vector import Vec3
+from dxfpy.acc import USE_C_EXT
 
 vec3_classes = [Vec3]
 
 if USE_C_EXT:
-    from ezdxf.acc.vector import Vec3 as CVec3
+    from dxfpy.acc.vector import Vec3 as CVec3
 
     vec3_classes.append(CVec3)
 

@@ -2,10 +2,10 @@
 # License: MIT License
 import pathlib
 
-import ezdxf
-from ezdxf.render import forms
-from ezdxf.addons.drawing import Frontend, RenderContext
-from ezdxf.addons.drawing import layout, pymupdf
+import dxfpy
+from dxfpy.render import forms
+from dxfpy.addons.drawing import Frontend, RenderContext
+from dxfpy.addons.drawing import layout, pymupdf
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -16,12 +16,12 @@ EXAMPLE_DXF = pathlib.Path(__file__).parent.parent.parent.parent / "examples_dxf
 # This example shows how to use the page alignment, when exporting the modelspace by the
 # drawing add-on and the PyMuPDF backend.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 
 def export_aligned(page_alignment: layout.PageAlignment, filename: str):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_lwpolyline(
         forms.gear(16, top_width=5, bottom_width=10, height=5, outside_radius=30),

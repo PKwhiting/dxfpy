@@ -1,7 +1,7 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.math import (
+from dxfpy.math import (
     Plane,
     Vec3,
     X_AXIS,
@@ -9,7 +9,7 @@ from ezdxf.math import (
     Z_AXIS,
     split_polygon_by_plane,
 )
-from ezdxf.render import forms
+from dxfpy.render import forms
 
 
 def test_init():

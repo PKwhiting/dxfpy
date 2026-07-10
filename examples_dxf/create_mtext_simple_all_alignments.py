@@ -1,8 +1,8 @@
 #  Copyright (c) 2021, Manfred Moitzi
 #  License: MIT License
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.enums import MTextEntityAlignment
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.enums import MTextEntityAlignment
 
 # This is the only way to create MTEXT entities where the "width" attribute
 # is missing or equals 0.
@@ -11,8 +11,8 @@ from ezdxf.enums import MTextEntityAlignment
 
 CONTENT = "This is a long MTEXT line without line wrapping!\\PThe second line."
 
-doc = ezdxf.new(setup=True)
-doc.layers.new("MTEXT", dxfattribs={"color": ezdxf.const.RED})
+doc = dxfpy.new(setup=True)
+doc.layers.new("MTEXT", dxfattribs={"color": dxfpy.const.RED})
 msp = doc.modelspace()
 attribs = {
     "char_height": 0.7,

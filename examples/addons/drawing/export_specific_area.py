@@ -1,14 +1,14 @@
-# Copyright (c) 2020, Matthew Broadway, https://github.com/mozman/ezdxf/discussions/451
+# Copyright (c) 2020, Matthew Broadway, https://github.com/mozman/dxfpy/discussions/451
 # Copyright (c) 2022, Manfred Moitzi
 # License: MIT License
 from __future__ import annotations
 import pathlib
 import matplotlib.pyplot as plt
 
-import ezdxf
-from ezdxf.layouts import Modelspace
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+import dxfpy
+from dxfpy.layouts import Modelspace
+from dxfpy.addons.drawing import RenderContext, Frontend
+from dxfpy.addons.drawing.matplotlib import MatplotlibBackend
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -28,7 +28,7 @@ def draw_raster(msp: Modelspace, x_size: int, y_size: int):
 
 def main():
     # create the DXF document
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.styles.add("Arial", font="arial.ttf")
     msp = doc.modelspace()
     draw_raster(msp, 10, 10)

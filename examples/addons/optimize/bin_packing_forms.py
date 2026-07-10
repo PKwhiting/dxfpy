@@ -5,13 +5,13 @@ import enum
 import sys
 import argparse
 
-import ezdxf
-from ezdxf.entities import DXFGraphic
-from ezdxf.math import Matrix44, BoundingBox
-from ezdxf.path import Path, make_path, nesting
-from ezdxf.addons import binpacking as bp
-from ezdxf.addons import genetic_algorithm as ga
-from ezdxf import colors
+import dxfpy
+from dxfpy.entities import DXFGraphic
+from dxfpy.math import Matrix44, BoundingBox
+from dxfpy.path import Path, make_path, nesting
+from dxfpy.addons import binpacking as bp
+from dxfpy.addons import genetic_algorithm as ga
+from dxfpy import colors
 
 DEBUG = True
 GENERATIONS = 200
@@ -118,7 +118,7 @@ def add_bbox(msp, box: BoundingBox, color: int):
 
 
 def make_debug_doc():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("FRAME", color=colors.YELLOW)
     doc.layers.add("ITEMS")
     doc.layers.add("TEXT")
@@ -139,8 +139,8 @@ def main(
     attempts: int = 1,
 ):
     try:
-        doc = ezdxf.readfile(filename)
-    except (IOError, ezdxf.DXFStructureError):
+        doc = dxfpy.readfile(filename)
+    except (IOError, dxfpy.DXFStructureError):
         print(f"IOError or invalid DXF file: '{filename}'")
         sys.exit(1)
     doc.layers.add("PACKED")

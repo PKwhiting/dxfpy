@@ -2,14 +2,14 @@
 #  License: MIT License
 
 from pathlib import Path
-import ezdxf
+import dxfpy
 
-DIR = Path(ezdxf.EZDXF_TEST_FILES) / "R13_test_files"
+DIR = Path(dxfpy.DXFPY_TEST_FILES) / "R13_test_files"
 
 
 def upgrade_dxf_file(name):
     print(f"upgrade {name} to R2000")
-    dwg = ezdxf.readfile(DIR / name)
+    dwg = dxfpy.readfile(DIR / name)
     dwg.saveas(DIR / "as_R2000" / name)
 
 

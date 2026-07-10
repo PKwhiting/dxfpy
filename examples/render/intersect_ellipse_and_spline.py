@@ -1,10 +1,10 @@
 #  Copyright (c) 2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import colors
-from ezdxf.gfxattribs import GfxAttribs
-from ezdxf.math import intersect_polylines_2d, Vec2
+import dxfpy
+from dxfpy import colors
+from dxfpy.gfxattribs import GfxAttribs
+from dxfpy.math import intersect_polylines_2d, Vec2
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,7 +14,7 @@ if not CWD.exists():
 # This example shows how to calculate intersection points of arbitrary 2d
 # polylines, an ellipse and a spline in this example.
 #
-# docs: https://ezdxf.mozman.at/docs/math/core.html#ezdxf.math.intersect_polylines_2d
+# docs: https://dxfpy.mozman.at/docs/math/core.html#dxfpy.math.intersect_polylines_2d
 # ------------------------------------------------------------------------------
 
 ENTITIES = "ENTITIES"
@@ -23,7 +23,7 @@ CURVE_APPROXIMATIONS = "CURVE_APPROXIMATIONS"
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add(ENTITIES, color=colors.YELLOW)
     doc.layers.add(INTERSECTION_POINTS, color=colors.RED)
     doc.layers.add(CURVE_APPROXIMATIONS, color=colors.CYAN)

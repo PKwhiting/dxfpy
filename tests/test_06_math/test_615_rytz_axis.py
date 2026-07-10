@@ -1,7 +1,7 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.math import rytz_axis_construction, Vec3
+from dxfpy.math import rytz_axis_construction, Vec3
 
 
 def test_exception():

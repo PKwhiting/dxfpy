@@ -1,12 +1,12 @@
 # Copyright (c) 2026, Manfred Moitzi
 # License: MIT License
 import io
-import ezdxf
-from ezdxf.entities.dxfobj import Field
+import dxfpy
+from dxfpy.entities.dxfobj import Field
 
 
 def test_add_mtext_acvar_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
 
     mtext = msp.add_mtext_acvar_field(
@@ -29,7 +29,7 @@ def test_add_mtext_acvar_field_creates_object_backed_field():
 
 
 def test_add_mtext_acobjprop_length_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
 
@@ -49,7 +49,7 @@ def test_add_mtext_acobjprop_length_field_creates_object_backed_field():
 
 
 def test_add_mtext_acobjprop_area_field_for_closed_lwpolyline():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     pline = msp.add_lwpolyline(
         [(0, 0), (10, 0), (10, 10), (0, 10)], close=True
@@ -70,7 +70,7 @@ def test_add_mtext_acobjprop_area_field_for_closed_lwpolyline():
 
 
 def test_add_mtext_dwgprops_field_creates_object_backed_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
 
     mtext = msp.add_mtext_dwgprops_field(
@@ -89,7 +89,7 @@ def test_add_mtext_dwgprops_field_creates_object_backed_field():
 
 
 def test_add_mtext_acexpr_field_creates_nested_expression_field():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     circle = msp.add_circle((5, 0), radius=2.5)
@@ -123,7 +123,7 @@ def test_add_mtext_acexpr_field_creates_nested_expression_field():
 
 
 def test_writing_high_level_field_entities_exports_expected_markers():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     msp.add_mtext_acvar_field("Author", text="----", register_field_list=True)

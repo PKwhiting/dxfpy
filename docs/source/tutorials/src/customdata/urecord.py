@@ -2,19 +2,19 @@
 #  License: MIT License
 
 from pathlib import Path
-from ezdxf import zoom
+from dxfpy import zoom
 from pprint import pprint
-import ezdxf
-from ezdxf.math import Vec3
-from ezdxf.urecord import UserRecord, BinaryRecord
-from ezdxf.entities import XRecord
+import dxfpy
+from dxfpy.math import Vec3
+from dxfpy.urecord import UserRecord, BinaryRecord
+from dxfpy.entities import XRecord
 import zlib
 
 DIR = Path("~/Desktop/Outbox").expanduser()
 
 # XRECORD need DXF version R2000+ and does not work with DXF R12 or older.
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 # ------------------------------------------------------------------------------

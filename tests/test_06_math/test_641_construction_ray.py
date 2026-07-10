@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 import math
-from ezdxf.math import ConstructionRay, ParallelRaysError, Vec3
+from dxfpy.math import ConstructionRay, ParallelRaysError, Vec3
 
 HALF_PI = math.pi / 2.0
 

@@ -3,13 +3,13 @@
 import pytest
 
 import json
-import ezdxf
-from ezdxf.document import export_json_tags, load_json_tags
-from ezdxf.lldxf.tagger import json_tag_loader
+import dxfpy
+from dxfpy.document import export_json_tags, load_json_tags
+from dxfpy.lldxf.tagger import json_tag_loader
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 def test_export_json_tags(doc):
     result = export_json_tags(doc, compact=False)

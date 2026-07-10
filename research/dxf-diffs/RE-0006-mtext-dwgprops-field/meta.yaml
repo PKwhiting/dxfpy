@@ -11,12 +11,12 @@ source_artifacts:
   edited_after_dxf: research/dxf-diffs/RE-0006-mtext-dwgprops-field/after.dxf
   baseline_before_normalized_dxf: research/dxf-diffs/RE-0006-mtext-dwgprops-field/before.normalized.dxf
   edited_after_normalized_dxf: research/dxf-diffs/RE-0006-mtext-dwgprops-field/after.normalized.dxf
-target_ezdxf_modules:
-  - src/ezdxf/entities/dxfobj.py
-  - src/ezdxf/entities/mtext.py
-  - src/ezdxf/entities/text.py
-  - src/ezdxf/entities/mleader.py
-  - src/ezdxf/graphicsfactory.py
+target_dxfpy_modules:
+  - src/dxfpy/entities/dxfobj.py
+  - src/dxfpy/entities/mtext.py
+  - src/dxfpy/entities/text.py
+  - src/dxfpy/entities/mleader.py
+  - src/dxfpy/graphicsfactory.py
 notes:
   - Baseline contains one MTEXT placeholder with text FIELD_DWGPROPS_BASE.
   - The inserted Title field displayed VALUE-HERE FOR TESTING in the host MTEXT.

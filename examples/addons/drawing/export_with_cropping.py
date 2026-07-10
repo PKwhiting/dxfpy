@@ -2,15 +2,15 @@
 # License: MIT License
 import pathlib
 
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.addons.drawing import Frontend, RenderContext
-from ezdxf.addons.drawing.config import (
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.addons.drawing import Frontend, RenderContext
+from dxfpy.addons.drawing.config import (
     Configuration,
     BackgroundPolicy,
     ColorPolicy,
 )
-from ezdxf.addons.drawing import svg, layout, pymupdf, hpgl2
+from dxfpy.addons.drawing import svg, layout, pymupdf, hpgl2
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -20,7 +20,7 @@ if not CWD.exists():
 # This example shows how to export the modelspace by the drawing add-on and the
 # native SVG backend with cropping at the page margins
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 CADKIT = "CADKitSamples"
@@ -98,8 +98,8 @@ def export_plt(doc: Drawing, alignment: layout.PageAlignment, outname: pathlib.P
 
 def export_cadkit_samples():
     for name in CADKIT_FILES[:]:
-        filename = ezdxf.options.test_files_path / CADKIT / name
-        doc = ezdxf.readfile(filename)
+        filename = dxfpy.options.test_files_path / CADKIT / name
+        doc = dxfpy.readfile(filename)
         export_svg(doc, layout.PageAlignment.TOP_LEFT, filename.stem + ".svg")
         export_pdf(doc, layout.PageAlignment.MIDDLE_CENTER, filename.stem + ".pdf")
         export_plt(doc, layout.PageAlignment.BOTTOM_RIGHT, filename.stem + ".plt")

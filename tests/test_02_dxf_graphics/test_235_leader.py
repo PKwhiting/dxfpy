@@ -1,10 +1,10 @@
 # Copyright (c) 2019-2021 Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.entities.leader import Leader
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.layouts import VirtualLayout
-from ezdxf.protocols import SupportsVirtualEntities, query_virtual_entities
+from dxfpy.entities.leader import Leader
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.layouts import VirtualLayout
+from dxfpy.protocols import SupportsVirtualEntities, query_virtual_entities
 
 LEADER = """0
 LEADER
@@ -69,7 +69,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "LEADER" in ENTITY_CLASSES
 

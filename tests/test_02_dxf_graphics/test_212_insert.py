@@ -1,14 +1,14 @@
 # Copyright (c) 2019-2021 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
-from ezdxf.entities.insert import Insert
-from ezdxf.lldxf.const import DXF12, DXF2000
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Matrix44
-from ezdxf.entities import factory
-from ezdxf.protocols import SupportsVirtualEntities, query_virtual_entities
+from dxfpy.entities.insert import Insert
+from dxfpy.lldxf.const import DXF12, DXF2000
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Matrix44
+from dxfpy.entities import factory
+from dxfpy.protocols import SupportsVirtualEntities, query_virtual_entities
 
 ENTITY_R12 = """0
 INSERT
@@ -67,7 +67,7 @@ BLOCKNAME
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 @pytest.fixture(scope="module")
@@ -81,7 +81,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "INSERT" in ENTITY_CLASSES
 
@@ -205,7 +205,7 @@ def test_clone_with_insert():
 
 
 def test_export_without_sub_entities_to_dxf(doc):
-    from ezdxf.lldxf.tagwriter import TagCollector
+    from dxfpy.lldxf.tagwriter import TagCollector
 
     blk = doc.blocks.new("INSERT_WITHOUT_ATTRIBS")
     blk.add_blockref("TEST", (0, 0))
@@ -217,7 +217,7 @@ def test_export_without_sub_entities_to_dxf(doc):
 
 
 def test_export_with_sub_entities_to_dxf(doc):
-    from ezdxf.lldxf.tagwriter import TagCollector
+    from dxfpy.lldxf.tagwriter import TagCollector
 
     blk = doc.blocks.new("INSERT_WITH_ATTRIBS")
     insert = blk.add_blockref("TEST", (0, 0))
@@ -413,7 +413,7 @@ def test_add_virtual_insert_with_attribs_to_layout(doc):
 class TestSupportsVirtualEntitiesProtocol:
     @pytest.fixture(scope="class")
     def doc(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         blk = doc.blocks.new("POINT")
         blk.add_point(location=(0, 0))
         return doc

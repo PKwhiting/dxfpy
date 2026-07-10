@@ -2,9 +2,9 @@
 # License: MIT License
 from pathlib import Path
 import dataclasses
-import ezdxf
+import dxfpy
 
-from ezdxf.math import Vec3, OCS, normal_vector_3p, ConstructionCircle
+from dxfpy.math import Vec3, OCS, normal_vector_3p, ConstructionCircle
 
 CWD = Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,7 +15,7 @@ if not CWD.exists():
 #
 # Example how to use the OCS to place 2D entities in 3D space.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/circle.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/circle.html
 # ------------------------------------------------------------------------------
 
 
@@ -49,7 +49,7 @@ def circle3p(a: Vec3, b: Vec3, c: Vec3) -> CircleOCS | None:
 
 
 def main(points: list[Vec3]):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_polyline3d(points, close=True, dxfattribs={"color": 2})
 

@@ -2,7 +2,7 @@
 # Copyright (C) 2011-2019, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.tools.handle import HandleGenerator
+from dxfpy.tools.handle import HandleGenerator
 
 
 def test_next():

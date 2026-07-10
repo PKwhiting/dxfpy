@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.underlay import PdfUnderlay, DwfUnderlay, DgnUnderlay
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.underlay import PdfUnderlay, DwfUnderlay, DgnUnderlay
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 PDFUNDERLAY = """0
 PDFUNDERLAY
@@ -48,7 +48,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "PDFUNDERLAY" in ENTITY_CLASSES
 

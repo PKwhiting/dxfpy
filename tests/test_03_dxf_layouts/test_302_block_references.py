@@ -2,12 +2,12 @@
 # License: MIT License
 # Created: 2019-02-24
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     return doc.modelspace()
 
 

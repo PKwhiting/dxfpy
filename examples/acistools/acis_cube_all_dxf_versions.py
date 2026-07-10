@@ -2,9 +2,9 @@
 # License: MIT License
 
 import pathlib
-import ezdxf
-from ezdxf.render import forms
-from ezdxf.acis import api as acis
+import dxfpy
+from dxfpy.render import forms
+from dxfpy.acis import api as acis
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,12 +13,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to create a simple ACIS cube for all supported DXf versions.
 #
-# docs: https://ezdxf.mozman.at/docs/tools/acis.html
+# docs: https://dxfpy.mozman.at/docs/tools/acis.html
 # ------------------------------------------------------------------------------
 
 
 def run(version: str):
-    doc = ezdxf.new(version, setup=True)
+    doc = dxfpy.new(version, setup=True)
     msp = doc.modelspace()
 
     # create the DXF 3DSOLID entity

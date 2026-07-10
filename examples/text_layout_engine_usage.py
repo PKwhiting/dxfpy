@@ -3,12 +3,12 @@
 from typing import Iterable
 import pathlib
 import random
-import ezdxf
-from ezdxf import zoom, print_config
-from ezdxf.math import Matrix44
-from ezdxf.fonts import fonts
-from ezdxf.tools import text_layout as tl
-from ezdxf.enums import TextEntityAlignment
+import dxfpy
+from dxfpy import zoom, print_config
+from dxfpy.math import Matrix44
+from dxfpy.fonts import fonts
+from dxfpy.tools import text_layout as tl
+from dxfpy.enums import TextEntityAlignment
 
 """ 
 This example shows the usage of the internal text_layout module to render 
@@ -59,7 +59,7 @@ COLUMN_HEIGHT: float = 12
 
 print_config()
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 style = doc.styles.new(STYLE, dxfattribs={"font": FONT})
 

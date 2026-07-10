@@ -2,9 +2,9 @@
 #  License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.entities import MPolygon
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+import dxfpy
+from dxfpy.entities import MPolygon
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 
 # MPolygon is similar to Hatch
@@ -14,7 +14,7 @@ def entity():
 
 
 def test_if_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "MPOLYGON" in ENTITY_CLASSES
 
@@ -38,7 +38,7 @@ def test_default_new():
     assert entity.dxf.color == 7
     assert entity.dxf.version == 1
     assert entity.dxf.solid_fill == 0
-    assert entity.dxf.fill_color == ezdxf.const.BYLAYER
+    assert entity.dxf.fill_color == dxfpy.const.BYLAYER
 
 
 def test_fill_properties_without_solid_filling():
@@ -66,7 +66,7 @@ def test_load_from_text(entity):
 
 def test_write_dxf_no_fill(entity):
     entity = MPolygon.from_text(MPOLYGON_NO_FILL)
-    result = TagCollector.dxftags(entity, dxfversion=ezdxf.const.DXF2000)
+    result = TagCollector.dxftags(entity, dxfversion=dxfpy.const.DXF2000)
     expected = basic_tags_from_text(MPOLYGON_NO_FILL)
     assert result == expected
     assert result.get_first_value(71) == 0  # pattern fill
@@ -84,7 +84,7 @@ def test_write_dxf_no_fill(entity):
 
 
 def test_write_dxf_r2004_no_fill_requires_basic_gradient_data(entity):
-    result = TagCollector.dxftags(entity, dxfversion=ezdxf.const.DXF2004)
+    result = TagCollector.dxftags(entity, dxfversion=dxfpy.const.DXF2004)
     tags = list(result.pop_tags([450, 451, 460, 461, 452, 462, 453, 470]))
     assert tags == [
         (450, 0),  # kind = solid fill
@@ -101,7 +101,7 @@ def test_write_dxf_r2004_no_fill_requires_basic_gradient_data(entity):
 def test_write_dxf_with_fill(entity):
     entity.dxf.solid_fill = 1
     entity.dxf.fill_color = 163
-    result = TagCollector.dxftags(entity, dxfversion=ezdxf.const.DXF2000)
+    result = TagCollector.dxftags(entity, dxfversion=dxfpy.const.DXF2000)
     assert result.get_first_value(71) == 1  # solid_fill
     assert (
         result.has_tag(52) is False
@@ -123,7 +123,7 @@ def test_write_dxf_with_fill(entity):
 def test_write_dxf_R2004_with_fill(entity):
     entity.dxf.solid_fill = 1
     entity.dxf.fill_color = 163
-    result = TagCollector.dxftags(entity, dxfversion=ezdxf.const.DXF2004)
+    result = TagCollector.dxftags(entity, dxfversion=dxfpy.const.DXF2004)
     assert result.get_first_value(63) == 163, "missing fill color tag"
 
     tags = list(result.pop_tags([450, 451, 460, 461, 452, 462, 453, 470]))
@@ -152,7 +152,7 @@ def test_write_correct_polyline_path_tag_order(entity):
 
 def test_write_dxf_with_pattern_fill(entity):
     entity.set_pattern_fill("ANSI33", color=7, scale=0.01)
-    result = TagCollector.dxftags(entity, dxfversion=ezdxf.const.DXF2000)
+    result = TagCollector.dxftags(entity, dxfversion=dxfpy.const.DXF2000)
     assert result.has_tag(75) is False, "hatch style tag not supported?!"
 
 

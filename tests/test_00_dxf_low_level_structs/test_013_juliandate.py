@@ -4,7 +4,7 @@
 import pytest
 from datetime import datetime
 
-from ezdxf.tools.juliandate import juliandate, calendardate
+from dxfpy.tools.juliandate import juliandate, calendardate
 
 
 class TestJulianDate:

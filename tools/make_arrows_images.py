@@ -1,9 +1,9 @@
 # Copyright (c) 2019-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import colors
-from ezdxf.addons.drawing.matplotlib import qsave
+import dxfpy
+from dxfpy import colors
+from dxfpy.addons.drawing.matplotlib import qsave
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,7 +11,7 @@ if not CWD.exists():
 
 
 def main():
-    for name in ezdxf.ARROWS.__all_arrows__:
+    for name in dxfpy.ARROWS.__all_arrows__:
         make_arrow_image(name)
 
 
@@ -19,7 +19,7 @@ def make_arrow_image(name):
     def add_connection_point(p):
         msp.add_circle(p, radius=0.01, dxfattribs=red)
 
-    doc = ezdxf.new("R2007", setup=True)
+    doc = dxfpy.new("R2007", setup=True)
     msp = doc.modelspace()
     red = {"color": colors.RED}
     white = {"color": colors.WHITE}
@@ -41,7 +41,7 @@ def make_arrow_image(name):
     add_connection_point(cp1)
     qsave(
         msp,
-        str(CWD / f"{ezdxf.ARROWS.block_name(name)}.png"),
+        str(CWD / f"{dxfpy.ARROWS.block_name(name)}.png"),
         bg="#FFFFFF",
         dpi=100,
         size_inches=(3, 1),

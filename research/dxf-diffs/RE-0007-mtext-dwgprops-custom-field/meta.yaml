@@ -11,12 +11,12 @@ source_artifacts:
   edited_after_dxf: research/dxf-diffs/RE-0007-mtext-dwgprops-custom-field/after.dxf
   baseline_before_normalized_dxf: TBD
   edited_after_normalized_dxf: TBD
-target_ezdxf_modules:
-  - src/ezdxf/entities/dxfobj.py
-  - src/ezdxf/entities/mtext.py
-  - src/ezdxf/entities/text.py
-  - src/ezdxf/entities/mleader.py
-  - src/ezdxf/graphicsfactory.py
+target_dxfpy_modules:
+  - src/dxfpy/entities/dxfobj.py
+  - src/dxfpy/entities/mtext.py
+  - src/dxfpy/entities/text.py
+  - src/dxfpy/entities/mleader.py
+  - src/dxfpy/graphicsfactory.py
 notes:
   - Baseline contains one MTEXT placeholder with text FIELD_DWGPROPS_CUSTOM_BASE.
   - Use custom DWGPROPS property name ProjectCode and value VALUE-123 for the first run.

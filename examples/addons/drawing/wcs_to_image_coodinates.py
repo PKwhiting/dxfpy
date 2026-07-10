@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Matthew Broadway, https://github.com/mozman/ezdxf/discussions/219
+# Copyright (c) 2020, Matthew Broadway, https://github.com/mozman/dxfpy/discussions/219
 # Copyright (c) 2022, Manfred Moitzi
 # License: MIT License
 from __future__ import annotations
@@ -6,10 +6,10 @@ import pathlib
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
 
-import ezdxf
-from ezdxf.math import Matrix44
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+import dxfpy
+from dxfpy.math import Matrix44
+from dxfpy.addons.drawing import RenderContext, Frontend
+from dxfpy.addons.drawing.matplotlib import MatplotlibBackend
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -49,7 +49,7 @@ def get_image_to_wcs_transform(
 
 def main():
     # create the DXF document
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_lwpolyline([(0, 0), (1, 0), (1, 1), (0, 1)], close=True)
     msp.add_line((0, 0), (1, 1))

@@ -2,50 +2,50 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.lldxf.encoding import decode_mif_to_unicode, has_mif_encoding
+import dxfpy
+from dxfpy.lldxf.encoding import decode_mif_to_unicode, has_mif_encoding
 
 
 class TestUnicodeEncoding:
     def test_has_dxf_unicode_encoding(self):
-        assert ezdxf.has_dxf_unicode(r"\U+039B") is True
-        assert ezdxf.has_dxf_unicode(r"\\U+039B") is True
+        assert dxfpy.has_dxf_unicode(r"\U+039B") is True
+        assert dxfpy.has_dxf_unicode(r"\\U+039B") is True
 
     def test_has_dxf_unicode_encoding_lower_case(self):
-        assert ezdxf.has_dxf_unicode(r"\U+039b") is True
-        assert ezdxf.has_dxf_unicode(r"\\U+039b") is True
+        assert dxfpy.has_dxf_unicode(r"\U+039b") is True
+        assert dxfpy.has_dxf_unicode(r"\\U+039b") is True
 
     def test_has_not_dxf_unicode_encoding(self):
-        assert ezdxf.has_dxf_unicode(r"\U+039") is False
-        assert ezdxf.has_dxf_unicode(r"\U+") is False
-        assert ezdxf.has_dxf_unicode("ABC") is False
-        assert ezdxf.has_dxf_unicode("") is False
+        assert dxfpy.has_dxf_unicode(r"\U+039") is False
+        assert dxfpy.has_dxf_unicode(r"\U+") is False
+        assert dxfpy.has_dxf_unicode("ABC") is False
+        assert dxfpy.has_dxf_unicode("") is False
 
     def test_decode_empty_string(self):
-        assert ezdxf.decode_dxf_unicode("") == ""
+        assert dxfpy.decode_dxf_unicode("") == ""
 
     def test_decode_regular_escape_sequences(self):
-        assert ezdxf.decode_dxf_unicode("\n\r\t") == "\n\r\t"
+        assert dxfpy.decode_dxf_unicode("\n\r\t") == "\n\r\t"
 
     def test_decode_regular_string_without_encoding(self):
-        assert ezdxf.decode_dxf_unicode("abc") == "abc"
+        assert dxfpy.decode_dxf_unicode("abc") == "abc"
 
     def test_successive_chars(self):
-        result = ezdxf.decode_dxf_unicode(r"abc\U+039B\U+0391\U+0393\U+0395\U+03A1xyz")
+        result = dxfpy.decode_dxf_unicode(r"abc\U+039B\U+0391\U+0393\U+0395\U+03A1xyz")
         assert result == r"abcΛΑΓΕΡxyz"
 
     def test_successive_chars_lowercase(self):
-        result = ezdxf.decode_dxf_unicode(r"abc\U+039b\U+0391\U+0393\U+0395\U+03a1xyz")
+        result = dxfpy.decode_dxf_unicode(r"abc\U+039b\U+0391\U+0393\U+0395\U+03a1xyz")
         assert result == r"abcΛΑΓΕΡxyz"
 
     def test_extra_backslash(self):
-        result = ezdxf.decode_dxf_unicode(
+        result = dxfpy.decode_dxf_unicode(
             r"abc\U+039B\\U+0391\\U+0393\\U+0395\\U+03A1xyz"
         )
         assert result == r"abcΛ\Α\Γ\Ε\Ρxyz"
 
     def test_extra_digits(self):
-        result = ezdxf.decode_dxf_unicode(
+        result = dxfpy.decode_dxf_unicode(
             r"abc\U+039B0\U+03911\U+03932\U+03953\U+03A1xyz"
         )
         assert result == "abcΛ0Α1Γ2Ε3Ρxyz"

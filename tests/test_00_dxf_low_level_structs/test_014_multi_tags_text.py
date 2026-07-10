@@ -1,7 +1,7 @@
 # Copyright (c) 2018-2019 Manfred Moitzi
 # License: MIT License
 
-from ezdxf.lldxf.tags import text_to_multi_tags, multi_tags_to_text
+from dxfpy.lldxf.tags import text_to_multi_tags, multi_tags_to_text
 
 TEST_TEXT = """Lorem ipsum dolor sit amet, consetetur sadipscing elitr, 
 sed diam nonumy eirmod tempor invidunt ut labore et dolore 

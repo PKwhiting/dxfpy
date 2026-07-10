@@ -3,16 +3,16 @@
 from typing import Iterable, cast
 from pathlib import Path
 import pytest
-import ezdxf
-from ezdxf import recover
-from ezdxf.entities import MText
+import dxfpy
+from dxfpy import recover
+from dxfpy.entities import MText
 
 DATA = Path(__file__).parent / "data"
 TEXT_FRAME = "mtext_text_frame.dxf"
 
 
 def load_mtext_entities(name: str):
-    doc = ezdxf.readfile(DATA / name)
+    doc = dxfpy.readfile(DATA / name)
     return doc
 
 
@@ -39,7 +39,7 @@ def test_remove_mtext_text_frame_at_loading_stage(doc):
 
 
 def test_remove_column_text_frames_at_loading_stage():
-    doc = ezdxf.readfile(DATA / "mtext_framed_columns.dxf")
+    doc = dxfpy.readfile(DATA / "mtext_framed_columns.dxf")
     msp = doc.modelspace()
     assert (
         len(msp.query("LWPOLYLINE")) == 0
@@ -47,9 +47,9 @@ def test_remove_column_text_frames_at_loading_stage():
 
 
 def test_do_not_export_mtext_text_borders(tmp_path):
-    doc1 = ezdxf.readfile(DATA / TEXT_FRAME)
+    doc1 = dxfpy.readfile(DATA / TEXT_FRAME)
     doc1.saveas(tmp_path / TEXT_FRAME)
-    doc2 = ezdxf.readfile(tmp_path / TEXT_FRAME)
+    doc2 = dxfpy.readfile(tmp_path / TEXT_FRAME)
     msp = doc2.modelspace()
     assert (
         len(msp.query("LWPOLYLINE")) == 0

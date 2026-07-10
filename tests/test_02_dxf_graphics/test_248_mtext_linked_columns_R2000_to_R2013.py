@@ -3,18 +3,18 @@
 
 import pytest
 
-import ezdxf
-from ezdxf.entities.mtext import (
+import dxfpy
+from dxfpy.entities.mtext import (
     load_columns_from_xdata,
     MText,
     ColumnType,
     MTextColumns,
 )
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.lldxf import const
-from ezdxf.entities.xdata import XData
-from ezdxf.math import Vec3
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.lldxf import const
+from dxfpy.entities.xdata import XData
+from dxfpy.math import Vec3
 
 DYNAMIC_MANUAL_HEIGHT = """0
 MTEXT
@@ -450,7 +450,7 @@ def test_destroy_mtext_with_linked_columns():
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2013")
+    return dxfpy.new("R2013")
 
 
 def test_add_mtext_with_linked_columns_to_entitydb(doc):

@@ -1,13 +1,13 @@
 # Copyright (c) 2018-2020 Manfred Moitzi
 # License: MIT License
 import math
-import ezdxf
-from ezdxf.math import UCS, Matrix44
+import dxfpy
+from dxfpy.math import UCS, Matrix44
 from pathlib import Path
 
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
-doc = ezdxf.new('R2010')
+doc = dxfpy.new('R2010')
 msp = doc.modelspace()
 
 # Using an UCS simplifies 3D operations, but UCS definition can happen later

@@ -6,16 +6,16 @@ from typing import Callable, Protocol, Sequence
 
 import pytest
 
-import ezdxf
-from ezdxf.audit import AuditError
-from ezdxf.document import Drawing
-from ezdxf.entities import DXFEntity, Field
-from ezdxf.entities.acad_table import (
+import dxfpy
+from dxfpy.audit import AuditError
+from dxfpy.document import Drawing
+from dxfpy.entities import DXFEntity, Field
+from dxfpy.entities.acad_table import (
     AcadTableBlockContent,
     AcadTableLinkedCellContent,
     TableContent,
 )
-from ezdxf.math import Vec2
+from dxfpy.math import Vec2
 
 
 class FieldHost(Protocol):
@@ -92,11 +92,11 @@ def assert_field_state_is_clean(doc: Drawing) -> None:
 def roundtrip(doc: Drawing) -> Drawing:
     stream = StringIO()
     doc.write(stream)
-    return ezdxf.read(StringIO(stream.getvalue()))
+    return dxfpy.read(StringIO(stream.getvalue()))
 
 
 def test_audit_prunes_invalid_field_list_handles() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     owner = doc.rootdict.dxf.handle
     field = doc.objects.add_field(owner=owner)
     field.set_acvar("Author", display="----")
@@ -134,7 +134,7 @@ def replace_with_expression_field(host: FieldHost, line: DXFEntity) -> None:
 
 
 def make_text_host() -> tuple[Drawing, FieldHost, DXFEntity]:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     host = msp.add_text("A", dxfattribs={"insert": (0, 0)})
@@ -143,7 +143,7 @@ def make_text_host() -> tuple[Drawing, FieldHost, DXFEntity]:
 
 
 def make_mtext_host() -> tuple[Drawing, FieldHost, DXFEntity]:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     host = msp.add_mtext("A", dxfattribs={"insert": (0, 0)})
@@ -152,7 +152,7 @@ def make_mtext_host() -> tuple[Drawing, FieldHost, DXFEntity]:
 
 
 def make_multileader_host() -> tuple[Drawing, FieldHost, DXFEntity]:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     builder = msp.add_multileader_mtext("Standard")
@@ -164,7 +164,7 @@ def make_multileader_host() -> tuple[Drawing, FieldHost, DXFEntity]:
 
 
 def make_attdef_host() -> tuple[Drawing, FieldHost, DXFEntity]:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     line = doc.modelspace().add_line((0, 0), (10, 0))
     block = doc.blocks.new("B")
     host = block.add_attdef("TAG", (0, 0), text="A")
@@ -173,7 +173,7 @@ def make_attdef_host() -> tuple[Drawing, FieldHost, DXFEntity]:
 
 
 def make_attrib_host() -> tuple[Drawing, FieldHost, DXFEntity]:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     block = doc.blocks.new("B")
@@ -185,7 +185,7 @@ def make_attrib_host() -> tuple[Drawing, FieldHost, DXFEntity]:
 
 
 def make_insert_attrib_helper_host() -> tuple[Drawing, FieldHost, DXFEntity]:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     block = doc.blocks.new("B")
@@ -316,7 +316,7 @@ def linked_cell_contents(
 
 
 def test_replacing_table_cell_field_keeps_field_state_clean() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     table = msp.add_table((0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]])
@@ -334,7 +334,7 @@ def test_replacing_table_cell_field_keeps_field_state_clean() -> None:
 
 
 def test_removing_table_cell_field_cleans_roundtrip_metadata() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     table = msp.add_table((0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]])
     table.new_cell_acvar_field(1, 1, "Author", text="----", register_field_list=True)
@@ -352,7 +352,7 @@ def test_removing_table_cell_field_cleans_roundtrip_metadata() -> None:
 
 
 def test_removed_table_cell_field_cleanup_survives_roundtrip() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table(
         (0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]]
     )
@@ -371,7 +371,7 @@ def test_removed_table_cell_field_cleanup_survives_roundtrip() -> None:
 
 
 def test_remove_cell_field_preserves_field_display_text() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table(
         (0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]]
     )
@@ -389,7 +389,7 @@ def test_remove_cell_field_preserves_field_display_text() -> None:
 
 
 def test_remove_cell_field_uses_explicit_static_text() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table(
         (0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]]
     )
@@ -407,7 +407,7 @@ def test_remove_cell_field_uses_explicit_static_text() -> None:
 
 
 def test_remove_cell_field_cleanup_survives_roundtrip() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table(
         (0, 0), [["FIELD", "VALUE"], ["AcVar", "----"]]
     )
@@ -426,7 +426,7 @@ def test_remove_cell_field_cleanup_survives_roundtrip() -> None:
 
 
 def test_remove_missing_cell_field_is_no_op() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table((0, 0), [["FIELD", "VALUE"]])
 
     cell = table.remove_cell_field(0, 1, text="IGNORED")

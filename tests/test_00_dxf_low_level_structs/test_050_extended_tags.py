@@ -4,10 +4,10 @@
 import pytest
 from io import StringIO
 
-from ezdxf.lldxf.tags import Tags, DXFTag
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf import DXFKeyError, DXFValueError
-from ezdxf.lldxf.tagwriter import TagWriter
+from dxfpy.lldxf.tags import Tags, DXFTag
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy import DXFKeyError, DXFValueError
+from dxfpy.lldxf.tagwriter import TagWriter
 
 
 @pytest.fixture

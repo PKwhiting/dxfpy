@@ -1,23 +1,23 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 import time
-import ezdxf
+import dxfpy
 
-CWD = ezdxf.options.test_files_path / "CADKitSamples"
+CWD = dxfpy.options.test_files_path / "CADKitSamples"
 _3D_MODEL = CWD / "fanuc-430-arm.dxf"
 _2D_PLAN = CWD / "AEC Plan Elev Sample.dxf"
 
 
 def load_3D_model():
-    import ezdxf
+    import dxfpy
 
-    ezdxf.readfile(filename=_3D_MODEL)
+    dxfpy.readfile(filename=_3D_MODEL)
 
 
 def iter_3D_model():
-    import ezdxf
+    import dxfpy
 
-    doc = ezdxf.readfile(filename=_3D_MODEL)
+    doc = dxfpy.readfile(filename=_3D_MODEL)
     msp = doc.modelspace()
     count = 0
     for e in msp:
@@ -28,7 +28,7 @@ def iter_3D_model():
 
 
 def single_pass_iter_3D_model():
-    from ezdxf.addons.iterdxf import single_pass_modelspace
+    from dxfpy.addons.iterdxf import single_pass_modelspace
 
     count = 0
     for e in single_pass_modelspace(open(_3D_MODEL, "rb")):
@@ -38,7 +38,7 @@ def single_pass_iter_3D_model():
 
 
 def from_disk_iter_3D_model():
-    from ezdxf.addons.iterdxf import opendxf
+    from dxfpy.addons.iterdxf import opendxf
 
     count = 0
     doc = opendxf(_3D_MODEL)
@@ -50,15 +50,15 @@ def from_disk_iter_3D_model():
 
 
 def load_2D_plan():
-    import ezdxf
+    import dxfpy
 
-    ezdxf.readfile(_2D_PLAN)
+    dxfpy.readfile(_2D_PLAN)
 
 
 def iter_2D_plan():
-    import ezdxf
+    import dxfpy
 
-    doc = ezdxf.readfile(_2D_PLAN)
+    doc = dxfpy.readfile(_2D_PLAN)
     msp = doc.modelspace()
     count = 0
     for e in msp:
@@ -83,10 +83,10 @@ def run(func):
 
 if __name__ == "__main__":
     print_result(
-        run(load_3D_model), 'ezdxf.readfile() - load "faunc-430-arm.dxf"'
+        run(load_3D_model), 'dxfpy.readfile() - load "faunc-430-arm.dxf"'
     )
     print_result(
-        run(iter_3D_model), 'ezdxf.readfile() - iteration "faunc-430-arm.dxf"'
+        run(iter_3D_model), 'dxfpy.readfile() - iteration "faunc-430-arm.dxf"'
     )
     print_result(
         run(single_pass_iter_3D_model),
@@ -97,8 +97,8 @@ if __name__ == "__main__":
         'iterdxf.opendxf() - seekable file iteration from disk "faunc-430-arm.dxf"',
     )
     print_result(
-        run(load_2D_plan), 'ezdxf.readfile() - load "AEC Plan Elev Sample.dxf"'
+        run(load_2D_plan), 'dxfpy.readfile() - load "AEC Plan Elev Sample.dxf"'
     )
     print_result(
-        run(iter_2D_plan), 'ezdxf.readfile() - iter "AEC Plan Elev Sample.dxf"'
+        run(iter_2D_plan), 'dxfpy.readfile() - iter "AEC Plan Elev Sample.dxf"'
     )

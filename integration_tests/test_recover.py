@@ -3,9 +3,9 @@
 import pytest
 import pathlib
 import random
-from ezdxf import recover
-from ezdxf.audit import AuditError
-from ezdxf.lldxf.tagger import tag_compiler, ascii_tags_loader
+from dxfpy import recover
+from dxfpy.audit import AuditError
+from dxfpy.lldxf.tagger import tag_compiler, ascii_tags_loader
 
 DATA = pathlib.Path(__file__).parent / "data"
 RECOVER1 = "recover01.dxf"

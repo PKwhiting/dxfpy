@@ -1,7 +1,7 @@
 # Copyright (c) 2011-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,12 +11,12 @@ if not CWD.exists():
 # This example shows how to create a BLOCK definition and a block reference
 # (INSERT entity).
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/blocks.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/blocks.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new("AC1009")
+    doc = dxfpy.new("AC1009")
 
     # Create a BLOCK definition:
     block = doc.blocks.new("TEST")

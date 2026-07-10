@@ -2,8 +2,8 @@
 # License: MIT License
 import pathlib
 
-import ezdxf
-from ezdxf.document import Drawing
+import dxfpy
+from dxfpy.document import Drawing
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,7 +12,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # Tiled window setup for modelspace in AutoCAD/BricsCAD.
 #
-# docs: https://ezdxf.mozman.at/docs/tables/vport_table_entry.html
+# docs: https://dxfpy.mozman.at/docs/tables/vport_table_entry.html
 # ------------------------------------------------------------------------------
 
 
@@ -78,7 +78,7 @@ def setup_active_viewport(doc: Drawing):
 
 
 def main(filename="tiled_windows_R2000.dxf"):
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     draw_raster(doc)
     setup_active_viewport(doc)
     doc.saveas(CWD / filename)

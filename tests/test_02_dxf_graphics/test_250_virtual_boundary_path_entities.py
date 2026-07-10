@@ -4,9 +4,9 @@ from typing import cast
 import pytest
 import math
 
-from ezdxf.explode import virtual_boundary_path_entities
-from ezdxf.entities import Spline
-from ezdxf.math import Vec3, Matrix44, OCSTransform
+from dxfpy.explode import virtual_boundary_path_entities
+from dxfpy.entities import Spline
+from dxfpy.math import Vec3, Matrix44, OCSTransform
 
 
 class TestVirtualEntitiesFromEdgePath:

@@ -4,10 +4,10 @@ from __future__ import annotations
 import pathlib
 import matplotlib.pyplot as plt
 
-import ezdxf
-from ezdxf.layouts import Modelspace
-from ezdxf.addons.drawing import RenderContext, Frontend
-from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
+import dxfpy
+from dxfpy.layouts import Modelspace
+from dxfpy.addons.drawing import RenderContext, Frontend
+from dxfpy.addons.drawing.matplotlib import MatplotlibBackend
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -45,7 +45,7 @@ def set_pixel_size(fig: plt.Figure, size: tuple[int, int]):
 
 def main():
     # create the DXF document
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.styles.add("Arial", font="arial.ttf")
     msp = doc.modelspace()
     draw_box(msp, 5, 3)

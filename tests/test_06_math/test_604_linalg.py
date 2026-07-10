@@ -3,12 +3,12 @@
 from typing import Iterable
 import pytest
 import math
-from ezdxf.math.linalg import (
+from dxfpy.math.linalg import (
     Matrix,
     tridiagonal_vector_solver,
     tridiagonal_matrix_solver,
 )
-from ezdxf.math.legacy import (
+from dxfpy.math.legacy import (
     gauss_matrix_solver,
     gauss_vector_solver,
     gauss_jordan_solver,
@@ -386,7 +386,7 @@ def test_LU_decomposition_inverse():
 
 
 def test_determinant():
-    from ezdxf.math import Matrix44
+    from dxfpy.math import Matrix44
 
     A = [
         [2, 3, 2, 5],

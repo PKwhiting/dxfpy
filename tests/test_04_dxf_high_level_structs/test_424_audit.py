@@ -1,14 +1,14 @@
 # Copyright (c) 2019-2024 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.audit import Auditor, AuditError, BlockCycleDetector
-from ezdxf.entities import factory, DXFTagStorage, Attrib
+import dxfpy
+from dxfpy.audit import Auditor, AuditError, BlockCycleDetector
+from dxfpy.entities import factory, DXFTagStorage, Attrib
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ def test_for_valid_layer_name(entity, auditor):
 
 
 def test_if_layer_linetype_exist():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("Layer0", linetype="DoesNotExist")
     auditor = doc.audit()
     assert len(auditor.fixes) == 1
@@ -93,7 +93,7 @@ def test_for_existing_text_style(TYPE, auditor, doc):
 
 
 def test_block_cycle_detector_setup():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     a = doc.blocks.new("a")
     b = doc.blocks.new("b")
     c = doc.blocks.new("c")
@@ -198,7 +198,7 @@ def test_fix_insert_scale(doc, auditor):
 
 def test_remove_invalid_entities_from_blocks():
     # The model space is just a BLOCK!
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     # hack hack hack!
     msp.entity_space.add(DXFTagStorage())
@@ -209,7 +209,7 @@ def test_remove_invalid_entities_from_blocks():
 
 def test_remove_standalone_attrib_entities_from_blocks():
     # The model space is just a BLOCK!
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     # Missing tag is a different issue!
     msp.add_entity(Attrib.new(dxfattribs={"tag": "test"}))
@@ -219,7 +219,7 @@ def test_remove_standalone_attrib_entities_from_blocks():
 
 
 def test_fix_invalid_transparency():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (1, 0))
     # transparency value requires 0x02000000 bit set
@@ -231,7 +231,7 @@ def test_fix_invalid_transparency():
 
 
 def test_fix_entities_with_invalid_owner_handle():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (1, 0))
 
@@ -249,7 +249,7 @@ def test_fix_entities_with_invalid_owner_handle():
 
 def test_destroyed_modelspace():
     """User destroyed modelspace layout?"""
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     # You can shoot yourself in the foot if you want:
     msp.block_record.destroy()
@@ -264,7 +264,7 @@ def test_destroyed_modelspace():
 
 def test_destroyed_active_paperspace():
     """User destroyed paperspace layouts?"""
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     # You can shoot yourself in the foot if you want:
     for block in doc.blocks:
         if block.is_any_paperspace:

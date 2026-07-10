@@ -2,13 +2,13 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.fonts.font_face import FontFace
-from ezdxf.addons import text2path
-from ezdxf.path import Path
-from ezdxf import path, bbox
-from ezdxf.entities import Text, Hatch
-from ezdxf.layouts import VirtualLayout
-from ezdxf.enums import TextEntityAlignment
+from dxfpy.fonts.font_face import FontFace
+from dxfpy.addons import text2path
+from dxfpy.path import Path
+from dxfpy import path, bbox
+from dxfpy.entities import Text, Hatch
+from dxfpy.layouts import VirtualLayout
+from dxfpy.enums import TextEntityAlignment
 
 # always available in common test scenarios:
 DEFAULT = "LiberationSans-Regular.ttf"

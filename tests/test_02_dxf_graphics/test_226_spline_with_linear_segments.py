@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.entities import Spline
-import ezdxf.path
+from dxfpy.entities import Spline
+import dxfpy.path
 
 
 def test_flatten_spline():
@@ -14,13 +14,13 @@ def test_flatten_spline():
 
 def test_make_path():
     spline = make_spline_with_linear_segments()
-    path = ezdxf.path.make_path(spline)
+    path = dxfpy.path.make_path(spline)
     assert len(path) == 22
     assert linear_segments(path) == 12
 
 
-def linear_segments(path: ezdxf.path.Path):
-    cmd = ezdxf.path.Command
+def linear_segments(path: dxfpy.path.Path):
+    cmd = dxfpy.path.Command
     return sum(1 for curve in path if curve.type == cmd.LINE_TO)
 
 

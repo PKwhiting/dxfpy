@@ -3,7 +3,7 @@
 
 import pytest
 
-from ezdxf.addons import MengerSponge
+from dxfpy.addons import MengerSponge
 
 
 @pytest.fixture(scope="module")

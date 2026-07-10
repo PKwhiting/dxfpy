@@ -6,7 +6,7 @@
 
 import pytest
 
-cyvec = pytest.importorskip("ezdxf.acc.vector")
+cyvec = pytest.importorskip("dxfpy.acc.vector")
 Vec3 = cyvec.Vec3
 
 

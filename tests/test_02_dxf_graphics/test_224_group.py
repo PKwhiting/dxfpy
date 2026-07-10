@@ -1,12 +1,12 @@
 # Copyright (c) 2015-2024, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module")
 def groups():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     return doc.groups
 
 
@@ -54,7 +54,7 @@ def test_delete_group_by_name(groups):
 
 
 def test_add_entities():
-    dwg = ezdxf.new("R2000")
+    dwg = dxfpy.new("R2000")
     group = dwg.groups.new()
     # the group itself is not an entity space, DXF entities has to be placed in model space, paper space
     # or in a block
@@ -81,7 +81,7 @@ def test_add_entities():
 
 
 def test_extend_group():
-    dwg = ezdxf.new("R2000")
+    dwg = dxfpy.new("R2000")
     group = dwg.groups.new()
     group_handle = group.dxf.handle
     # the group itself is not an entity space, DXF entities has to be placed in model space, paper space

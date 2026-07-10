@@ -4,10 +4,10 @@
 import pytest
 from xml.etree import ElementTree as ET
 
-from ezdxf.math import Vec2
-from ezdxf.npshapes import NumpyPoints2d
-from ezdxf.addons.drawing import svg, layout
-from ezdxf.addons.drawing.properties import BackendProperties
+from dxfpy.math import Vec2
+from dxfpy.npshapes import NumpyPoints2d
+from dxfpy.addons.drawing import svg, layout
+from dxfpy.addons.drawing.properties import BackendProperties
 
 
 class TestStyles:

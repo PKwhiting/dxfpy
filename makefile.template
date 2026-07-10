@@ -1,7 +1,7 @@
 # Copyright (c) 2020-2024, Manfred Moitzi
 # License: MIT License
 #
-# Makefile for inplace compiling and testing the ezdxf package with Cython extensions
+# Makefile for inplace compiling and testing the dxfpy package with Cython extensions
 # 
 # For Windows is an installation of MSYS or MinGW required and their "/bin"
 # folders have to be added to the PATH environment variable.
@@ -9,7 +9,7 @@
 # or use "make -f makefile.template <target>"
 # The generic "makefile" is not tracked by git.
 
-ACC = src/ezdxf/acc
+ACC = src/dxfpy/acc
 
 # For Windows:
 # PYTHON3 = py
@@ -50,7 +50,7 @@ build-pypy:
 test-pypy: build-pypy
 	$(PYPY) -m pytest tests integration_tests
 
-# assuming mypy and ezdxf is installed, ezdxf maybe in development mode:
+# assuming mypy and dxfpy is installed, dxfpy maybe in development mode:
 # > pip install -e .
 mypy:
-	mypy --ignore-missing-imports  -p ezdxf
+	mypy --ignore-missing-imports  -p dxfpy

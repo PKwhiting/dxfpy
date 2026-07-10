@@ -2,15 +2,15 @@
 # License: MIT License
 # Created 2019-02-13
 import pytest
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.entities import factory, DXFEntity
-from ezdxf.entities.xdict import ExtensionDict
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.entities import factory, DXFEntity
+from dxfpy.entities.xdict import ExtensionDict
 
 
 @pytest.fixture(scope="module")
 def doc() -> Drawing:
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 @pytest.fixture()
@@ -131,7 +131,7 @@ def test_multiple_destroy_calls(doc, entity):
 
 
 def test_link_dxf_object_to_extension_dict(doc):
-    from ezdxf.entities import DXFObject
+    from dxfpy.entities import DXFObject
 
     xdict = ExtensionDict.new("ABBA", doc)
     owner = xdict.handle

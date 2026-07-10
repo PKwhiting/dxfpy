@@ -4,22 +4,22 @@
 import pytest
 import copy
 import math
-from ezdxf.math import Vec3, Matrix44
-from ezdxf.lldxf.const import DXFValueError, DXFStructureError, DXFTypeError
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.types import dxftag, tuples_to_tags
-from ezdxf.lldxf.tags import (
+from dxfpy.math import Vec3, Matrix44
+from dxfpy.lldxf.const import DXFValueError, DXFStructureError, DXFTypeError
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.types import dxftag, tuples_to_tags
+from dxfpy.lldxf.tags import (
     Tags,
     find_begin_and_end_of_encoded_xdata_tags,
     NotFoundException,
 )
-from ezdxf.entities.xdata import (
+from dxfpy.entities.xdata import (
     XData,
     XDataUserDict,
     XDataUserList,
     transform_xdata_tags,
 )
-from ezdxf.lldxf.repair import filter_invalid_xdata_group_codes
+from dxfpy.lldxf.repair import filter_invalid_xdata_group_codes
 
 
 class TagWriter:

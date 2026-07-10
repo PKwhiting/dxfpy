@@ -1,7 +1,7 @@
-import ezdxf
+import dxfpy
 
 # hatch requires the DXF R2000 or later
-doc = ezdxf.new("R2000")
+doc = dxfpy.new("R2000")
 msp = doc.modelspace()
 
 # important: major axis >= minor axis (ratio <= 1.)

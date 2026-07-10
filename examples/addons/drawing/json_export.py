@@ -2,9 +2,9 @@
 # License: MIT License
 import pathlib
 
-import ezdxf
-from ezdxf.addons.drawing import Frontend, RenderContext
-from ezdxf.addons.drawing import json
+import dxfpy
+from dxfpy.addons.drawing import Frontend, RenderContext
+from dxfpy.addons.drawing import json
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,13 +14,13 @@ if not CWD.exists():
 # This example shows how to export the modelspace by the drawing add-on and the
 # GeoJSONBackend.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 
 def usa_geojson():
     filename = pathlib.Path(__file__).parent / "data" / "usa.dxf"
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     msp = doc.modelspace()
     backend = json.GeoJSONBackend()
     Frontend(RenderContext(doc), backend).draw_layout(msp)
@@ -30,7 +30,7 @@ def usa_geojson():
 
 def usa_custom_json():
     filename = pathlib.Path(__file__).parent / "data" / "usa.dxf"
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     msp = doc.modelspace()
     backend = json.CustomJSONBackend()
     Frontend(RenderContext(doc), backend).draw_layout(msp)

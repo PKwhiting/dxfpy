@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import Vec3
-from ezdxf.entities import (
+from dxfpy.math import Vec3
+from dxfpy.entities import (
     BoundaryPaths,
     BoundaryPathType,
     EdgeType,

@@ -3,10 +3,10 @@
 import pytest
 import math
 
-import ezdxf
-from ezdxf.entities.spline import Spline
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Vec3, Matrix44, required_knot_values
+import dxfpy
+from dxfpy.entities.spline import Spline
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Vec3, Matrix44, required_knot_values
 
 SPLINE = """0
 SPLINE
@@ -34,7 +34,7 @@ AcDbSpline
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "SPLINE" in ENTITY_CLASSES
 
@@ -300,7 +300,7 @@ def test_set_closed_rational(spline, points, weights):
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     return doc.modelspace()
 
 
@@ -343,7 +343,7 @@ def test_spline_transform_interface():
 
 
 def test_from_circle():
-    from ezdxf.entities import Circle
+    from dxfpy.entities import Circle
 
     spline = Spline.from_arc(
         Circle.new(
@@ -367,7 +367,7 @@ def test_from_circle():
 
 
 def test_from_arc():
-    from ezdxf.entities import Arc
+    from dxfpy.entities import Arc
 
     spline = Spline.from_arc(
         Arc.new(
@@ -391,7 +391,7 @@ def test_from_arc():
 
 
 def test_from_ellipse():
-    from ezdxf.entities import Ellipse
+    from dxfpy.entities import Ellipse
 
     spline = Spline.from_arc(
         Ellipse.new(
@@ -416,7 +416,7 @@ def test_from_ellipse():
 
 
 def test_from_line_with_type_error():
-    from ezdxf.entities import Line
+    from dxfpy.entities import Line
 
     with pytest.raises(TypeError):
         Spline.from_arc(Line.new())

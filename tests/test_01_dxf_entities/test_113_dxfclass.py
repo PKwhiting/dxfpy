@@ -2,10 +2,10 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities import DXFClass, is_dxf_object, is_graphic_entity
-from ezdxf.lldxf.const import DXF12, DXF2000, DXF2004
-from ezdxf.lldxf.tags import Tags
-from ezdxf.lldxf.tagwriter import TagCollector
+from dxfpy.entities import DXFClass, is_dxf_object, is_graphic_entity
+from dxfpy.lldxf.const import DXF12, DXF2000, DXF2004
+from dxfpy.lldxf.tags import Tags
+from dxfpy.lldxf.tagwriter import TagCollector
 
 HELIXCLS = """  0
 CLASS
@@ -32,7 +32,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "CLASS" in ENTITY_CLASSES
 

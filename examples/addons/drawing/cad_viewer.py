@@ -6,21 +6,21 @@ import logging
 import signal
 import sys
 
-from ezdxf.addons.xqt import QtWidgets as qw
+from dxfpy.addons.xqt import QtWidgets as qw
 
-import ezdxf
-from ezdxf import recover
-from ezdxf.addons.drawing.qtviewer import CADViewer
-from ezdxf.addons.drawing.config import Configuration
+import dxfpy
+from dxfpy import recover
+from dxfpy.addons.drawing.qtviewer import CADViewer
+from dxfpy.addons.drawing.config import Configuration
 
 # ------------------------------------------------------------------------------
 # IMPORTANT: This example is just a remaining skeleton, the implementation
-# details moved into module: ezdxf.addon.drawing.qtviewer
+# details moved into module: dxfpy.addon.drawing.qtviewer
 #
-# The CAD viewer can be executed by the new ezdxf command line launcher:
-# C:\> ezdxf view FILE
+# The CAD viewer can be executed by the new dxfpy command line launcher:
+# C:\> dxfpy view FILE
 #
-# # docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# # docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 
@@ -50,7 +50,7 @@ def _main():
         except IOError:
             print(f"Not a DXF file or a generic I/O error: {args.cad_file}")
             sys.exit(1)
-        except ezdxf.DXFStructureError:
+        except dxfpy.DXFStructureError:
             print(f"Invalid or corrupted DXF file: {args.cad_file}")
             sys.exit(2)
 
@@ -66,5 +66,5 @@ def _main():
 
 
 if __name__ == "__main__":
-    print(f"C-Extension: {ezdxf.options.use_c_ext}")
+    print(f"C-Extension: {dxfpy.options.use_c_ext}")
     _main()

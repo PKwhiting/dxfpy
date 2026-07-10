@@ -2,7 +2,7 @@
 # License: MIT License
 import pathlib
 import math
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,11 +11,11 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example adds an elliptic arc to the modelspace.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/ellipse.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/ellipse.html
 # ------------------------------------------------------------------------------
 
 # setup=True is required to get the DASHED linetype.
-doc = ezdxf.new("R2000", setup=True)
+doc = dxfpy.new("R2000", setup=True)
 modelspace = doc.modelspace()
 modelspace.add_ellipse(
     center=(0, 0),

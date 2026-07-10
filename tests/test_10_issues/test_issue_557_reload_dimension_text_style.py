@@ -2,8 +2,8 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.lldxf.tagwriter import TagCollector, Tags
+import dxfpy
+from dxfpy.lldxf.tagwriter import TagCollector, Tags
 
 TEXTSTYLE_NAME = "TextStyle"
 DIMSTYLE_NAME = "DimensionStyle"
@@ -12,7 +12,7 @@ FONT_NAME = "any_font.shx"
 
 @pytest.fixture
 def doc():
-    doc = ezdxf.new("R2010", setup=False)
+    doc = dxfpy.new("R2010", setup=False)
     doc.styles.new(TEXTSTYLE_NAME, dxfattribs={"font": FONT_NAME})
     doc.dimstyles.new(DIMSTYLE_NAME, dxfattribs={"dimtxsty": TEXTSTYLE_NAME})
     return doc
@@ -32,7 +32,7 @@ def test_reload_dimtxsty(doc, tmpdir):
     filename = tmpdir.join("dim_text_style.dxf")
     doc.saveas(filename)
     # reload file
-    doc2 = ezdxf.readfile(filename)
+    doc2 = dxfpy.readfile(filename)
 
     style = doc2.styles.get(TEXTSTYLE_NAME)
     assert style.dxf.font == FONT_NAME

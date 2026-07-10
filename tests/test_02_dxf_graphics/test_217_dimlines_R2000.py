@@ -1,19 +1,19 @@
 # Copyright (c) 2018-2021 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.entities.dimension import Dimension
-from ezdxf.protocols import SupportsVirtualEntities, query_virtual_entities
+import dxfpy
+from dxfpy.entities.dimension import Dimension
+from dxfpy.protocols import SupportsVirtualEntities, query_virtual_entities
 
 
 @pytest.fixture(scope="module")
 def dxf2000():
-    return ezdxf.new("R2000", setup="all")
+    return dxfpy.new("R2000", setup="all")
 
 
 @pytest.fixture(scope="module")
 def dxf2007():
-    return ezdxf.new("R2007", setup="all")
+    return dxfpy.new("R2007", setup="all")
 
 
 def test_dimstyle_standard_exist(dxf2000):
@@ -244,13 +244,13 @@ def test_dimstyle_override(dxf2000):
 
     assert dimstyle["invalid"] is None
     dimstyle.update({"invalid": 7})
-    # ezdxf 0.10 and later uses internally only resource names not handles for dim style attributes
+    # dxfpy 0.10 and later uses internally only resource names not handles for dim style attributes
     # unknown attributes are ignored
     dstyle_orig = dimstyle.get_dstyle_dict()
     assert len(dstyle_orig) == 0
 
     dimstyle.commit()
-    # ezdxf 0.10 and later uses internally only resource names not handles for dim style attributes
+    # dxfpy 0.10 and later uses internally only resource names not handles for dim style attributes
     dstyle = dimstyle.get_dstyle_dict()
 
     assert dstyle["dimexe"] == 0.777
@@ -280,7 +280,7 @@ def test_linetype_override_R2000(dxf2000):
     assert dimstyle["dimltex2"] == "DOTX2"
 
     dimstyle.commit()
-    # ezdxf 0.10 and later uses internally only resource names not handles for dim style attributes
+    # dxfpy 0.10 and later uses internally only resource names not handles for dim style attributes
     dstyle = dimstyle.get_dstyle_dict()
 
     # handle attributes not available, just stored transparent in XDATA
@@ -313,7 +313,7 @@ def test_linetype_override_R2007(dxf2007):
     assert dimstyle["dimltex2"] == "DOTX2"
 
     dimstyle.commit()
-    # ezdxf 0.10 and later uses internally only resource names not handles for dim style attributes
+    # dxfpy 0.10 and later uses internally only resource names not handles for dim style attributes
     dstyle = dimstyle.get_dstyle_dict()
 
     # handle attributes not available, just stored transparent in XDATA
@@ -328,7 +328,7 @@ def test_linetype_override_R2007(dxf2007):
 
 def test_dimstyle_override_arrows(dxf2000):
     msp = dxf2000.modelspace()
-    arrows = ezdxf.ARROWS
+    arrows = dxfpy.ARROWS
     blocks = dxf2000.blocks
 
     arrows.create_block(blocks, arrows.dot_blank)
@@ -359,7 +359,7 @@ def test_dimstyle_override_arrows(dxf2000):
     assert len(dstyle_orig) == 0
 
     dimstyle.commit()
-    # ezdxf 0.10 and later uses internally only resource names not handles for dim style attributes
+    # dxfpy 0.10 and later uses internally only resource names not handles for dim style attributes
     dstyle = dimstyle.get_dstyle_dict()
 
     # handle attributes not available, just stored transparent in XDATA
@@ -385,7 +385,7 @@ def test_dimstyle_override_arrows(dxf2000):
     assert dimstyle["dimldrblk"] == arrows.dot_small
 
     dimstyle.commit()
-    # ezdxf 0.10 and later uses internally only resource names not handles for dim style attributes
+    # dxfpy 0.10 and later uses internally only resource names not handles for dim style attributes
     dstyle = dimstyle.get_dstyle_dict()
     assert dstyle["dimblk"] == arrows.closed
     assert dstyle["dimblk1"] == arrows.dot_blank

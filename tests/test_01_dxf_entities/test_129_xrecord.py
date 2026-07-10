@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-from ezdxf.lldxf.types import DXFTag
-from ezdxf.entities.dxfobj import XRecord
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.lldxf.types import DXFTag
+from dxfpy.entities.dxfobj import XRecord
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 XRECORD = """  0
 XRECORD
@@ -25,7 +25,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "XRECORD" in ENTITY_CLASSES
 

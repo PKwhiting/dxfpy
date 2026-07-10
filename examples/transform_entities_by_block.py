@@ -2,7 +2,7 @@
 # License: MIT License
 import pathlib
 
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,12 +11,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to transform entities by putting them into an anonymous
 # BLOCK and INSERT them transformed. This was the only way to transform entities
-# by ezdxf before the general transformation support was added in version v0.14.
+# by dxfpy before the general transformation support was added in version v0.14.
 # ------------------------------------------------------------------------------
 
 
 def main(size=5):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     msp.add_polyline2d([(0, 0), (size, 0), (size, size), (0, size)], close=True)
     msp.add_circle((size / 2, size / 2), radius=size / 2)

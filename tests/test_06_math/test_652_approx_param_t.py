@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import (
+from dxfpy.math import (
     ApproxParamT,
     Bezier3P,
     Bezier4P,

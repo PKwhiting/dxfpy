@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 import math
-from ezdxf.math import Matrix44, Vec3, Z_AXIS, arc_angle_span_deg
-from ezdxf.math.transformtools import OCSTransform
+from dxfpy.math import Matrix44, Vec3, Z_AXIS, arc_angle_span_deg
+from dxfpy.math.transformtools import OCSTransform
 
 
 def test_transform_angle_without_ocs():

@@ -1,14 +1,14 @@
 # Copyright (c) 2022, Manfred Moitzi
 # License: MIT License
 
-import ezdxf
-from ezdxf.acis import api as acis
-from ezdxf.entities import Body
+import dxfpy
+from dxfpy.acis import api as acis
+from dxfpy.entities import Body
 
-doc = ezdxf.readfile("3dsolids.dxf")
+doc = dxfpy.readfile("3dsolids.dxf")
 msp = doc.modelspace()
 
-doc_out = ezdxf.new()
+doc_out = dxfpy.new()
 msp_out = doc_out.modelspace()
 
 for e in msp.query("3DSOLID"):

@@ -2,17 +2,17 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
+import dxfpy
 
 
 def test_simple_page_setup_is_not_supported_for_DXF_R12():
-    doc = ezdxf.new("R12")
-    with pytest.raises(ezdxf.DXFVersionError):
+    doc = dxfpy.new("R12")
+    with pytest.raises(dxfpy.DXFVersionError):
         doc.page_setup("Layout1")
 
 
 def test_reset_layout1_landscape():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     assert len(doc.layouts) == 2
     psp = doc.page_setup("Layout1", fmt="ISO A0")
     assert len(doc.layouts) == 2
@@ -21,13 +21,13 @@ def test_reset_layout1_landscape():
 
 
 def test_invalid_paper_format_returns_A3():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     with pytest.raises(ValueError):
         doc.page_setup("Layout1", fmt="INVALID")
 
 
 def test_reset_layout1_portrait():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     assert len(doc.layouts) == 2
     psp = doc.page_setup("Layout1", fmt="ISO A0", landscape=False)
     assert len(doc.layouts) == 2
@@ -36,7 +36,7 @@ def test_reset_layout1_portrait():
 
 
 def test_resetting_layout1_creates_a_new_main_viewport():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     psp = doc.paperspace("Layout1")
     assert len(psp) == 0  # no main viewport exist, not required
     psp = doc.page_setup("Layout1", fmt="ISO A0")
@@ -44,7 +44,7 @@ def test_resetting_layout1_creates_a_new_main_viewport():
 
 
 def test_resetting_layout1_does_not_delete_entities():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     psp = doc.paperspace("Layout1")
     psp.add_point((0, 0))
     assert len(psp) == 1
@@ -53,7 +53,7 @@ def test_resetting_layout1_does_not_delete_entities():
 
 
 def test_new_layout2():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     assert len(doc.layouts) == 2
     psp = doc.page_setup("Layout2", fmt="ISO A0")
     assert len(doc.layouts) == 3

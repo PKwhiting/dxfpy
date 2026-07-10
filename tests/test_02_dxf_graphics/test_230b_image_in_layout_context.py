@@ -3,15 +3,15 @@
 import pytest
 import logging
 
-import ezdxf
-from ezdxf.entities.image import ImageDef, Image
+import dxfpy
+from dxfpy.entities.image import ImageDef, Image
 
-logger = logging.getLogger("ezdxf")
+logger = logging.getLogger("dxfpy")
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 @pytest.fixture(scope="module")
@@ -20,7 +20,7 @@ def image_def(doc):
 
 
 def test_set_raster_variables():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     assert "ACAD_IMAGE_VARS" not in doc.rootdict
     doc.set_raster_variables(frame=0, quality=1, units="m")
     raster_vars = doc.rootdict["ACAD_IMAGE_VARS"]
@@ -150,9 +150,9 @@ def test_exception_while_fixing_image_def_reactor(doc):
     # ------------------------
     # An exception occurred while executing fixing command for IMAGE(#30), destroying entity.
     # Traceback (most recent call last):
-    #   File "D:\Source\ezdxf.git\src\ezdxf\entities\image.py", line 173, in _fix_missing_image_def_reactor
+    #   File "D:\Source\dxfpy.git\src\dxfpy\entities\image.py", line 173, in _fix_missing_image_def_reactor
     #     self._create_image_def_reactor()
-    #   File "D:\Source\ezdxf.git\src\ezdxf\entities\image.py", line 186, in _create_image_def_reactor
+    #   File "D:\Source\dxfpy.git\src\dxfpy\entities\image.py", line 186, in _create_image_def_reactor
     #     image_def_reactor = self.doc.objects.add_image_def_reactor(
     # AttributeError: 'NoneType' object has no attribute 'objects'
 
@@ -173,7 +173,7 @@ def test_post_load_hook_destroys_image_without_valid_image_def(doc):
 
 @pytest.fixture
 def new_doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 def test_new_image_def(new_doc):

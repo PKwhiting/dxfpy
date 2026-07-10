@@ -1,7 +1,7 @@
 # Copyright (c) 2019-2020, Manfred Moitzi
 # License: MIT License
 import math
-from ezdxf.math import ConstructionBox, ConstructionLine
+from dxfpy.math import ConstructionBox, ConstructionLine
 
 
 class TestTextBox:

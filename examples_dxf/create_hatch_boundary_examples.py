@@ -1,10 +1,10 @@
 #  Copyright (c) 2020, Manfred Moitzi
 #  License: MIT License
 from typing import List
-import ezdxf
-from ezdxf.math import Shape2d
-from ezdxf.render.forms import square
-from ezdxf.lldxf import const
+import dxfpy
+from dxfpy.math import Shape2d
+from dxfpy.render.forms import square
+from dxfpy.lldxf import const
 
 DX = 11
 SIZE = 10
@@ -179,7 +179,7 @@ def add_hatch_boundaries_nested(msp, offset):
 
 
 if __name__ == "__main__":
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     add_hatch_boundaries_nested(doc.modelspace(), offset=(0, 0))
     add_hatch_boundaries_adjacent(doc.modelspace(), offset=(0, 11))
     add_hatch_boundaries_overlapping(doc.modelspace(), offset=(0, 22))

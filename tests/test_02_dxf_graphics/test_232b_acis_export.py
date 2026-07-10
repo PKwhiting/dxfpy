@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.acis import (
+from dxfpy.entities.acis import (
     Body,
     Solid3d,
     Region,
@@ -12,10 +12,10 @@ from ezdxf.entities.acis import (
     RevolvedSurface,
     SweptSurface,
 )
-from ezdxf.entities import DXFEntity
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.lldxf.tags import Tags
-from ezdxf.lldxf.const import DXF2010
+from dxfpy.entities import DXFEntity
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.lldxf.tags import Tags
+from dxfpy.lldxf.const import DXF2010
 
 BODY = """0
 BODY
@@ -55,7 +55,7 @@ def special_export(entity: DXFEntity, dxfversion=DXF2010):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "BODY" in ENTITY_CLASSES
     assert "3DSOLID" in ENTITY_CLASSES

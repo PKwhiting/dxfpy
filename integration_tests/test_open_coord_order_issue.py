@@ -2,8 +2,8 @@
 #  License: MIT License
 import os
 import pytest
-import ezdxf
-from ezdxf import recover
+import dxfpy
+from dxfpy import recover
 
 BASEDIR = os.path.dirname(__file__)
 DATADIR = "data"
@@ -20,7 +20,7 @@ def filename(request):
 def test_coordinate_order_problem(filename):
     try:
         doc, auditor = recover.readfile(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(str(e))
     else:
         msp = doc.modelspace()

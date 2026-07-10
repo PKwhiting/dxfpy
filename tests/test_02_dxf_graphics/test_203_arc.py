@@ -3,11 +3,11 @@
 import pytest
 import math
 
-from ezdxf.math import Vec3, Matrix44, arc_angle_span_deg
-from ezdxf.entities.arc import Arc
-from ezdxf.lldxf.const import DXF12, DXF2000
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.path import make_path
+from dxfpy.math import Vec3, Matrix44, arc_angle_span_deg
+from dxfpy.entities.arc import Arc
+from dxfpy.lldxf.const import DXF12, DXF2000
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.path import make_path
 
 TEST_CLASS = Arc
 TEST_TYPE = "ARC"
@@ -67,7 +67,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert TEST_TYPE in ENTITY_CLASSES
 

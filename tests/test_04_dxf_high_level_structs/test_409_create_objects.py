@@ -1,7 +1,7 @@
 # Copyright (c) 2016-2017, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 _OBJECT_TABLE_NAMES = [
     "ACAD_COLOR",
@@ -20,7 +20,7 @@ _OBJECT_TABLE_NAMES = [
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 def test_setup_rootdict(doc):

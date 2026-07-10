@@ -2,25 +2,25 @@
 # License: MIT License
 import pytest
 from copy import deepcopy
-from ezdxf.math import Vec3
-from ezdxf.entities.dxfentity import (
+from dxfpy.math import Vec3
+from dxfpy.entities.dxfentity import (
     base_class,
     DXFAttributes,
     DXFNamespace,
     SubclassProcessor,
 )
-from ezdxf.lldxf.attributes import (
+from dxfpy.lldxf.attributes import (
     group_code_mapping,
     DefSubclass,
     DXFAttr,
     XType,
 )
-from ezdxf.entities.dxfgfx import acdb_entity
-from ezdxf.entities.line import acdb_line
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.const import DXFAttributeError
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.lldxf.tags import Tags, DXFTag
+from dxfpy.entities.dxfgfx import acdb_entity
+from dxfpy.entities.line import acdb_line
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.const import DXFAttributeError
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.lldxf.tags import Tags, DXFTag
 
 
 class DXFEntity:
@@ -130,7 +130,7 @@ def test_is_supported(entity, processor):
     assert attribs.is_supported("linetype") is True
     assert (
         attribs.is_supported("true_color") is True
-    )  # ezdxf does not care about DXF versions at runtime
+    )  # dxfpy does not care about DXF versions at runtime
     assert attribs.is_supported("xxx_mozman_xxx") is False
 
 

@@ -1,7 +1,7 @@
 # Copyright (c) 2018 Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.tools.indexing import Index
+from dxfpy.tools.indexing import Index
 
 
 def test_item_index():

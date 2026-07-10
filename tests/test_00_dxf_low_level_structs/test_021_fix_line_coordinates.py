@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 
-from ezdxf.lldxf.tagger import ascii_tags_loader
-from ezdxf.lldxf.repair import fix_coordinate_order, tag_reorder_layer
+from dxfpy.lldxf.tagger import ascii_tags_loader
+from dxfpy.lldxf.repair import fix_coordinate_order, tag_reorder_layer
 from io import StringIO
 
 

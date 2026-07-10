@@ -3,8 +3,8 @@
 import pytest
 from pathlib import Path
 
-import ezdxf
-from ezdxf.addons import odafc
+import dxfpy
+from dxfpy.addons import odafc
 
 NO_ODAFC = "ODA File Converter not installed or not found."
 
@@ -50,7 +50,7 @@ class Test_Convert_ODAFC_Not_Required:
 
 
 def dxf_r12(name):
-    doc = ezdxf.new(dxfversion="R12")
+    doc = dxfpy.new(dxfversion="R12")
     doc.modelspace().add_circle((0, 0), radius=1)
     doc.saveas(name)
     return name
@@ -74,7 +74,7 @@ class Test_Convert_ODAFC_Required:
         r12 = dxf_r12(tmp_path / "r12.dxf")
         dest = tmp_path / "r2013.dxf"
         odafc.convert(r12, dest, version="R2013")
-        doc = ezdxf.readfile(dest)
+        doc = dxfpy.readfile(dest)
         assert doc.acad_release == "R2013"
 
 
@@ -83,7 +83,7 @@ class Test_Convert_ODAFC_Required:
 class Test_Export_And_Load_DWG:
     @pytest.fixture
     def doc(self):
-        dxf = ezdxf.new(dxfversion="R12")
+        dxf = dxfpy.new(dxfversion="R12")
         dxf.modelspace().add_circle((0, 0), radius=1)
         return dxf
 

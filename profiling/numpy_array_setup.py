@@ -2,10 +2,10 @@
 # License: MIT License
 import time
 import numpy as np
-from ezdxf.math import Vec2
-from ezdxf.render.forms import circle
-from ezdxf import path
-from ezdxf.npshapes import NumpyPath2d
+from dxfpy.math import Vec2
+from dxfpy.render.forms import circle
+from dxfpy import path
+from dxfpy.npshapes import NumpyPath2d
 VEC2_LIST = Vec2.list(circle(512, 10, close=True))
 TUPLE_LIST = list(tuple(v) for v in VEC2_LIST)
 PATH = path.from_vertices(VEC2_LIST)

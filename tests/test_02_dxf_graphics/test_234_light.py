@@ -1,9 +1,9 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.entities.light import Light
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+import dxfpy
+from dxfpy.entities.light import Light
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 LIGHT = """0
 LIGHT
@@ -46,7 +46,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "LIGHT" in ENTITY_CLASSES
 
@@ -93,7 +93,7 @@ def test_write_dxf():
 
 
 def test_add_light():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     light = msp.new_entity("LIGHT", {"name": "Licht"})
     assert light.dxftype() == "LIGHT"

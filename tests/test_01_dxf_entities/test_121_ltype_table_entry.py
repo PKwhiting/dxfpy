@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.ltype import Linetype, compile_line_pattern
+from dxfpy.entities.ltype import Linetype, compile_line_pattern
 
 
 @pytest.fixture

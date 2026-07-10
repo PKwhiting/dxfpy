@@ -3,10 +3,10 @@
 
 import pytest
 
-from ezdxf.npshapes import NumpyPoints2d, NumpyPath2d, NumpyPoints3d
-from ezdxf.math import Matrix44, BoundingBox2d, close_vectors, Vec2, Vec3
-from ezdxf.path import Command, from_vertices, Path
-from ezdxf.render import forms
+from dxfpy.npshapes import NumpyPoints2d, NumpyPath2d, NumpyPoints3d
+from dxfpy.math import Matrix44, BoundingBox2d, close_vectors, Vec2, Vec3
+from dxfpy.path import Command, from_vertices, Path
+from dxfpy.render import forms
 
 
 class TestNumpyPoints2d:
@@ -486,7 +486,7 @@ class TestReversePath:
         assert p2.reverse().has_clockwise_orientation() is False
 
     def test_cw_and_ccw_orientation(self, p1):
-        from ezdxf.math import has_clockwise_orientation
+        from dxfpy.math import has_clockwise_orientation
 
         p2 = NumpyPath2d(p1)
         assert has_clockwise_orientation(p2.clockwise().control_vertices()) is True

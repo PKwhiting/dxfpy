@@ -2,12 +2,12 @@
 #  License: MIT License
 import pytest
 import os
-import ezdxf
-from ezdxf.audit import AuditError
+import dxfpy
+from dxfpy.audit import AuditError
 
 
 def test_find_orphaned_layouts():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     # Construct an orphaned LAYOUT entity:
     # Use proper owner, else we get audit error: INVALID_OWNER_HANDLE
     owner = doc.rootdict["ACAD_LAYOUT"].dxf.handle
@@ -22,7 +22,7 @@ def test_find_orphaned_layouts():
 
 
 def test_find_orphaned_block_record():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     # Construct an orphaned paperspace layout BLOCK_RECORD:
     doc.blocks.new("*Paper_Space99")
     auditor = doc.audit()
@@ -40,7 +40,7 @@ def MODEL_path() -> str:
 
 
 def test_load_MODEL(MODEL_path):
-    doc = ezdxf.readfile(MODEL_path)
+    doc = dxfpy.readfile(MODEL_path)
     msp = doc.modelspace()
     assert msp.dxf.name == "MODEL", "Keep original uppercase name."
     assert "MODEL" in doc.rootdict["ACAD_LAYOUT"]

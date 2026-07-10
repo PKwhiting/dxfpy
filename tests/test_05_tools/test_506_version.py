@@ -1,7 +1,7 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 
-from ezdxf.version import __version__, version
+from dxfpy.version import __version__, version
 
 
 def test_version():

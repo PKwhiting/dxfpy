@@ -1,6 +1,6 @@
 # Copyright (c) 2018-2019 Manfred Moitzi
 # License: MIT License
-from ezdxf.lldxf.types import DXFVertex
+from dxfpy.lldxf.types import DXFVertex
 
 
 def test_init():

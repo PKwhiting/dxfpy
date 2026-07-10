@@ -2,12 +2,12 @@
 # Copyright (C) 2011-2019, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_duplicate_simple_entity(doc):
@@ -22,7 +22,7 @@ def test_duplicate_simple_entity(doc):
     assert new_circle.dxf.layer == "test"
     assert new_circle.dxf.color == 4
     assert new_circle.dxf.owner is None  # undefined owner/layout
-    with pytest.raises(ezdxf.DXFKeyError):
+    with pytest.raises(dxfpy.DXFKeyError):
         doc.layouts.get_layout_for_entity(new_circle)
 
 

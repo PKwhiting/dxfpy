@@ -1,15 +1,15 @@
 import pathlib
-import ezdxf
-from ezdxf.upright import upright
+import dxfpy
+from dxfpy.upright import upright
 
-from ezdxf.math import Matrix44
+from dxfpy.math import Matrix44
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
 
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 arc = msp.add_arc(
@@ -17,11 +17,11 @@ arc = msp.add_arc(
     radius=5,
     start_angle=-90,
     end_angle=90,
-    dxfattribs={"color": ezdxf.const.RED},
+    dxfattribs={"color": dxfpy.const.RED},
 )
 # draw lines to the start- and end point of the ARC
-msp.add_line((0, 0), arc.start_point, dxfattribs={"color": ezdxf.const.GREEN})
-msp.add_line((0, 0), arc.end_point, dxfattribs={"color": ezdxf.const.BLUE})
+msp.add_line((0, 0), arc.start_point, dxfattribs={"color": dxfpy.const.GREEN})
+msp.add_line((0, 0), arc.end_point, dxfattribs={"color": dxfpy.const.BLUE})
 
 # copy arc
 mirrored_arc = arc.copy()
@@ -45,8 +45,8 @@ assert mirrored_arc.start_point.isclose(end_point_inv)
 assert mirrored_arc.end_point.isclose(start_point_inv)
 
 # draw lines to the start- and end point of the mirrored ARC
-msp.add_line((0, 0), mirrored_arc.start_point, dxfattribs={"color": ezdxf.const.GREEN})
-msp.add_line((0, 0), mirrored_arc.end_point, dxfattribs={"color": ezdxf.const.BLUE})
+msp.add_line((0, 0), mirrored_arc.start_point, dxfattribs={"color": dxfpy.const.GREEN})
+msp.add_line((0, 0), mirrored_arc.end_point, dxfattribs={"color": dxfpy.const.BLUE})
 
 
 doc.set_modelspace_vport(15)

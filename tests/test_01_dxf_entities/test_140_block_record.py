@@ -2,13 +2,13 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf.audit import Auditor
+import dxfpy
+from dxfpy.audit import Auditor
 
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_duplicate_handle_loading_error(doc):

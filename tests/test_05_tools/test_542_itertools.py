@@ -3,7 +3,7 @@
 # pylint: disable=all
 import pytest
 
-from ezdxf.tools import take2, pairwise
+from dxfpy.tools import take2, pairwise
 
 
 class TestTake2:

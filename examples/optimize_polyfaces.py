@@ -4,11 +4,11 @@ import typing
 import time
 import pathlib
 
-import ezdxf
-from ezdxf.entities import Polyface
-from ezdxf.render import MeshVertexMerger
+import dxfpy
+from dxfpy.entities import Polyface
+from dxfpy.render import MeshVertexMerger
 
-SRCDIR = pathlib.Path(ezdxf.EZDXF_TEST_FILES) / "CADKitSamples"
+SRCDIR = pathlib.Path(dxfpy.DXFPY_TEST_FILES) / "CADKitSamples"
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
@@ -17,8 +17,8 @@ if not CWD.exists():
 # optimize vertices of POLYFACE entities (merge coincident vertices)
 #
 # DXF entity docs:
-# POLYFACE: https://ezdxf.mozman.at/docs/dxfentities/polyline.html#polyface
-# MESH: https://ezdxf.mozman.at/docs/dxfentities/mesh.html
+# POLYFACE: https://dxfpy.mozman.at/docs/dxfentities/polyline.html#polyface
+# MESH: https://dxfpy.mozman.at/docs/dxfentities/mesh.html
 # ------------------------------------------------------------------------------
 
 
@@ -44,7 +44,7 @@ def optimize(name: str):
     new_filename = CWD / f"optimized_{name}"
     print(f"opening DXF file: {filename}")
     start_time = time.time()
-    doc = ezdxf.readfile(filename)
+    doc = dxfpy.readfile(filename)
     msp = doc.modelspace()
     end_time = time.time()
     print(f"time for reading: {end_time - start_time:.1f} seconds")
@@ -69,7 +69,7 @@ def save_as(name: str):
 
     print(f"opening DXF file: {filepath}")
     start_time = time.time()
-    doc = ezdxf.readfile(filepath)
+    doc = dxfpy.readfile(filepath)
     msp = doc.modelspace()
     end_time = time.time()
     print(f"time for reading: {end_time - start_time:.1f} seconds")
@@ -82,9 +82,9 @@ def save_as(name: str):
     )
 
     # create a new documents
-    doc1 = ezdxf.new()
+    doc1 = dxfpy.new()
     msp1 = doc1.modelspace()
-    doc2 = ezdxf.new()
+    doc2 = dxfpy.new()
     msp2 = doc2.modelspace()
     for polyface in polyfaces:
         b = MeshVertexMerger.from_polyface(polyface)

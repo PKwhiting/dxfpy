@@ -1,14 +1,14 @@
 # Copyright (c) 2011-2021, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
+import dxfpy
 from io import StringIO
-from ezdxf.lldxf.const import DXF12, DXF2000, DXF2018, DXF2013, DXF2007, DXF2010
-from ezdxf.lldxf.tags import Tags
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.sections.header import HeaderSection, restore_raw_header_vars
-from ezdxf.lldxf.validator import header_validator
-from ezdxf.sections.headervars import version_specific_group_code
+from dxfpy.lldxf.const import DXF12, DXF2000, DXF2018, DXF2013, DXF2007, DXF2010
+from dxfpy.lldxf.tags import Tags
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.sections.header import HeaderSection, restore_raw_header_vars
+from dxfpy.lldxf.validator import header_validator
+from dxfpy.sections.headervars import version_specific_group_code
 
 INVALID_HEADER_STRUCTURE = """   9
 $ACADVER
@@ -50,7 +50,7 @@ EOF
 
 
 def test_new_drawing():
-    dwg = ezdxf.new("AC1009")
+    dwg = dxfpy.new("AC1009")
     assert "AC1009" == dwg.dxfversion
 
 
@@ -62,13 +62,13 @@ def test_valid_header():
 
 def test_invalid_header_structure():
     tags = Tags.from_text(INVALID_HEADER_STRUCTURE)
-    with pytest.raises(ezdxf.DXFStructureError):
+    with pytest.raises(dxfpy.DXFStructureError):
         list(header_validator(tags))
 
 
 def test_invalid_header_var_name():
     tags = Tags.from_text(INVALID_HEADER_VAR_NAME)
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         list(header_validator(tags))
 
 
@@ -91,7 +91,7 @@ def test_get_insbase(header):
 
 
 def test_getitem_keyerror(header):
-    with pytest.raises(ezdxf.DXFKeyError):
+    with pytest.raises(dxfpy.DXFKeyError):
         var = header["$TEST"]
 
 
@@ -111,7 +111,7 @@ def test_set_existing_point(header):
 
 
 def test_set_unknown_var(header):
-    with pytest.raises(ezdxf.DXFKeyError):
+    with pytest.raises(dxfpy.DXFKeyError):
         header["$TEST"] = "test"
 
 
@@ -126,7 +126,7 @@ def test_create_var_wrong_args_2d(header):
 
 
 def test_create_var_wrong_args_3d(header):
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         header["$PUCSORG"] = (10, 20)
 
 
@@ -149,7 +149,7 @@ def test_str_point(header):
 
 
 def test_new_dxf12():
-    header = HeaderSection.new(ezdxf.const.DXF12)
+    header = HeaderSection.new(dxfpy.const.DXF12)
     assert header["$ACADVER"] == DXF12
 
 

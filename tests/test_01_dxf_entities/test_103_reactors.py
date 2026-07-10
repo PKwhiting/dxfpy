@@ -3,13 +3,13 @@
 # Created 2019-02-13
 import pytest
 
-from ezdxf.entities.appdata import Reactors
-from ezdxf.lldxf.const import (
+from dxfpy.entities.appdata import Reactors
+from dxfpy.lldxf.const import (
     REACTOR_HANDLE_CODE,
     ACAD_REACTORS,
     APP_DATA_MARKER,
 )
-from ezdxf.lldxf.tags import Tags
+from dxfpy.lldxf.tags import Tags
 
 
 class TagWriter:

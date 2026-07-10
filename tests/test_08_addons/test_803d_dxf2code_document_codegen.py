@@ -1,11 +1,11 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 
-import ezdxf
-from ezdxf.addons.dxf2code import document_to_code_file
-from ezdxf.dynblkhelper import restore_raw_entity_export, snapshot_raw_entity_export, snapshot_raw_extension_subtree
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.math import Vec2
+import dxfpy
+from dxfpy.addons.dxf2code import document_to_code_file
+from dxfpy.dynblkhelper import restore_raw_entity_export, snapshot_raw_entity_export, snapshot_raw_extension_subtree
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.math import Vec2
 
 from tests.test_08_addons.dxf2code_support import (
     assert_clean_replay,
@@ -17,7 +17,7 @@ from tests.test_08_addons.dxf2code_support import (
 
 
 def test_insert_xdata_replay_preserves_nonhandle_payload():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     block = source_doc.blocks.new("XDATA_BLOCK")
     block.add_line((0, 0), (1, 0))
     insert = source_doc.modelspace().add_blockref(block.name, (0, 0))
@@ -39,7 +39,7 @@ def test_insert_xdata_replay_preserves_nonhandle_payload():
 
 
 def test_header_material_handle_replay_maps_by_material_name():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     material = source_doc.materials.get("ByLayer")
     source_doc.header["$CMATERIAL"] = material.dxf.handle
 
@@ -49,7 +49,7 @@ def test_header_material_handle_replay_maps_by_material_name():
 
 
 def test_layer_material_handle_replay_maps_by_material_name():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.layers.new("MATERIAL_LAYER")
 
     new_doc = replay_doc_to_new_doc(source_doc)
@@ -60,7 +60,7 @@ def test_layer_material_handle_replay_maps_by_material_name():
 
 
 def test_dxf2code_replay_comparison_reports_clean_basic_replay():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_doc.modelspace().add_line((0, 0), (1, 0))
 
     new_doc = replay_doc_to_new_doc(source_doc)
@@ -70,7 +70,7 @@ def test_dxf2code_replay_comparison_reports_clean_basic_replay():
 
 
 def test_document_to_code_file_maps_header_interfere_visualstyle_handles(tmp_path):
-    source_doc = ezdxf.readfile(
+    source_doc = dxfpy.readfile(
         "tests/test_08_addons/autocad_nested_working_minimal_v1_edited.dxf"
     )
     visualstyle_dict = source_doc.rootdict.get("ACAD_VISUALSTYLE")
@@ -88,7 +88,7 @@ def test_document_to_code_file_maps_header_interfere_visualstyle_handles(tmp_pat
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    new_doc = ezdxf.readfile(output_path)
+    new_doc = dxfpy.readfile(output_path)
 
     replayed_visualstyle_dict = new_doc.rootdict.get("ACAD_VISUALSTYLE")
     assert replayed_visualstyle_dict is not None
@@ -97,7 +97,7 @@ def test_document_to_code_file_maps_header_interfere_visualstyle_handles(tmp_pat
 
 
 def test_layer_extension_subtree_replay_remaps_external_handles():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     ref_layer = source_doc.layers.new("U-MISC")
     annotated_layer = source_doc.layers.new("U-MISC @ 1")
     material = source_doc.materials.get("Global")
@@ -124,9 +124,9 @@ def test_layer_extension_subtree_replay_remaps_external_handles():
 
 
 def test_document_to_code_file_remaps_layer_annotation_xrecord_handles(tmp_path):
-    from ezdxf.dynblkhelper import _default_annotation_scale_handle
+    from dxfpy.dynblkhelper import _default_annotation_scale_handle
 
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     base_layer = source_doc.layers.new("BASE_ANNO")
     annotated_layer = source_doc.layers.new("BASE_ANNO @ 1")
     assert source_doc.entitydb.reset_handle(base_layer, "ABC") is True
@@ -151,7 +151,7 @@ def test_document_to_code_file_remaps_layer_annotation_xrecord_handles(tmp_path)
 
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_layer = out_doc.layers.get(annotated_layer.dxf.name)
     out_xdict = out_layer.get_extension_dict().dictionary
     out_xrecord = out_xdict.get("ASDK_XREC_ANNO_SCALE_INFO")
@@ -162,7 +162,7 @@ def test_document_to_code_file_remaps_layer_annotation_xrecord_handles(tmp_path)
 
 
 def test_document_to_code_file_advances_handseed_after_raw_handle_restore(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     layer = source_doc.layers.new("HIGH_HANDLE_LAYER")
     xdict = layer.new_extension_dict().dictionary
     xrecord = xdict.add_xrecord("HIGH_HANDLE_XRECORD")
@@ -191,7 +191,7 @@ def test_document_to_code_file_advances_handseed_after_raw_handle_restore(tmp_pa
 
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     max_handle = max(int(str(handle), 16) for handle in out_doc.entitydb.keys())
     handseed = int(out_doc.header["$HANDSEED"], 16)
 
@@ -199,9 +199,9 @@ def test_document_to_code_file_advances_handseed_after_raw_handle_restore(tmp_pa
 
 
 def test_sync_handseed_scans_attached_insert_seqend_handles():
-    from ezdxf.dynblkhelper import sync_handseed
+    from dxfpy.dynblkhelper import sync_handseed
 
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("ATTRIB_BLOCK")
     block.add_attdef("TAG", insert=(0, 0))
     insert = doc.modelspace().add_blockref(block.name, (0, 0))
@@ -216,9 +216,9 @@ def test_sync_handseed_scans_attached_insert_seqend_handles():
 
 
 def test_ensure_insert_seqends_materializes_missing_seqend():
-    from ezdxf.dynblkhelper import ensure_insert_seqends
+    from dxfpy.dynblkhelper import ensure_insert_seqends
 
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("ATTRIB_BLOCK")
     block.add_attdef("TAG", insert=(0, 0))
     insert = doc.modelspace().add_blockref(block.name, (0, 0))
@@ -236,7 +236,7 @@ def test_ensure_insert_seqends_materializes_missing_seqend():
 
 
 def test_dimstyle_raw_replay_aligns_runtime_handle_with_raw_export_handle():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     dimstyle = source_doc.dimstyles.new("RAW_HANDLE_STYLE")
 
     assert source_doc.entitydb.reset_handle(dimstyle, "1FE") is True
@@ -250,12 +250,12 @@ def test_dimstyle_raw_replay_aligns_runtime_handle_with_raw_export_handle():
 
 
 def test_restore_raw_dimstyle_export_remaps_handle_105_on_collision():
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_dimstyle = source_doc.dimstyles.new("RAW_HANDLE_STYLE")
     assert source_doc.entitydb.reset_handle(source_dimstyle, "1FE") is True
     snapshot = snapshot_raw_entity_export(source_dimstyle)
 
-    target_doc = ezdxf.new("R2018")
+    target_doc = dxfpy.new("R2018")
     blocker = target_doc.modelspace().add_circle((0, 0), 1)
     assert target_doc.entitydb.reset_handle(blocker, "1FE") is True
     target_dimstyle = target_doc.dimstyles.new("RAW_HANDLE_STYLE")
@@ -268,7 +268,7 @@ def test_restore_raw_dimstyle_export_remaps_handle_105_on_collision():
 
 
 def test_restore_raw_attrib_export_updates_existing_extension_dict_owner_after_handle_reset():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_block = source_doc.blocks.new("ATTRIB_HANDLE_BLOCK")
     source_insert = source_block.add_blockref("TARGET", (0, 0))
     source_attrib = source_insert.add_attrib("TAG", "TEXT", insert=(1, 2))
@@ -279,7 +279,7 @@ def test_restore_raw_attrib_export_updates_existing_extension_dict_owner_after_h
     source_insert.take_ownership()
     snapshot = snapshot_raw_entity_export(source_attrib)
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     target_block = target_doc.blocks.new("ATTRIB_HANDLE_BLOCK")
     target_insert = target_block.add_blockref("TARGET", (0, 0))
     target_attrib = target_insert.add_attrib("TAG", "TEXT", insert=(1, 2))
@@ -296,7 +296,7 @@ def test_restore_raw_attrib_export_updates_existing_extension_dict_owner_after_h
 
 
 def test_dimstyle_replay_preserves_normalized_raw_export():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.styles.new("DIM_TXT", dxfattribs={"font": "txt"})
     ltype = source_doc.linetypes.new("DIM_LT", dxfattribs={"description": "DIM_LT"})
     ltype.setup_pattern([0.2, 0.1, -0.1])
@@ -328,7 +328,7 @@ def test_dimstyle_replay_preserves_normalized_raw_export():
 
 
 def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     line = source_doc.modelspace().add_line((0, 0), (1, 0))
     source_doc.header["$LASTSAVEDBY"] = "tester"
     source_doc.header.custom_vars.append("CustomTag", "CustomValue")
@@ -348,14 +348,14 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     script_text = script_path.read_text(encoding="utf-8")
 
-    assert "from ezdxf.addons.dxf2code import DocumentCodegenRuntime" in script_text
+    assert "from dxfpy.addons.dxf2code import DocumentCodegenRuntime" in script_text
     assert "rt = DocumentCodegenRuntime(doc)" in script_text
     assert "def _add_raw_object(" not in script_text
     assert "def _swap_raw_graphic_entity(" not in script_text
 
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_line = out_doc.modelspace()[0]
     restored = out_doc.rootdict.get("ACDB_RECOMPOSE_DATA")
     out_standard_table_style = out_doc.table_styles.get("Standard")
@@ -373,7 +373,7 @@ def test_document_to_code_file_generates_executable_full_doc_script(tmp_path):
 
 
 def test_document_to_code_file_renders_missing_dimension_geometry_block(tmp_path):
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("DIM_BLOCK")
     dim = block.add_linear_dim(base=(5, 2), p1=(0, 0), p2=(10, 0)).dimension
     dim.dxf.geometry = "*D17"
@@ -391,7 +391,7 @@ def test_document_to_code_file_renders_missing_dimension_geometry_block(tmp_path
 
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_block = out_doc.blocks.get("DIM_BLOCK")
     assert out_block is not None
     out_dim = list(out_block.query("DIMENSION"))[0]
@@ -399,7 +399,7 @@ def test_document_to_code_file_renders_missing_dimension_geometry_block(tmp_path
 
 
 def test_document_to_code_file_replays_existing_dimension_geometry_block(tmp_path):
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("DIM_BLOCK_WITH_GEOMETRY")
     dim = block.add_linear_dim(base=(5, 2), p1=(0, 0), p2=(10, 0)).dimension
     dim.render()
@@ -414,7 +414,7 @@ def test_document_to_code_file_replays_existing_dimension_geometry_block(tmp_pat
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_block = out_doc.blocks.get("DIM_BLOCK_WITH_GEOMETRY")
     assert out_block is not None
     out_dim = list(out_block.query("DIMENSION"))[0]
@@ -422,7 +422,7 @@ def test_document_to_code_file_replays_existing_dimension_geometry_block(tmp_pat
 
 
 def test_document_to_code_file_removes_stale_hatch_source_boundary_handles(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     block = source_doc.blocks.new("STALE_HATCH_BLOCK")
     hatch = block.add_hatch(color=2)
     path = hatch.paths.add_polyline_path(
@@ -444,7 +444,7 @@ def test_document_to_code_file_removes_stale_hatch_source_boundary_handles(tmp_p
 
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_block = out_doc.blocks.get(block.name)
     assert out_block is not None
     out_hatch = list(out_block.query("HATCH"))[0]
@@ -455,9 +455,9 @@ def test_document_to_code_file_removes_stale_hatch_source_boundary_handles(tmp_p
 
 
 def test_remove_stale_hatch_associations_requires_boundary_reactor():
-    from ezdxf.dynblkhelper import remove_stale_hatch_associations
+    from dxfpy.dynblkhelper import remove_stale_hatch_associations
 
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("HATCH_BOUNDARY_REACTOR_BLOCK")
     bad_boundary = block.add_lwpolyline(
         [(0, 0), (5, 0), (5, 5), (0, 5)], close=True
@@ -489,7 +489,7 @@ def test_remove_stale_hatch_associations_requires_boundary_reactor():
 
 
 def test_document_to_code_file_recreates_paperspace_viewports(tmp_path):
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     psp = source_doc.layout("Layout1")
     psp.delete_all_entities()
     psp.add_viewport(
@@ -515,14 +515,14 @@ def test_document_to_code_file_recreates_paperspace_viewports(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_layout = out_doc.layout("Layout1")
 
     assert len(list(out_layout.query("VIEWPORT"))) == 2
 
 
 def test_document_to_code_file_preserves_paperspace_layout_metadata(tmp_path):
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     pv1 = source_doc.new_layout("PV-1")
     pv2 = source_doc.new_layout("PV-2")
     source_doc.layouts.set_active_layout("PV-2")
@@ -555,7 +555,7 @@ def test_document_to_code_file_preserves_paperspace_layout_metadata(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_layout_names = list(out_doc.layouts.names())
     out_pv1 = out_doc.layout("PV-1")
 
@@ -577,7 +577,7 @@ def test_document_to_code_file_preserves_paperspace_layout_metadata(tmp_path):
 
 
 def test_document_to_code_file_restores_extra_rootdict_resources(tmp_path):
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.objects.set_raster_variables(frame=1, quality=0, units="m")
     source_doc.objects.set_wipeout_variables(frame=1)
     color_dict = source_doc.rootdict.get_required_dict("ACAD_COLOR")
@@ -591,7 +591,7 @@ def test_document_to_code_file_restores_extra_rootdict_resources(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     root_handle = out_doc.rootdict.dxf.handle
 
     assert "ACAD_IMAGE_VARS" in out_doc.rootdict
@@ -604,9 +604,9 @@ def test_document_to_code_file_restores_extra_rootdict_resources(tmp_path):
 
 
 def test_document_codegen_runtime_remaps_dangling_fieldlist_handles_once():
-    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
+    from dxfpy.addons.dxf2code import DocumentCodegenRuntime
 
-    runtime_doc = ezdxf.new("R2010")
+    runtime_doc = dxfpy.new("R2010")
     line = runtime_doc.modelspace().add_line((0, 0), (1, 0))
     runtime = DocumentCodegenRuntime(runtime_doc)
     runtime.source_entity_map["LINE_SRC"] = line
@@ -619,9 +619,9 @@ def test_document_codegen_runtime_remaps_dangling_fieldlist_handles_once():
 
 
 def test_document_codegen_runtime_swap_raw_graphic_entity_uses_source_xdata():
-    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
+    from dxfpy.addons.dxf2code import DocumentCodegenRuntime
 
-    runtime_doc = ezdxf.new("R2010")
+    runtime_doc = dxfpy.new("R2010")
     runtime_doc.appids.new("AcadAnnotativeAttributeDecomposition")
     runtime_doc.blocks.new("TARGET")
     host = runtime_doc.blocks.new("HOST")
@@ -671,9 +671,9 @@ def test_document_codegen_runtime_swap_raw_graphic_entity_uses_source_xdata():
 
 
 def test_document_codegen_runtime_swap_raw_graphic_entity_nulls_dangling_xdata_handles():
-    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
+    from dxfpy.addons.dxf2code import DocumentCodegenRuntime
 
-    runtime_doc = ezdxf.new("R2010")
+    runtime_doc = dxfpy.new("R2010")
     runtime_doc.appids.new("TEST_APP")
     host = runtime_doc.blocks.new("HOST")
     line = host.add_line((0, 0), (1, 0))
@@ -706,9 +706,9 @@ def test_document_codegen_runtime_swap_raw_graphic_entity_nulls_dangling_xdata_h
 
 
 def test_document_codegen_runtime_swap_raw_graphic_entity_remaps_source_330_refs():
-    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
+    from dxfpy.addons.dxf2code import DocumentCodegenRuntime
 
-    runtime_doc = ezdxf.new("R2010")
+    runtime_doc = dxfpy.new("R2010")
     runtime_doc.blocks.new("TARGET")
     host = runtime_doc.blocks.new("HOST")
     line = host.add_line((0, 0), (1, 0))
@@ -750,10 +750,10 @@ def test_document_codegen_runtime_swap_raw_graphic_entity_remaps_source_330_refs
 
 
 def test_capture_raw_graphic_entity_swap_rejects_unsupported_multileader():
-    from ezdxf.addons.dxf2code._capture import _raw_graphic_entity_can_be_swapped
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.addons.dxf2code._capture import _raw_graphic_entity_can_be_swapped
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     block = source_doc.blocks.new("UNSUPPORTED_MLEADER_BLOCK")
     builder = block.add_multileader_mtext("Standard")
     builder.set_content("note")
@@ -767,10 +767,10 @@ def test_capture_raw_graphic_entity_swap_rejects_unsupported_multileader():
 
 
 def test_replay_cleanup_normalizes_unresolved_xdata_handles():
-    from ezdxf.dynblkhelper import normalize_unresolved_xdata_handles
-    from ezdxf.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
+    from dxfpy.dynblkhelper import normalize_unresolved_xdata_handles
+    from dxfpy.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
 
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     doc.appids.new("TEST_APP")
     line = doc.modelspace().add_line((0, 0), (1, 0))
     line.set_xdata("TEST_APP", [(1005, "DEADBEEF")])
@@ -791,10 +791,10 @@ def test_replay_cleanup_normalizes_unresolved_xdata_handles():
 
 
 def test_replay_cleanup_syncs_extension_dict_owner_to_exported_handle():
-    from ezdxf.dynblkhelper import sync_extension_dict_owners
-    from ezdxf.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
+    from dxfpy.dynblkhelper import sync_extension_dict_owners
+    from dxfpy.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
 
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     line = doc.modelspace().add_line((0, 0), (1, 0))
     xdict = line.new_extension_dict().dictionary
     xdict.dxf.owner = "BAD"
@@ -817,17 +817,17 @@ def test_replay_cleanup_syncs_extension_dict_owner_to_exported_handle():
 
 
 def test_capture_document_codegen_inputs_returns_typed_specs(tmp_path):
-    from ezdxf.addons.dxf2code._capture import capture_document_codegen_inputs
-    from ezdxf.addons.dxf2code._specs import MLeaderStyleSpec, VisualStyleEntry
+    from dxfpy.addons.dxf2code._capture import capture_document_codegen_inputs
+    from dxfpy.addons.dxf2code._specs import MLeaderStyleSpec, VisualStyleEntry
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "TEST_STYLE")
     style.set_xdata("ACAD_MLEADERVER", [(1070, 2)])
     source_doc.rootdict.get_required_dict("ACAD_VISUALSTYLE")
 
     source_path = tmp_path / "capture_source.dxf"
     source_doc.saveas(source_path)
-    loaded = ezdxf.readfile(source_path)
+    loaded = dxfpy.readfile(source_path)
 
     captured = capture_document_codegen_inputs(loaded, source_path)
 
@@ -837,9 +837,9 @@ def test_capture_document_codegen_inputs_returns_typed_specs(tmp_path):
 
 
 def test_replay_block_multileader_external_handles_remap_to_target_resources():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.blocks.new("_ClosedBlank")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "RAE SLD Leader (Model Only)")
     style.dxf.name = "Standard"
@@ -874,9 +874,9 @@ def test_replay_block_multileader_external_handles_remap_to_target_resources():
 
 
 def test_document_to_code_file_rebinds_mleader_style_after_late_rootdict_restore(tmp_path):
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_doc.blocks.new("_ClosedBlank")
     style = source_doc.mleader_styles.duplicate_entry("Standard", "RAE Leader [Paper]")
     style.dxf.name = "Standard"
@@ -895,7 +895,7 @@ def test_document_to_code_file_rebinds_mleader_style_after_late_rootdict_restore
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_entity = next(entity for entity in out_doc.layout("Layout1") if entity.dxftype() == "MULTILEADER")
     out_style = out_doc.mleader_styles.get("RAE Leader [Paper]")
 
@@ -904,10 +904,10 @@ def test_document_to_code_file_rebinds_mleader_style_after_late_rootdict_restore
 
 
 def test_document_codegen_runtime_rebinds_raw_mleader_style():
-    from ezdxf.addons.dxf2code import DocumentCodegenRuntime
-    from ezdxf.entities.dxfentity import DXFTagStorage
+    from dxfpy.addons.dxf2code import DocumentCodegenRuntime
+    from dxfpy.entities.dxfentity import DXFTagStorage
 
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     style = doc.mleader_styles.duplicate_entry("Standard", "RAE Leader [Paper]")
     raw = DXFTagStorage.load(
         ExtendedTags.from_text(
@@ -931,9 +931,9 @@ def test_document_codegen_runtime_rebinds_raw_mleader_style():
 
 
 def test_replay_cleanup_replaces_dynamic_block_acad_tables_with_blockrefs():
-    from ezdxf.dynblkhelper import replace_dynamic_block_acad_tables_with_blockrefs
+    from dxfpy.dynblkhelper import replace_dynamic_block_acad_tables_with_blockrefs
 
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     dyn_block = doc.blocks.new("*U900")
     table = dyn_block.add_table((1, 2), [["A"]])
     table.dxf.horizontal_direction = (0, 1, 0)
@@ -956,10 +956,10 @@ def test_replay_cleanup_replaces_dynamic_block_acad_tables_with_blockrefs():
 
 
 def test_document_codegen_restores_table_geometry_block_contents(tmp_path):
-    from ezdxf.addons.dxf2code._capture import capture_document_codegen_inputs
-    from ezdxf.addons.dxf2code._emit import render_document_codegen_script
+    from dxfpy.addons.dxf2code._capture import capture_document_codegen_inputs
+    from dxfpy.addons.dxf2code._emit import render_document_codegen_script
 
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     dyn_block = source_doc.blocks.new("*U900")
     table = dyn_block.add_table((0, 0), [["A"]])
     geometry_name = table.dxf.geometry
@@ -978,7 +978,7 @@ def test_document_codegen_restores_table_geometry_block_contents(tmp_path):
     )
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_block = out_doc.blocks.get("*U900")
     replacement = next(
         entity
@@ -994,14 +994,14 @@ def test_document_codegen_restores_table_geometry_block_contents(tmp_path):
 
 
 def test_dynamic_block_table_raw_restore_remaps_geometry_btr():
-    from ezdxf.addons.dxf2code import block_to_code
-    from ezdxf.dynblkhelper import (
+    from dxfpy.addons.dxf2code import block_to_code
+    from dxfpy.dynblkhelper import (
         DynamicBlockBasePointParameter,
         set_dynamic_block_base_point_parameter,
         set_dynamic_block_definition_metadata,
     )
 
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_block = source_doc.blocks.new("DYN_TABLE")
     source_table = source_block.add_table((0, 0), [["A", "B"]])
     set_dynamic_block_definition_metadata(
@@ -1021,13 +1021,13 @@ def test_dynamic_block_table_raw_restore_remaps_geometry_btr():
         ),
     )
 
-    target_doc = ezdxf.new("R2018")
+    target_doc = dxfpy.new("R2018")
     target_doc.blocks.new(source_table.dxf.geometry)
     # Advance handles so a stale source BTR does not accidentally point at the
     # regenerated TABLE geometry block.
     target_doc.modelspace().add_line((0, 0), (1, 0))
     code = block_to_code(source_block, drawing="doc", full_document_mode=True)
-    execute_code_in_namespace(code, {"ezdxf": ezdxf, "doc": target_doc})
+    execute_code_in_namespace(code, {"dxfpy": dxfpy, "doc": target_doc})
     target_block = target_doc.blocks.get("DYN_TABLE")
     table = next(entity for entity in target_block if entity.dxftype() == "ACAD_TABLE")
     raw_geometry_name = ""
@@ -1048,7 +1048,7 @@ def test_dynamic_block_table_raw_restore_remaps_geometry_btr():
 
 
 def test_document_to_code_file_preserves_acad_table_geometry_block_name(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A"]])
     source_geometry = "*T42"
     source_doc.blocks.rename_block(table.dxf.geometry, source_geometry)
@@ -1066,7 +1066,7 @@ def test_document_to_code_file_preserves_acad_table_geometry_block_name(tmp_path
 
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_table = next(entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE")
     out_geometry = out_doc.blocks.get(source_geometry)
 
@@ -1076,7 +1076,7 @@ def test_document_to_code_file_preserves_acad_table_geometry_block_name(tmp_path
 
 
 def test_document_to_code_file_replays_custom_acad_table_style(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     style = source_doc.table_styles.duplicate_entry("Standard", "CustomTable")
     style.data.horizontal_cell_margin = 4.25
     source_doc.modelspace().add_table((0, 0), [["A"]], style_name="CustomTable")
@@ -1092,7 +1092,7 @@ def test_document_to_code_file_replays_custom_acad_table_style(tmp_path):
     assert "4.25" in script_text
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_table = next(
         entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE"
     )
@@ -1103,7 +1103,7 @@ def test_document_to_code_file_replays_custom_acad_table_style(tmp_path):
 
 
 def test_document_to_code_file_raw_fallback_preserves_complex_acad_table_shell(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     table = source_doc.modelspace().add_table((0, 0), [["A", "B"], ["C", "D"]])
     cell = table.get_cell(0, 0)
     cell.merged_value = 1
@@ -1121,7 +1121,7 @@ def test_document_to_code_file_raw_fallback_preserves_complex_acad_table_shell(t
     assert "# restore complex ACAD_TABLE raw fallback" in script_text
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_table = next(
         entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE"
     )
@@ -1138,7 +1138,7 @@ def test_document_to_code_file_raw_fallback_preserves_complex_acad_table_shell(t
 
 
 def test_document_to_code_file_raw_fallback_preserves_paperspace_table(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     layout = source_doc.layout("Layout1")
     table = layout.add_table((0, 0), [["A"]])
     table.get_cell(0, 0).merged_value = 1
@@ -1151,7 +1151,7 @@ def test_document_to_code_file_raw_fallback_preserves_paperspace_table(tmp_path)
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_layout = out_doc.layout("Layout1")
     out_table = next(entity for entity in out_layout if entity.dxftype() == "ACAD_TABLE")
 
@@ -1159,9 +1159,9 @@ def test_document_to_code_file_raw_fallback_preserves_paperspace_table(tmp_path)
 
 
 def test_document_to_code_file_replays_mixed_acad_table_fields(tmp_path):
-    from ezdxf.entities import Field
+    from dxfpy.entities import Field
 
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     msp = source_doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     circle = msp.add_circle((5, 0), radius=2.5)
@@ -1208,7 +1208,7 @@ def test_document_to_code_file_replays_mixed_acad_table_fields(tmp_path):
     assert "restore_acad_table_field_handles" in script_text
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_line = next(
         entity for entity in out_doc.modelspace() if entity.dxftype() == "LINE"
     )
@@ -1253,9 +1253,9 @@ def test_document_to_code_file_replays_mixed_acad_table_fields(tmp_path):
 
 
 def test_document_to_code_file_raw_fallback_preserves_complex_acad_table_links(tmp_path):
-    from ezdxf.entities import Field
+    from dxfpy.entities import Field
 
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     msp = source_doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     circle = msp.add_circle((5, 0), radius=2.5)
@@ -1296,7 +1296,7 @@ def test_document_to_code_file_raw_fallback_preserves_complex_acad_table_links(t
     assert "replace_entity_xrecord_tree" in script_text
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_line = next(
         entity for entity in out_doc.modelspace() if entity.dxftype() == "LINE"
     )
@@ -1341,7 +1341,7 @@ def _xrecord_handle(xrecord, code: int) -> str:
 
 
 def test_document_to_code_file_remaps_paper_layout_viewport_handle(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     layout = source_doc.layout("Layout1")
     layout.add_line((0, 0), (1, 0))
     viewport = layout.add_viewport(
@@ -1357,7 +1357,7 @@ def test_document_to_code_file_remaps_paper_layout_viewport_handle(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_layout = out_doc.layout("Layout1")
     viewport = out_doc.entitydb.get(out_layout.dxf.viewport_handle)
 
@@ -1367,7 +1367,7 @@ def test_document_to_code_file_remaps_paper_layout_viewport_handle(tmp_path):
 
 
 def test_document_to_code_file_preserves_paper_layout_block_record_name(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     layout = source_doc.new_layout("Custom")
     source_block_name = "*Paper_Space42"
     source_doc.blocks.rename_block(layout.block_record.dxf.name, source_block_name)
@@ -1380,7 +1380,7 @@ def test_document_to_code_file_preserves_paper_layout_block_record_name(tmp_path
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_layout = out_doc.layout("Custom")
     out_block_record = out_doc.entitydb.get(out_layout.block_record_handle)
 
@@ -1388,7 +1388,7 @@ def test_document_to_code_file_preserves_paper_layout_block_record_name(tmp_path
 
 
 def test_document_to_code_file_preserves_layout_dictionary_order(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     source_doc.new_layout("Custom")
     source_order = ["Custom", "Model", "Layout1"]
     layout_dict = source_doc.rootdict["ACAD_LAYOUT"]
@@ -1411,13 +1411,13 @@ def test_document_to_code_file_preserves_layout_dictionary_order(tmp_path):
 
     exec(script_text, {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
 
     assert out_doc.layouts.names() == source_order
 
 
 def test_document_to_code_file_restores_acad_groups(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     msp = source_doc.modelspace()
     line = msp.add_line((0, 0), (1, 0))
     circle = msp.add_circle((0, 0), radius=1)
@@ -1432,7 +1432,7 @@ def test_document_to_code_file_restores_acad_groups(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_group = out_doc.groups.get("TEST_GROUP")
 
     assert out_group is not None
@@ -1440,7 +1440,7 @@ def test_document_to_code_file_restores_acad_groups(tmp_path):
 
 
 def test_document_to_code_file_restores_layout_sortents(tmp_path):
-    source_doc = ezdxf.new("R2018")
+    source_doc = dxfpy.new("R2018")
     layout = source_doc.layout("Layout1")
     first = layout.add_line((0, 0), (1, 0))
     second = layout.add_line((0, 1), (1, 1))
@@ -1464,7 +1464,7 @@ def test_document_to_code_file_restores_layout_sortents(tmp_path):
     document_to_code_file(str(source_path), str(script_path), str(output_path))
     exec(script_path.read_text(encoding="utf-8"), {})
 
-    out_doc = ezdxf.readfile(output_path)
+    out_doc = dxfpy.readfile(output_path)
     out_layout = out_doc.layout("Layout1")
     out_block = out_doc.blocks.get(out_layout.block_record.dxf.name)
     out_xdict = out_block.block_record.get_extension_dict().dictionary

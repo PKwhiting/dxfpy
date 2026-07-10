@@ -5,14 +5,14 @@ import time
 import math
 from datetime import datetime
 from pathlib import Path
-from ezdxf.acc import USE_C_EXT
+from dxfpy.acc import USE_C_EXT
 
 if USE_C_EXT is False:
     print("C-extension disabled or not available.")
     sys.exit(1)
 
 # Python implementations:
-from ezdxf.math._bezier4p import (
+from dxfpy.math._bezier4p import (
     Bezier4P,
     cubic_bezier_arc_parameters,
     cubic_bezier_from_arc,
@@ -20,14 +20,14 @@ from ezdxf.math._bezier4p import (
 )
 
 # Cython implementations:
-from ezdxf.acc.bezier4p import (
+from dxfpy.acc.bezier4p import (
     Bezier4P as CBezier4P,
     cubic_bezier_arc_parameters as cython_arc_parameters,
     cubic_bezier_from_arc as cython_bezier_from_arc,
     cubic_bezier_from_ellipse as cython_bezier_from_ellipse,
 )
-from ezdxf.math import ConstructionEllipse, Vec3
-from ezdxf.version import __version__
+from dxfpy.math import ConstructionEllipse, Vec3
+from dxfpy.version import __version__
 
 POINTS = Vec3.list([(0, 0), (1, 0), (1, 1), (0, 1)])
 
@@ -39,7 +39,7 @@ def open_log(name: str):
         with open(p, mode="wt") as fp:
             fp.write(
                 '"timestamp"; "pytime"; "cytime"; '
-                '"python_version"; "ezdxf_version"\n'
+                '"python_version"; "dxfpy_version"\n'
             )
     log_file = open(p, mode="at")
     return log_file

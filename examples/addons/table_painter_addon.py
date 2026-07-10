@@ -3,13 +3,13 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 import pathlib
-import ezdxf
-from ezdxf.enums import TextEntityAlignment, MTextEntityAlignment
-from ezdxf.addons import TablePainter
+import dxfpy
+from dxfpy.enums import TextEntityAlignment, MTextEntityAlignment
+from dxfpy.addons import TablePainter
 
 if TYPE_CHECKING:
-    from ezdxf.document import Drawing
-    from ezdxf.layouts import BlockLayout
+    from dxfpy.document import Drawing
+    from dxfpy.layouts import BlockLayout
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
     CWD = pathlib.Path(".")
@@ -32,7 +32,7 @@ if not CWD.exists():
 # - no automatically text wrapping at border cells
 # - no clipping at cell borders
 #
-# The creation of ACAD_TABLE entities is not supported by ezdxf and probably
+# The creation of ACAD_TABLE entities is not supported by dxfpy and probably
 # will never be because of the complexity and a lack of usable documentation !
 # ------------------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ def get_mat_symbol(doc: Drawing) -> BlockLayout:
 
 
 def table_tutorial():
-    doc = ezdxf.new("R2000")  # required for lineweight support
+    doc = dxfpy.new("R2000")  # required for lineweight support
     doc.header["$LWDISPLAY"] = 1  # show lineweights
     doc.styles.add("HEAD", font="OpenSans-ExtraBold.ttf")
     doc.styles.add("CELL", font="OpenSans-Regular.ttf")
@@ -84,9 +84,9 @@ def table_tutorial():
     table.new_cell_style(
         "head",
         text_style="HEAD",
-        text_color=ezdxf.colors.BLUE,
+        text_color=dxfpy.colors.BLUE,
         char_height=0.7,
-        bg_color=ezdxf.colors.LIGHT_GRAY,
+        bg_color=dxfpy.colors.LIGHT_GRAY,
         align=MTextEntityAlignment.MIDDLE_CENTER,
     )
     # reset default cell style
@@ -107,7 +107,7 @@ def table_tutorial():
 
     # draw a red frame around the header
     red_frame = table.new_cell_style("red-frame")
-    red_borderline = table.new_border_style(color=ezdxf.colors.RED, lineweight=35)
+    red_borderline = table.new_border_style(color=dxfpy.colors.RED, lineweight=35)
     # set the red borderline style for all cell borders
     red_frame.set_border_style(red_borderline)
     # create the frame object
@@ -123,7 +123,7 @@ def table_tutorial():
 
 
 def main():
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     msp = doc.modelspace()
 
     table = TablePainter(insert=(0, 0), nrows=20, ncols=10)

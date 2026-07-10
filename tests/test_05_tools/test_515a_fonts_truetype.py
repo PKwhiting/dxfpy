@@ -4,8 +4,8 @@
 import pytest
 import platform
 
-from ezdxf.math import BoundingBox2d
-from ezdxf.fonts import fonts
+from dxfpy.math import BoundingBox2d
+from dxfpy.fonts import fonts
 
 TEST_FONTS = [
     ("LiberationSans-Regular.ttf", "Liberation Sans"),

@@ -2,11 +2,11 @@
 # License: MIT License
 import pytest
 import math
-import ezdxf
-from ezdxf.math import Vec3, BoundingBox, Matrix44, close_vectors
-from ezdxf.render import forms
-from ezdxf.addons.menger_sponge import MengerSponge
-from ezdxf.render.mesh import (
+import dxfpy
+from dxfpy.math import Vec3, BoundingBox, Matrix44, close_vectors
+from dxfpy.render import forms
+from dxfpy.addons.menger_sponge import MengerSponge
+from dxfpy.render.mesh import (
     MeshVertexMerger,
     MeshBuilder,
     MeshTransformer,
@@ -23,8 +23,8 @@ from ezdxf.render.mesh import (
     FaceOrientationDetector,
     volume6,
 )
-from ezdxf.addons import SierpinskyPyramid
-from ezdxf.layouts import VirtualLayout
+from dxfpy.addons import SierpinskyPyramid
+from dxfpy.layouts import VirtualLayout
 
 
 def test_vertex_merger_indices():
@@ -314,7 +314,7 @@ def test_render_3dsolid():
     The ACIS content is tested by the tests for the acis module 529-532.
     """
     # A valid DXF document is required!
-    doc = ezdxf.new(ezdxf.DXF2000)
+    doc = dxfpy.new(dxfpy.DXF2000)
     msp = doc.modelspace()
     cube = forms.cube()
     solid3d = cube.render_3dsolid(msp)

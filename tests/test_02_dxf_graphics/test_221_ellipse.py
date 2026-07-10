@@ -4,11 +4,11 @@ import pytest
 import math
 from io import StringIO
 
-import ezdxf
-from ezdxf.audit import Auditor
-from ezdxf.math import Vec3
-from ezdxf.entities.ellipse import Ellipse, MIN_RATIO, MAX_RATIO
-from ezdxf.lldxf.tagwriter import TagCollector, TagWriter, basic_tags_from_text
+import dxfpy
+from dxfpy.audit import Auditor
+from dxfpy.math import Vec3
+from dxfpy.entities.ellipse import Ellipse, MIN_RATIO, MAX_RATIO
+from dxfpy.lldxf.tagwriter import TagCollector, TagWriter, basic_tags_from_text
 
 ELLIPSE = """0
 ELLIPSE
@@ -57,7 +57,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "ELLIPSE" in ENTITY_CLASSES
 
@@ -171,7 +171,7 @@ def test_tagwriter_preserves_explicit_default_extrusion_from_loaded_entity():
 
 
 def test_from_arc():
-    from ezdxf.entities.arc import Arc
+    from dxfpy.entities.arc import Arc
 
     arc = Arc.new(dxfattribs={"center": (2, 2, 2), "radius": 3})
     ellipse = Ellipse.from_arc(arc)
@@ -185,11 +185,11 @@ def test_from_arc():
 class TestEllipseParameters:
     @pytest.fixture(scope="class")
     def msp(self):
-        doc = ezdxf.new()
+        doc = dxfpy.new()
         return doc.modelspace()
 
     def test_adding_ellipse_with_too_big_ratio(self, msp):
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             msp.add_ellipse(center=(0, 0), major_axis=(1, 0), ratio=2.0)
 
     def test_adding_ellipse_with_too_small_ratio(self, msp):
@@ -198,7 +198,7 @@ class TestEllipseParameters:
         assert ellipse.dxf.ratio >= 1e-10
 
     def test_adding_ellipse_with_invalid_major_axis(self, msp):
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             msp.add_ellipse(center=(0, 0), major_axis=(0, 0), ratio=0.5)
 
     def test_audit_max_ratio(self, msp):

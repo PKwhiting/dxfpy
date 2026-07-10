@@ -2,13 +2,13 @@
 # License: MIT License
 import pytest
 import os
-import ezdxf
-from ezdxf.lldxf.const import versions_supported_by_new
+import dxfpy
+from dxfpy.lldxf.const import versions_supported_by_new
 
 
 @pytest.fixture(params=versions_supported_by_new)
 def drawing(request):
-    return ezdxf.new(request.param)
+    return dxfpy.new(request.param)
 
 
 def add_table_entries(dwg):
@@ -27,7 +27,7 @@ def test_adding_table_entries(drawing, tmpdir):
     filename = str(tmpdir.join("table_entries_%s.dxf" % drawing.dxfversion))
     try:
         drawing.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(
             "DXFError: {0} for DXF version {1}".format(
                 str(e), drawing.dxfversion

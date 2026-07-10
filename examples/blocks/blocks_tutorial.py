@@ -2,7 +2,7 @@
 # License: MIT License
 import pathlib
 import random
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -10,7 +10,7 @@ if not CWD.exists():
 
 # ------------------------------------------------------------------------------
 # This example is the companion file to the tutorial:
-# https://ezdxf.mozman.at/docs/tutorials/blocks.html
+# https://dxfpy.mozman.at/docs/tutorials/blocks.html
 # ------------------------------------------------------------------------------
 
 
@@ -22,7 +22,7 @@ def get_random_point():
 
 
 # Create a new drawing in the DXF format of AutoCAD 2010
-doc = ezdxf.new("R2010")
+doc = dxfpy.new("R2010")
 
 # Create a block with the name 'FLAG'
 flag = doc.blocks.new(name="FLAG")

@@ -3,9 +3,9 @@
 import random
 import time
 import pathlib
-import ezdxf
+import dxfpy
 
-from ezdxf.math import Vec2, convex_hull_2d, is_point_left_of_line
+from dxfpy.math import Vec2, convex_hull_2d, is_point_left_of_line
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -73,7 +73,7 @@ def profile(func, points) -> float:
 
 
 def export_dxf(points):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     for p in points:
         msp.add_point(p, dxfattribs={"color": 1, "layer": "points"})

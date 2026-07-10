@@ -2,8 +2,8 @@
 # License: MIT License
 import pathlib
 from time import perf_counter
-import ezdxf
-from ezdxf.addons import MengerSponge
+import dxfpy
+from dxfpy.addons import MengerSponge
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,12 +12,12 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example creates some Menger-Sponges.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/forms.html
+# docs: https://dxfpy.mozman.at/docs/addons/forms.html
 # ------------------------------------------------------------------------------
 
 
 def write(filename, sponge, merge=False):
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     doc.set_modelspace_vport(3)
     sponge.render(doc.modelspace(), merge=merge)
     doc.saveas(filename)

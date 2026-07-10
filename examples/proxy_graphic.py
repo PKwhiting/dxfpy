@@ -1,10 +1,10 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-from ezdxf.lldxf.tags import Tags
-from ezdxf.proxygraphic import load_proxy_graphic, ProxyGraphic
+from dxfpy.lldxf.tags import Tags
+from dxfpy.proxygraphic import load_proxy_graphic, ProxyGraphic
 import logging
-import ezdxf
+import dxfpy
 
 logging.basicConfig(level=logging.ERROR)
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -42,7 +42,7 @@ E33F00000000000000000418DC3967E1F83F000000000C0000001200000000000000D00000002600
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
 
     data = load_proxy_graphic(Tags.from_text(DATA))

@@ -3,11 +3,11 @@
 import pytest
 import math
 
-import ezdxf
-from ezdxf.entities import Hatch, BoundaryPathType, EdgeType
-from ezdxf.lldxf.tagwriter import TagCollector, Tags
-from ezdxf.lldxf import const
-from ezdxf.math import Vec3
+import dxfpy
+from dxfpy.entities import Hatch, BoundaryPathType, EdgeType
+from dxfpy.lldxf.tagwriter import TagCollector, Tags
+from dxfpy.lldxf import const
+from dxfpy.math import Vec3
 
 
 @pytest.fixture
@@ -134,8 +134,8 @@ def test_edge_path_edges(edge_hatch):
     assert (
         540 == 360.0 - edge.start_angle
     )  # this value was created by AutoCAD (-180 degree)
-    assert -180 == edge.start_angle  # ezdxf representation
-    assert 0 == edge.end_angle  # ezdxf representation
+    assert -180 == edge.start_angle  # dxfpy representation
+    assert 0 == edge.end_angle  # dxfpy representation
 
     edge = path.edges[4]
     assert edge.type == EdgeType.LINE, "expected line edge as 5. edge"
@@ -431,7 +431,7 @@ def test_setting_bgcolor_creates_required_appid(msp):
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     return doc.modelspace()
 
 

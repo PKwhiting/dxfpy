@@ -3,10 +3,10 @@
 from pathlib import Path
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
-import ezdxf
-from ezdxf.math import OCS
+import dxfpy
+from dxfpy.math import OCS
 
-doc = ezdxf.new('R2010')
+doc = dxfpy.new('R2010')
 msp = doc.modelspace()
 
 # For this example the OCS is rotated around x-axis about 45 degree

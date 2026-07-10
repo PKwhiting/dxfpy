@@ -1,9 +1,9 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.render.forms import sphere, cube
-from ezdxf.addons.pycsg import CSG
+import dxfpy
+from dxfpy.render.forms import sphere, cube
+from dxfpy.addons.pycsg import CSG
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,14 +12,14 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to use the pycsg add-on (Constructive Solid Geometry).
 #
-# docs: https://ezdxf.mozman.at/docs/addons/pycsg.html
+# docs: https://dxfpy.mozman.at/docs/addons/pycsg.html
 # ------------------------------------------------------------------------------
 
 NLENGTH = 0.05
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("csg", dxfattribs={"color": 1})
     doc.layers.new("normals", dxfattribs={"color": 6})
 

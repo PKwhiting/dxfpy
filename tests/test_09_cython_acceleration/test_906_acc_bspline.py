@@ -5,11 +5,11 @@ import pytest
 import math
 import numpy as np
 
-pytest.importorskip("ezdxf.acc.bspline")
+pytest.importorskip("dxfpy.acc.bspline")
 
-from ezdxf.math._bspline import Basis as PyBasis, Evaluator as PyEvaluator
-from ezdxf.acc.bspline import Basis as CyBasis, Evaluator as CyEvaluator
-from ezdxf.math import Vec3, close_vectors
+from dxfpy.math._bspline import Basis as PyBasis, Evaluator as PyEvaluator
+from dxfpy.acc.bspline import Basis as CyBasis, Evaluator as CyEvaluator
+from dxfpy.math import Vec3, close_vectors
 
 COUNT = 10
 ORDER = 4

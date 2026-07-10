@@ -2,9 +2,9 @@
 #  License: MIT License
 
 from pathlib import Path
-import ezdxf
-from ezdxf.addons import MengerSponge
-from ezdxf.acis import api as acis
+import dxfpy
+from dxfpy.addons import MengerSponge
+from dxfpy.acis import api as acis
 
 DIR = Path("~/Desktop/Outbox").expanduser()
 if not DIR.exists():
@@ -13,7 +13,7 @@ if not DIR.exists():
 VERSION = "R2010"
 DEBUG = True
 
-doc = ezdxf.new(VERSION)
+doc = dxfpy.new(VERSION)
 msp = doc.modelspace()
 
 menger = MengerSponge(length=3.0, level=1).mesh()

@@ -5,13 +5,13 @@ import pathlib
 import math
 import numpy as np
 
-import ezdxf
-from ezdxf.math import (
+import dxfpy
+from dxfpy.math import (
     global_bspline_interpolation,
     BoundingBox,
     BSpline,
 )
-from ezdxf.render import random_3d_path
+from dxfpy.render import random_3d_path
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -37,7 +37,7 @@ def profile(text, func, *args):
 
 
 def export_path(path):
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     bbox = BoundingBox(path)
     msp.add_polyline3d(path, dxfattribs={"layer": "Path", "color": 2})

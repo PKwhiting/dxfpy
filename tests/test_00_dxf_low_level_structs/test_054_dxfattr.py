@@ -2,7 +2,7 @@
 # License: MIT License
 
 import pytest
-from ezdxf.lldxf.attributes import DXFAttr, RETURN_DEFAULT
+from dxfpy.lldxf.attributes import DXFAttr, RETURN_DEFAULT
 
 
 def test_return_default():

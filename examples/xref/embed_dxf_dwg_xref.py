@@ -1,10 +1,10 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import odafc
-from ezdxf.document import Drawing
-from ezdxf import xref, units
+import dxfpy
+from dxfpy.addons import odafc
+from dxfpy.document import Drawing
+from dxfpy import xref, units
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -18,7 +18,7 @@ if not CWD.exists():
 
 def make_dxf_xref_document(name: str, dxfversion="R2013") -> Drawing:
     # AutoCAD does not accept DXF R12 files as XREF :(
-    ref_doc = ezdxf.new(dxfversion, units=units.M)
+    ref_doc = dxfpy.new(dxfversion, units=units.M)
     ref_doc.modelspace().add_circle(
         center=(5, 5), radius=2.5, dxfattribs={"layer": "CIRCLE"}
     )
@@ -28,7 +28,7 @@ def make_dxf_xref_document(name: str, dxfversion="R2013") -> Drawing:
 
 
 # AutoCAD accepts DXF files (>DXF12) as XREFs, but is unwilling to resolve the
-# DXF files created by ezdxf, which opened for itself is a total valid DXF
+# DXF files created by dxfpy, which opened for itself is a total valid DXF
 # document.
 #
 # It seems that AutoCAD does not resolve any DXF file as an XREF file, no matter what
@@ -36,7 +36,7 @@ def make_dxf_xref_document(name: str, dxfversion="R2013") -> Drawing:
 # The much more friendly BricsCAD has no problem to resolve the DXF files as XREFs.
 #
 # Export the DXF document as DWG file by the odafc addon, for more information
-# see the docs: https://ezdxf.mozman.at/docs/addons/odafc.html
+# see the docs: https://dxfpy.mozman.at/docs/addons/odafc.html
 # At least the DWG file is accepted by AutoCAD.
 
 
@@ -54,7 +54,7 @@ def create_xrefs(dxf_name, dwg_name, dxfversion):
 
 
 def embed_dxf_xref(dxf_name: str, dxfversion: str) -> None:
-    host_doc = ezdxf.new(dxfversion, units=units.M)
+    host_doc = dxfpy.new(dxfversion, units=units.M)
     host_doc.filename = str(CWD / "host_embedded_dxf.dxf")
 
     xref.attach(host_doc, block_name="dxf_xref", filename=dxf_name)
@@ -64,7 +64,7 @@ def embed_dxf_xref(dxf_name: str, dxfversion: str) -> None:
 
 
 def embed_dwg_xref(dwg_name: str, dxfversion: str) -> None:
-    host_doc = ezdxf.new(dxfversion, units=units.M)
+    host_doc = dxfpy.new(dxfversion, units=units.M)
     host_doc.filename = str(CWD / "host_embedded_dwg.dxf")
 
     xref.attach(host_doc, block_name="dwg_xref", filename=dwg_name)

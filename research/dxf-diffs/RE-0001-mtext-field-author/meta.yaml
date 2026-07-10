@@ -11,10 +11,10 @@ source_artifacts:
   edited_after_dxf: experiments/field-mtext/generated/after.dxf
   baseline_before_normalized_dxf: experiments/field-mtext/regen-plain/after.normalized.dxf
   edited_after_normalized_dxf: experiments/field-mtext/generated/after.normalized.dxf
-target_ezdxf_modules:
-  - src/ezdxf/entities/dxfobj.py
-  - src/ezdxf/entities/idbuffer.py
-  - src/ezdxf/entities/mtext.py
+target_dxfpy_modules:
+  - src/dxfpy/entities/dxfobj.py
+  - src/dxfpy/entities/idbuffer.py
+  - src/dxfpy/entities/mtext.py
 notes:
   - The original edited file overwrote the generated baseline, so the plain baseline was regenerated after the edit.
   - This experiment was diffed with the workspace DXF normalizer, but full AutoCAD save noise is still present.

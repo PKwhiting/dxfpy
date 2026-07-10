@@ -2,9 +2,9 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.addons import openscad
-from ezdxf.render import MeshBuilder
-from ezdxf.math import Matrix44
+from dxfpy.addons import openscad
+from dxfpy.render import MeshBuilder
+from dxfpy.math import Matrix44
 
 
 def test_matrix44_to_multmatrix_str():

@@ -3,8 +3,8 @@
 import pytest
 
 import math
-from ezdxf.math import BSpline
-from ezdxf.math.bspline import to_homogeneous_points, from_homogeneous_points
+from dxfpy.math import BSpline
+from dxfpy.math.bspline import to_homogeneous_points, from_homogeneous_points
 import numpy as np
 
 CONTROL_POINTS = [(0, 0), (1, -1), (2, 0), (3, 2), (4, 0), (5, -2)]

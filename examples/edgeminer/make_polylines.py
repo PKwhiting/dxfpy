@@ -3,25 +3,25 @@
 from __future__ import annotations
 from pathlib import Path
 
-import ezdxf
+import dxfpy
 
-from ezdxf import colors
-from ezdxf import edgeminer as em
-from ezdxf import edgesmith as es
+from dxfpy import colors
+from dxfpy import edgeminer as em
+from dxfpy import edgesmith as es
 
 CWD = Path(__file__).parent
 OUTBOX = Path("~/Desktop/Outbox").expanduser()
 
 
 def load(filename: str) -> list[em.Edge]:
-    doc = ezdxf.readfile(CWD / filename)
+    doc = dxfpy.readfile(CWD / filename)
     msp = doc.modelspace()
     edges = list(es.edges_from_entities_2d(msp))
     return edges
 
 
 def make_polyline_with_arcs(edges: list[em.Edge], outname: str) -> None:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("LWPOLYLINE", color=colors.RED)
     msp = doc.modelspace()
     dxfattribs = {"layer": "LWPOLYLINE"}
@@ -33,7 +33,7 @@ def make_polyline_with_arcs(edges: list[em.Edge], outname: str) -> None:
 
 
 def make_polyline_without_arcs(edges: list[em.Edge], outname: str) -> None:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("LWPOLYLINE", color=colors.RED)
     msp = doc.modelspace()
     dxfattribs = {"layer": "LWPOLYLINE"}

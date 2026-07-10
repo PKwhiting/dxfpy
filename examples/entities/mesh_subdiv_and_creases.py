@@ -1,8 +1,8 @@
 # Copyright (c) 2016-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.gfxattribs import GfxAttribs
+import dxfpy
+from dxfpy.gfxattribs import GfxAttribs
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,7 +11,7 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows how to use subdivision and creases at a MESH entity.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/mesh.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/mesh.html
 # ------------------------------------------------------------------------------
 
 
@@ -37,7 +37,7 @@ cube_faces = [
     [0, 4, 7, 3],
 ]
 
-doc = ezdxf.new("R2018")
+doc = dxfpy.new("R2018")
 msp = doc.modelspace()
 mesh = msp.add_mesh(dxfattribs=GfxAttribs(color=6))
 mesh.dxf.blend_crease = 1

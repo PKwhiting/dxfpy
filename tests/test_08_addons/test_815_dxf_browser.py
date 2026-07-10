@@ -6,19 +6,19 @@ pytest.importorskip("PySide6")
 
 from io import StringIO
 import math
-from ezdxf.lldxf.tags import Tags, DXFTag
-from ezdxf.lldxf.loader import load_dxf_structure
-from ezdxf.lldxf.tagger import ascii_tags_loader
+from dxfpy.lldxf.tags import Tags, DXFTag
+from dxfpy.lldxf.loader import load_dxf_structure
+from dxfpy.lldxf.tagger import ascii_tags_loader
 
-from ezdxf.addons.browser import DXFTagsModel, DXFStructureModel, DXFDocument
-from ezdxf.addons.browser.tags import compile_tags
-from ezdxf.addons.browser.data import (
+from dxfpy.addons.browser import DXFTagsModel, DXFStructureModel, DXFDocument
+from dxfpy.addons.browser.tags import compile_tags
+from dxfpy.addons.browser.data import (
     EntityIndex,
     EntityHistory,
     SearchIndex,
 )
 
-from ezdxf.addons.xqt import Qt, QModelIndex
+from dxfpy.addons.xqt import Qt, QModelIndex
 
 
 def txt2tags(s: str) -> Tags:

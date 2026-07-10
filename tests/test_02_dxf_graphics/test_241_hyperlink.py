@@ -1,7 +1,7 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
 import pytest
-from ezdxf.entities import DXFGraphic
+from dxfpy.entities import DXFGraphic
 
 
 def test_set_hyperlink():

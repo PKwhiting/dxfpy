@@ -1,11 +1,11 @@
 # Copyright (c) 2010-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.addons import MTextSurrogate
-from ezdxf.math import UVec
-from ezdxf.layouts import Modelspace
-from ezdxf.enums import MTextEntityAlignment
+import dxfpy
+from dxfpy.addons import MTextSurrogate
+from dxfpy.math import UVec
+from dxfpy.layouts import Modelspace
+from dxfpy.enums import MTextEntityAlignment
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -16,7 +16,7 @@ if not CWD.exists():
 # does not support the MTEXT entity. These add-on can be replaced by exploding
 # MTEXT entities by the mtxpl add-on. This add-on will be preserved is it is!
 #
-# docs: https://ezdxf.mozman.at/docs/addons/mtxpl.html
+# docs: https://dxfpy.mozman.at/docs/addons/mtxpl.html
 # ------------------------------------------------------------------------------
 
 
@@ -115,7 +115,7 @@ def rotate_text(
 
 def main():
     # MText for DXF R12
-    doc = ezdxf.new("R12")
+    doc = dxfpy.new("R12")
     msp = doc.modelspace()
 
     txt = (

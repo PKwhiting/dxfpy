@@ -3,23 +3,23 @@
 from __future__ import annotations
 from typing import Dict, cast
 import math
-import ezdxf
+import dxfpy
 
-from ezdxf.math import Vec3, Matrix44, X_AXIS, OCS
-from ezdxf import zoom, disassemble
-from ezdxf.entities import copy_attrib_as_text
+from dxfpy.math import Vec3, Matrix44, X_AXIS, OCS
+from dxfpy import zoom, disassemble
+from dxfpy.entities import copy_attrib_as_text
 
-from ezdxf.layouts import BlockLayout, BaseLayout
-from ezdxf.document import Drawing
+from dxfpy.layouts import BlockLayout, BaseLayout
+from dxfpy.document import Drawing
 
-# Check if a viewer and ezdxf does correct block reference (INSERT)
+# Check if a viewer and dxfpy does correct block reference (INSERT)
 # transformations. It is not possible to check the drawing add-on by this
-# example, because it uses the ezdxf transformation!
+# example, because it uses the dxfpy transformation!
 #
-# If the viewer and ezdxf works correct only the exploded, magenta colored
+# If the viewer and dxfpy works correct only the exploded, magenta colored
 # arrows are visible after loading. If any red, green or blue colored arrowheads
 # are visible, the transformation of the block references applied by the viewer
-# is different to the transformation done by ezdxf.
+# is different to the transformation done by dxfpy.
 #
 # Turn of the "EXPLODE" layer to see the original block references.
 
@@ -28,7 +28,7 @@ EXPLODE_ATTRIBS = False  # explode ATTRIB entities as TEXT
 
 BLK_CONTENT = "ARROWS"  # original block references
 ATTRIBS = "CONFIG"  # transformation parameters of the base block as ATTRIBs
-EXPLODE = "EXPLODE"  # by ezdxf exploded block references
+EXPLODE = "EXPLODE"  # by dxfpy exploded block references
 
 LAYERS = [BLK_CONTENT, EXPLODE, ATTRIBS]
 
@@ -48,7 +48,7 @@ def explode(layout: BaseLayout):
 
 
 def create_doc(filename, content_creator):
-    doc = ezdxf.new(dxfversion="R2004")
+    doc = dxfpy.new(dxfversion="R2004")
     for name in LAYERS:
         doc.layers.new(name)
     doc.styles.new(ATTRIBS, dxfattribs={"font": "OpenSansCondensed-Light.ttf"})

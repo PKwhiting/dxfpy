@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 
-from ezdxf.entities.image import Image
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.entities.image import Image
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 IMAGE = """0
 IMAGE
@@ -68,7 +68,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "IMAGE" in ENTITY_CLASSES
 

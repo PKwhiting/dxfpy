@@ -1,12 +1,12 @@
 # Copyright (c) 2018-2022 Manfred Moitzi
 # License: MIT License
 from pprint import pprint
-import ezdxf
+import dxfpy
 
 # depends on a not included test files
-PRODUCTS = ezdxf.options.test_files_path / "AutodeskProducts"
+PRODUCTS = dxfpy.options.test_files_path / "AutodeskProducts"
 
-doc = ezdxf.readfile(PRODUCTS / "Map3D_2017.dxf")
+doc = dxfpy.readfile(PRODUCTS / "Map3D_2017.dxf")
 msp = doc.modelspace()
 
 for block_ref in msp.query("INSERT[layer=='VO_body+cisla']"):
@@ -22,7 +22,7 @@ for block_ref in msp.query("INSERT[layer=='VO_body+cisla']"):
         continue
     try:  # GEODATA handle is stored by key ACAD_GEOGRAPHICDATA
         geodata_handle = xdict["ACAD_GEOGRAPHICDATA"]
-    except ezdxf.DXFKeyError:
+    except dxfpy.DXFKeyError:
         pass
     else:  # but this seems never the case for a block reference
         print(f"uses GEODATA(#{geodata_handle})")

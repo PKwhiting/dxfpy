@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import intersection_ray_polygon_3d, Vec3, Z_AXIS
+from dxfpy.math import intersection_ray_polygon_3d, Vec3, Z_AXIS
 
 
 @pytest.fixture(scope="module")

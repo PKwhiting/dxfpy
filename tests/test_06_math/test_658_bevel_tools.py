@@ -3,9 +3,9 @@
 
 import pytest
 import math
-from ezdxf.math import X_AXIS, Y_AXIS, Z_AXIS, Vec3, close_vectors
-from ezdxf.math.construct3d import inscribe_circle_tangent_length, bending_angle
-from ezdxf.path.tools import chamfer, chamfer2, fillet, polygonal_fillet
+from dxfpy.math import X_AXIS, Y_AXIS, Z_AXIS, Vec3, close_vectors
+from dxfpy.math.construct3d import inscribe_circle_tangent_length, bending_angle
+from dxfpy.path.tools import chamfer, chamfer2, fillet, polygonal_fillet
 
 
 class TestInscribeCircle:

@@ -4,9 +4,9 @@ import math
 from pathlib import Path
 import numpy as np
 
-import ezdxf
-from ezdxf.math import BSpline
-from ezdxf.math.linalg import binomial_coefficient
+import dxfpy
+from dxfpy.math import BSpline
+from dxfpy.math.linalg import binomial_coefficient
 
 OUTBOX = Path("~/Desktop/Outbox").expanduser()
 if not OUTBOX.exists():
@@ -224,7 +224,7 @@ def export_splines(filename: str, weights=[]):
     spline = BSpline(CONTROL_POINTS, weights=weights)
     result = degree_elevation(spline, 1)
 
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     s1 = msp.add_spline(dxfattribs={"layer": "original", "color": 1})
     s2 = msp.add_spline(dxfattribs={"layer": "elevated", "color": 2})

@@ -2,19 +2,19 @@
 #  License: MIT License
 from typing import cast
 import pytest
-import ezdxf
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.entities import factory
-from ezdxf.entities import ACADProxyEntity
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Matrix44
-from ezdxf.protocols import SupportsVirtualEntities, virtual_entities
-from ezdxf.entities.copy import CopyNotSupported
+import dxfpy
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.entities import factory
+from dxfpy.entities import ACADProxyEntity
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Matrix44
+from dxfpy.protocols import SupportsVirtualEntities, virtual_entities
+from dxfpy.entities.copy import CopyNotSupported
 
 @pytest.fixture(scope="module")
 def proxy() -> ACADProxyEntity:
     xtags = ExtendedTags.from_text(AEC_DOOR)
-    return cast(ACADProxyEntity, factory.load(xtags, ezdxf.new("R2018")))
+    return cast(ACADProxyEntity, factory.load(xtags, dxfpy.new("R2018")))
 
 
 def test_load_acad_proxy_entity(proxy):
@@ -24,7 +24,7 @@ def test_load_acad_proxy_entity(proxy):
 
 def test_export_exact_original_data(proxy):
     expected = basic_tags_from_text(AEC_DOOR)
-    collector = TagCollector(dxfversion=ezdxf.const.DXF2013, optional=True)
+    collector = TagCollector(dxfversion=dxfpy.const.DXF2013, optional=True)
     proxy.export_dxf(collector)
     assert collector.tags == expected, "expected exact same DXF tags"
 

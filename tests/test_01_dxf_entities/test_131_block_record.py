@@ -1,9 +1,9 @@
 from io import StringIO
 
-import ezdxf
+import dxfpy
 
-from ezdxf.entities import BlockRecord
-from ezdxf.lldxf.tagwriter import TagCollector, TagWriter
+from dxfpy.entities import BlockRecord
+from dxfpy.lldxf.tagwriter import TagCollector, TagWriter
 
 
 BLOCK_RECORD_WITH_BLKREFS = """0
@@ -73,7 +73,7 @@ def test_loads_blkrefs_handles_from_block_record():
 
 
 def test_exports_blkrefs_handles_in_block_record_order():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new_anonymous_block(type_char="U")
     block.block_record.blkref_handles = ["59"]
 

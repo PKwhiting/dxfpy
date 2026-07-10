@@ -1,9 +1,9 @@
 # Copyright (c) 2021-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import zoom
-from ezdxf.math import ConstructionArc, BSpline
+import dxfpy
+from dxfpy import zoom
+from dxfpy.math import ConstructionArc, BSpline
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,7 +14,7 @@ if not CWD.exists():
 # from a SPLINE entity, assuming the SPLINE represents an ARC.
 # ------------------------------------------------------------------------------
 
-doc = ezdxf.new()
+doc = dxfpy.new()
 msp = doc.modelspace()
 
 # create the source ARC:
@@ -25,7 +25,7 @@ arc = msp.add_arc(
     end_angle=165,
     dxfattribs={
         "layer": "source arc",
-        "color": ezdxf.const.RED,
+        "color": dxfpy.const.RED,
     },
 )
 
@@ -34,7 +34,7 @@ arc = msp.add_arc(
 spline = msp.add_spline(
     dxfattribs={
         "layer": "B-Spline",
-        "color": ezdxf.const.YELLOW,
+        "color": dxfpy.const.YELLOW,
     }
 )
 # create a B-spline construction tool from ARC
@@ -63,7 +63,7 @@ arc_tool.add_to_layout(
     msp,
     dxfattribs={
         "layer": "recreated arc",
-        "color": ezdxf.const.MAGENTA,
+        "color": dxfpy.const.MAGENTA,
     },
 )
 
@@ -84,13 +84,13 @@ msp.add_spline(
     fit_points,
     dxfattribs={
         "layer": "foul B-spline",
-        "color": ezdxf.const.RED,
+        "color": dxfpy.const.RED,
     },
 )
 
 # add checkmarks
 for p in fit_points:
-    msp.add_circle(p, radius=0.03, dxfattribs={"color": ezdxf.const.RED})
+    msp.add_circle(p, radius=0.03, dxfattribs={"color": dxfpy.const.RED})
 
 zoom.objects(msp, [arc])
 doc.saveas(CWD / "arc_recreation.dxf")

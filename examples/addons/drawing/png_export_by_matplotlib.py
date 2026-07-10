@@ -1,11 +1,11 @@
 # Copyright (c) 2020-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 import matplotlib.pyplot as plt
-from ezdxf.addons.drawing import Frontend, RenderContext
-from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
-from ezdxf.math import global_bspline_interpolation
+from dxfpy.addons.drawing import Frontend, RenderContext
+from dxfpy.addons.drawing.matplotlib import MatplotlibBackend
+from dxfpy.math import global_bspline_interpolation
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -15,7 +15,7 @@ if not CWD.exists():
 # This example shows how to export the modelspace by the drawing add-on and the
 # Matplotlib backend.
 #
-# docs: https://ezdxf.mozman.at/docs/addons/drawing.html
+# docs: https://dxfpy.mozman.at/docs/addons/drawing.html
 # ------------------------------------------------------------------------------
 
 wave = [
@@ -31,7 +31,7 @@ wave = [
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     s = global_bspline_interpolation(wave)
     msp.add_spline(dxfattribs={"color": 2}).apply_construction_tool(s)

@@ -1,9 +1,9 @@
 #  Copyright (c) 2021-2022, Manfred Moitzi
 #  License: MIT License
 import pathlib
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.lldxf.types import dxftag
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.lldxf.types import dxftag
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -30,7 +30,7 @@ def add_graphic_entity_to_root_dict(doc: Drawing):
     # is the layout the entity resides in. A dictionary is also the owner of its
     # entries, which leads to conflict shown above.
     #
-    # Consequence: ezdxf v0.17 can not add graphical entities to dictionaries
+    # Consequence: dxfpy v0.17 can not add graphical entities to dictionaries
 
 
 def reference_graphic_entities_in_extension_dictionaries(doc):
@@ -54,7 +54,7 @@ def reference_graphic_entities_in_extension_dictionaries(doc):
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     add_graphic_entity_to_root_dict(doc)
     reference_graphic_entities_in_extension_dictionaries(doc)
     doc.saveas(CWD / "dictionary.dxf")

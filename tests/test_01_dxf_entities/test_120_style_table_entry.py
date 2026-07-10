@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.entities.textstyle import Textstyle, get_textstyle
-from ezdxf.entities import DXFEntity
+import dxfpy
+from dxfpy.entities.textstyle import Textstyle, get_textstyle
+from dxfpy.entities import DXFEntity
 
 
 @pytest.fixture
@@ -152,7 +152,7 @@ def test_malformed_layer():
 
 @pytest.fixture(scope="module")
 def msp():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     style = doc.styles.add("MyStyle", font="arial.ttf")
     style.dxf.width = 2
     style.dxf.oblique = 75

@@ -3,9 +3,9 @@
 #
 # Fixes ownership issues of DICTIONARY entities like in #1279.
 #
-from ezdxf import recover, DXFStructureError
-from ezdxf.version import version
-from ezdxf.entities import Dictionary
+from dxfpy import recover, DXFStructureError
+from dxfpy.version import version
+from dxfpy.entities import Dictionary
 
 DXF_FILE = "your.dxf"
 RECOVER_FILE = "recover.dxf"
@@ -34,7 +34,7 @@ def main(filename: str, recover_file: str):
         print(str(e))
         return
 
-    if version[:3] < (1, 4, 2):  # patch older versions of ezdxf
+    if version[:3] < (1, 4, 2):  # patch older versions of dxfpy
         patch_dictionary_hard_owned_flag()
 
     # set hard-owned-flag of the rootdict to 0

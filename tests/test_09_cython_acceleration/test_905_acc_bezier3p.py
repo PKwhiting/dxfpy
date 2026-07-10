@@ -6,10 +6,10 @@
 
 import pytest
 
-bezier = pytest.importorskip("ezdxf.acc.bezier3p")
+bezier = pytest.importorskip("dxfpy.acc.bezier3p")
 Bezier3P = bezier.Bezier3P
-from ezdxf.acc.vector import Vec3
-from ezdxf.acc.matrix44 import Matrix44
+from dxfpy.acc.vector import Vec3
+from dxfpy.acc.matrix44 import Matrix44
 
 # check functions:
 

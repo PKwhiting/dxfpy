@@ -4,15 +4,15 @@ import pytest
 import math
 import pickle
 
-# Import from 'ezdxf.math._vector' to test Python implementation
-from ezdxf.math._vector import Vec2, Vec3
-from ezdxf.acc import USE_C_EXT
+# Import from 'dxfpy.math._vector' to test Python implementation
+from dxfpy.math._vector import Vec2, Vec3
+from dxfpy.acc import USE_C_EXT
 
 all_vec_classes = [Vec2, Vec3]
 vec2_only = [Vec2]
 
 if USE_C_EXT:
-    from ezdxf.acc.vector import Vec2 as CVec2
+    from dxfpy.acc.vector import Vec2 as CVec2
 
     all_vec_classes.append(CVec2)
     vec2_only.append(CVec2)

@@ -2,14 +2,14 @@
 #  License: MIT License
 
 import pytest
-import ezdxf
-from ezdxf import explode
-from ezdxf.layouts import Modelspace
+import dxfpy
+from dxfpy import explode
+from dxfpy.layouts import Modelspace
 
 
 @pytest.fixture(scope="module")
 def msp() -> Modelspace:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     block = doc.blocks.new("BLK1")
     block.add_line((0, 0), (1, 0))
     return doc.modelspace()

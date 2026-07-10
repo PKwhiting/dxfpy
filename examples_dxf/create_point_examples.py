@@ -1,10 +1,10 @@
 # Copyright (c) 2020, Manfred Moitzi
 # License: MIT License
-import ezdxf
+import dxfpy
 
 
 def new_doc(pdmode: int, pdsize: float = 1):
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     doc.header["$PDMODE"] = pdmode
     doc.header["$PDSIZE"] = pdsize
     return doc

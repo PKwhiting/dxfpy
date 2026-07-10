@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import Sequence
 import pytest
 
-from ezdxf import edgeminer as em
-from ezdxf.math import Vec3, rtree
+from dxfpy import edgeminer as em
+from dxfpy.math import Vec3, rtree
 
 
 class TestBasicRequirements:

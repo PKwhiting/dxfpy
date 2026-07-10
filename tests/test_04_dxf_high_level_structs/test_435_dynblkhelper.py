@@ -1,12 +1,12 @@
 from io import StringIO
 
 import pytest
-import ezdxf
-from ezdxf.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.lldxf.tagwriter import TagWriter
-from ezdxf.math import Vec2
-from ezdxf.dynblkhelper import (
+import dxfpy
+from dxfpy.entities.dxfentity import RAW_TAGS_OVERRIDE_ATTRIBUTE
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.lldxf.tagwriter import TagWriter
+from dxfpy.math import Vec2
+from dxfpy.dynblkhelper import (
     _clone_non_attdef_entities,
     _clone_property_attdef,
     _new_tag_storage_object,
@@ -518,7 +518,7 @@ def attach_lookup_probe(block):
 
     linear_subclass = linear_entity.xtags.get_subclass("AcDbBlockLinearParameter")
     linear_subclass.clear()
-    from ezdxf.lldxf.types import dxftag
+    from dxfpy.lldxf.types import dxftag
 
     linear_subclass.extend(
         dxftag(code, value)
@@ -544,7 +544,7 @@ def attach_lookup_probe(block):
 
 
 def test_get_dynamic_block_visibility_parameter_and_state():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert(doc, "STATE_C")
 
     block = get_dynamic_block_definition(insert)
@@ -593,7 +593,7 @@ def test_get_dynamic_block_visibility_parameter_and_state():
 
 
 def test_get_dynamic_block_visibility_state_varies_per_insert():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert_a = make_dynamic_insert(doc, "STATE_A")
     insert_b = make_dynamic_insert(doc, "STATE_B")
 
@@ -602,7 +602,7 @@ def test_get_dynamic_block_visibility_state_varies_per_insert():
 
 
 def test_set_dynamic_block_visibility_state_updates_existing_autocad_cache_record():
-    doc = ezdxf.readzip("integration_tests/data/dynblks.zip", "dynblk1.dxf")
+    doc = dxfpy.readzip("integration_tests/data/dynblks.zip", "dynblk1.dxf")
     insert = list(doc.modelspace().query("INSERT"))[0]
     definition = get_dynamic_block_definition(insert)
 
@@ -620,20 +620,20 @@ def test_set_dynamic_block_visibility_state_updates_existing_autocad_cache_recor
 
 
 def test_set_dynamic_block_visibility_state_rejects_unknown_state():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert(doc, "STATE_A")
     definition = get_dynamic_block_definition(insert)
 
     assert definition is not None
     with pytest.raises(
-        ezdxf.lldxf.const.DXFValueError,
+        dxfpy.lldxf.const.DXFValueError,
         match="unknown dynamic block visibility state",
     ):
         set_dynamic_block_visibility_state(insert, definition, state="MISSING")
 
 
 def test_get_dynamic_block_visibility_entities_resolves_base_and_reference_entities():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert_with_entities(doc, "STATE_C")
 
     base = get_dynamic_block_definition(insert)
@@ -666,13 +666,13 @@ def test_get_dynamic_block_visibility_entities_resolves_base_and_reference_entit
 
 
 def test_dynamic_block_visibility_roundtrip_preserves_visibility_helpers():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     make_dynamic_insert_with_entities(doc, "STATE_A")
     make_dynamic_insert_with_entities(doc, "STATE_C")
 
     stream = StringIO()
     doc.write(stream)
-    loaded = ezdxf.read(StringIO(stream.getvalue()))
+    loaded = dxfpy.read(StringIO(stream.getvalue()))
     inserts = list(loaded.modelspace().query("INSERT"))
 
     assert get_dynamic_block_visibility_state(inserts[0]) == "STATE_A"
@@ -691,7 +691,7 @@ def test_dynamic_block_visibility_roundtrip_preserves_visibility_helpers():
 
 
 def test_dynamic_block_helpers_register_required_appids():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert(doc, "STATE_A")
 
     assert insert is not None
@@ -705,7 +705,7 @@ def test_dynamic_block_helpers_register_required_appids():
 
 
 def test_dynamic_block_reference_gets_xdict_and_blkrefs_appdata():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert(doc, "STATE_A")
     reference = get_dynamic_block_reference(insert)
 
@@ -715,7 +715,7 @@ def test_dynamic_block_reference_gets_xdict_and_blkrefs_appdata():
 
 
 def test_dynamic_block_visibility_state_accumulates_blkref_handles_for_shared_reference():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     base = doc.blocks.new("DYN_VIS_SHARED_REF")
     parameter = DynamicBlockVisibilityParameter(
@@ -741,7 +741,7 @@ def test_dynamic_block_visibility_state_accumulates_blkref_handles_for_shared_re
 
 
 def test_dynamic_block_visibility_writing_adds_required_classes():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     make_dynamic_insert(doc, "STATE_A")
 
     stream = StringIO()
@@ -755,7 +755,7 @@ def test_dynamic_block_visibility_writing_adds_required_classes():
     assert "AcDbBlockVisibilityGrip" in data
     assert "AcDbBlockRepresentationData" in data
 
-    loaded = ezdxf.read(StringIO(data))
+    loaded = dxfpy.read(StringIO(data))
     counts = {
         cls.dxf.name: cls.dxf.get("instance_count")
         for cls in loaded.classes
@@ -776,7 +776,7 @@ def test_dynamic_block_visibility_writing_adds_required_classes():
 
 
 def test_dynamic_block_linear_writing_adds_required_classes():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -829,7 +829,7 @@ def test_dynamic_block_linear_writing_adds_required_classes():
     assert "AcDbBlockLinearGrip" in data
     assert "AcDbBlockStretchAction" in data
 
-    loaded = ezdxf.read(StringIO(data))
+    loaded = dxfpy.read(StringIO(data))
     counts = {
         cls.dxf.name: cls.dxf.get("instance_count")
         for cls in loaded.classes
@@ -848,7 +848,7 @@ def test_dynamic_block_linear_writing_adds_required_classes():
 
 
 def test_dynamic_block_entities_get_block_rep_etag_xdata():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert_with_entities(doc, "STATE_B")
     base = get_dynamic_block_definition(insert)
     ref = get_dynamic_block_reference(insert)
@@ -864,7 +864,7 @@ def test_dynamic_block_entities_get_block_rep_etag_xdata():
 
 
 def test_dynamic_block_insert_enhanced_cache_sets_reactors():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert(doc, "STATE_A")
 
     rep = insert.get_extension_dict().dictionary.get("AcDbBlockRepresentation")
@@ -877,7 +877,7 @@ def test_dynamic_block_insert_enhanced_cache_sets_reactors():
 
 
 def test_basepoint_linear_insert_writes_extended_cache_records():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
@@ -968,7 +968,7 @@ def test_basepoint_linear_insert_writes_extended_cache_records():
 
 
 def test_dynamic_block_reference_propagates_nested_dynamic_insert_state_and_cache():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     child_insert = make_dynamic_insert_with_entities(doc, "STATE_B")
     child_base = get_dynamic_block_definition(child_insert)
     child_ref = get_dynamic_block_reference(child_insert)
@@ -1016,7 +1016,7 @@ def test_dynamic_block_reference_propagates_nested_dynamic_insert_state_and_cach
 
 
 def test_set_dynamic_block_base_point_parameter_creates_basepoint_only_graph():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     block = doc.blocks.new("DYN_BASEPOINT_ONLY")
     block.add_line((0, 0), (1, 0))
     set_dynamic_block_definition_metadata(
@@ -1044,7 +1044,7 @@ def test_set_dynamic_block_base_point_parameter_creates_basepoint_only_graph():
 
 
 def test_raw_dynamic_block_definition_snapshot_restore_preserves_supported_linear_shape():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -1135,7 +1135,7 @@ def test_raw_dynamic_block_definition_snapshot_restore_preserves_supported_linea
 
 
 def test_raw_dynamic_block_layout_restore_remaps_entity_and_xdata_handles_for_export():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     doc.appids.new("SELF_REF")
 
     source = doc.blocks.new("RAW_LAYOUT_SOURCE")
@@ -1161,9 +1161,9 @@ def test_raw_dynamic_block_layout_restore_remaps_entity_and_xdata_handles_for_ex
 
 
 def test_raw_dynamic_block_layout_snapshot_preserves_authored_mtext_column_xdata():
-    from ezdxf.entities.mtext import ColumnType, MTextColumns
+    from dxfpy.entities.mtext import ColumnType, MTextColumns
 
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     if "ACAD" not in doc.appids:
         doc.appids.new("ACAD")
 
@@ -1204,10 +1204,10 @@ def test_raw_dynamic_block_layout_snapshot_preserves_authored_mtext_column_xdata
 
 
 def test_raw_dynamic_block_layout_restore_preserves_multileader_proxy_payload():
-    from ezdxf.render.mleader import ConnectionSide
-    from ezdxf.lldxf.tagwriter import TagWriter
+    from dxfpy.render.mleader import ConnectionSide
+    from dxfpy.lldxf.tagwriter import TagWriter
 
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     block = doc.blocks.new("RAW_MLEADER_SOURCE")
     builder = block.add_multileader_mtext()
     builder.set_content("note")
@@ -1230,9 +1230,9 @@ def test_raw_dynamic_block_layout_restore_preserves_multileader_proxy_payload():
 
 
 def test_raw_dynamic_block_definition_restore_preserves_multileader_proxy_payload():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     block = doc.blocks.new("RAW_DEF_MLEADER_SOURCE")
     builder = block.add_multileader_mtext()
     builder.set_content("note")
@@ -1263,10 +1263,10 @@ def test_raw_dynamic_block_definition_restore_preserves_multileader_proxy_payloa
 
 
 def test_raw_dynamic_block_definition_restore_remaps_external_multileader_style_handles():
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
-    target_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
+    target_doc = dxfpy.new("R2010")
     target_style = target_doc.mleader_styles.get("Standard")
     assert target_style is not None
     assert target_doc.entitydb.reset_handle(target_style, "F1") is True
@@ -1321,9 +1321,9 @@ def test_owner_from_raw_tags_skips_reactor_handles():
 def test_raw_dynamic_block_layout_snapshot_uses_authored_file_text_when_available(
     tmp_path,
 ):
-    from ezdxf.render.mleader import ConnectionSide
+    from dxfpy.render.mleader import ConnectionSide
 
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     block = source_doc.blocks.new("RAW_FILE_TEXT_BLOCK")
     builder = block.add_multileader_mtext()
     builder.set_content("note")
@@ -1336,7 +1336,7 @@ def test_raw_dynamic_block_layout_snapshot_uses_authored_file_text_when_availabl
     text = text.replace("\n270\n2\n", "\n", 1)
     path.write_text(text, encoding="utf-8", errors="surrogateescape")
 
-    loaded = ezdxf.readfile(path)
+    loaded = dxfpy.readfile(path)
     loaded_block = loaded.blocks.get("RAW_FILE_TEXT_BLOCK")
     snapshot = snapshot_raw_dynamic_block_layout(loaded_block)
     entity_text = next(entry[0] for entry in snapshot[1] if "MULTILEADER" in entry[0])
@@ -1345,7 +1345,7 @@ def test_raw_dynamic_block_layout_snapshot_uses_authored_file_text_when_availabl
 
 
 def test_dynamic_block_visibility_descendant_authoring_is_rejected():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     child_insert = make_dynamic_insert_with_entities(doc, "STATE_A")
     child_ref = get_dynamic_block_reference(child_insert)
 
@@ -1360,7 +1360,7 @@ def test_dynamic_block_visibility_descendant_authoring_is_rejected():
     parent_line = parent_base.add_line((0, 0), (20, 0))
     parent_base.add_blockref(child_ref.name, (40, 0))
     with pytest.raises(
-        ezdxf.lldxf.const.DXFValueError,
+        dxfpy.lldxf.const.DXFValueError,
         match="nested dynamic block visibility descendants are not supported",
     ):
         set_dynamic_block_visibility_parameter(
@@ -1383,7 +1383,7 @@ def test_dynamic_block_visibility_descendant_authoring_is_rejected():
 
 
 def test_set_dynamic_block_linear_parameter_rejects_nested_descendant_targets():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     child_insert = make_dynamic_insert_with_entities(doc, "STATE_A")
     child_ref = get_dynamic_block_reference(child_insert)
     parent_insert = make_dynamic_properties_insert(doc)
@@ -1445,14 +1445,14 @@ def test_set_dynamic_block_linear_parameter_rejects_nested_descendant_targets():
         ),
     )
     with pytest.raises(
-        ezdxf.lldxf.const.DXFValueError,
+        dxfpy.lldxf.const.DXFValueError,
         match="nested dynamic block linear descendant targets are not supported",
     ):
         set_dynamic_block_linear_parameter(parent_base, linear, action)
 
 
 def test_dynamic_block_writer_applies_invisible_mask_to_default_and_active_states():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert_with_entities(doc, "STATE_C")
 
     base = doc.blocks.get("DYN_VIS_PROBE_BASE_ENTS")
@@ -1471,7 +1471,7 @@ def test_dynamic_block_writer_applies_invisible_mask_to_default_and_active_state
 
 
 def test_dynamic_block_properties_writer_adds_visibility_only_support_blocks():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
 
     assert insert is not None
@@ -1485,7 +1485,7 @@ def test_dynamic_block_properties_writer_adds_visibility_only_support_blocks():
 
 
 def test_get_dynamic_block_properties_table_reads_columns_rows_and_grip_location():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
 
     table = get_dynamic_block_properties_table(insert)
@@ -1516,7 +1516,7 @@ def test_get_dynamic_block_properties_table_reads_columns_rows_and_grip_location
 
 
 def test_dynamic_block_property_column_and_row_helpers():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
 
     columns = get_dynamic_block_property_columns(insert)
@@ -1530,7 +1530,7 @@ def test_dynamic_block_property_column_and_row_helpers():
 
 
 def test_dynamic_block_properties_writer_adds_attdef_support_metadata():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = doc.blocks.get("DYN_PROP_PROBE_BASE")
 
@@ -1547,7 +1547,7 @@ def test_dynamic_block_properties_writer_adds_attdef_support_metadata():
 
 
 def test_dynamic_block_properties_writer_clones_attdefs_into_active_reference():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     table = get_dynamic_block_properties_table(insert)
     ref = get_dynamic_block_reference(insert)
@@ -1561,7 +1561,7 @@ def test_dynamic_block_properties_writer_clones_attdefs_into_active_reference():
 
 
 def test_dynamic_block_reference_preserves_invisible_property_attdefs():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -1578,7 +1578,7 @@ def test_dynamic_block_reference_preserves_invisible_property_attdefs():
 
 
 def test_dynamic_block_reference_preserves_missing_context_record_for_preexisting_attdefs():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     base = doc.blocks.new("DYN_REF_ATTDEF_CONTEXT")
     base.add_line((0, 0), (1, 0))
     base_attdef = base.add_attdef("X", insert=(0, 0), text="Block Table1", dxfattribs={"flags": 1, "invisible": 1})
@@ -1621,7 +1621,7 @@ def test_dynamic_block_reference_preserves_missing_context_record_for_preexistin
 
 
 def test_dynamic_block_properties_writer_marks_property_graph_links():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
     table = get_dynamic_block_properties_table(insert)
@@ -1639,7 +1639,7 @@ def test_dynamic_block_properties_writer_marks_property_graph_links():
 
 
 def test_dynamic_block_properties_writer_hides_attdefs_for_nondefault_state():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = doc.blocks.get("DYN_PROP_PROBE_BASE")
     ref = get_dynamic_block_reference(insert)
@@ -1653,7 +1653,7 @@ def test_dynamic_block_properties_writer_hides_attdefs_for_nondefault_state():
 
 
 def test_dynamic_block_properties_writer_root_assocnetwork_is_direct():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
 
     assert insert is not None
@@ -1666,7 +1666,7 @@ def test_dynamic_block_properties_writer_root_assocnetwork_is_direct():
 
 
 def test_dynamic_block_properties_writer_sets_table_reactors_on_hidden_carriers():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     table = get_dynamic_block_properties_table(insert)
     reps = [rep for rep in get_dynamic_block_property_representations(insert) if not rep.is_active]
@@ -1681,7 +1681,7 @@ def test_dynamic_block_properties_writer_sets_table_reactors_on_hidden_carriers(
 
 
 def test_dynamic_block_property_assoc_networks_are_empty_for_minimal_authored_fixture():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
 
     networks = get_dynamic_block_property_assoc_networks(insert)
@@ -1694,7 +1694,7 @@ def test_dynamic_block_property_assoc_networks_are_empty_for_minimal_authored_fi
 
 
 def test_dynamic_block_property_representations_include_active_blocks():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
 
     reps = get_dynamic_block_property_representations(insert)
@@ -1708,7 +1708,7 @@ def test_dynamic_block_property_representations_include_active_blocks():
 
 
 def test_dynamic_block_property_representation_families_group_by_signature():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
 
     families = get_dynamic_block_property_representation_families(insert)
@@ -1731,7 +1731,7 @@ def test_dynamic_block_property_representation_families_group_by_signature():
 
 
 def test_dynamic_block_properties_editor_support_rerun_replaces_hidden_support():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
     table = get_dynamic_block_properties_table(base)
@@ -1754,7 +1754,7 @@ def test_dynamic_block_properties_editor_support_rerun_replaces_hidden_support()
 
 
 def test_get_dynamic_block_linear_parameters_and_grips_reads_linear_stack():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -1786,7 +1786,7 @@ def test_get_dynamic_block_linear_parameters_and_grips_reads_linear_stack():
 
 
 def test_get_dynamic_block_stretch_actions_reads_targets_and_selection_window():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -1812,7 +1812,7 @@ def test_get_dynamic_block_stretch_actions_reads_targets_and_selection_window():
 
 
 def test_get_dynamic_block_lookup_parameters_and_grips_reads_lookup_stack():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -1850,7 +1850,7 @@ def test_get_dynamic_block_lookup_parameters_and_grips_reads_lookup_stack():
 
 
 def test_get_dynamic_block_lookup_actions_reads_entries_and_bindings():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -1902,7 +1902,7 @@ def test_get_dynamic_block_lookup_actions_reads_entries_and_bindings():
 
 
 def test_set_dynamic_block_linear_parameter_patches_graph_and_visibility():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -1987,7 +1987,7 @@ def test_set_dynamic_block_linear_parameter_patches_graph_and_visibility():
 
 
 def test_set_dynamic_block_properties_table_preserves_existing_linear_parameter():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -2062,7 +2062,7 @@ def test_set_dynamic_block_properties_table_preserves_existing_linear_parameter(
 
 
 def test_set_dynamic_block_linear_parameter_rejects_second_linear_parameter():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -2093,12 +2093,12 @@ def test_set_dynamic_block_linear_parameter_rejects_second_linear_parameter():
     )
     set_dynamic_block_linear_parameter(base, parameter, action)
 
-    with pytest.raises(ezdxf.DXFValueError):
+    with pytest.raises(dxfpy.DXFValueError):
         set_dynamic_block_linear_parameter(base, parameter, action)
 
 
 def test_set_dynamic_block_base_point_parameter_roundtrip_helper():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -2124,7 +2124,7 @@ def test_set_dynamic_block_base_point_parameter_roundtrip_helper():
 
 
 def test_set_dynamic_block_base_point_parameter_patches_visibility_only_graph():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_insert(doc, "STATE_A")
     base = get_dynamic_block_definition(insert)
 
@@ -2176,7 +2176,7 @@ def test_set_dynamic_block_base_point_parameter_patches_visibility_only_graph():
 
 
 def test_set_dynamic_block_linear_parameter_uses_basepoint_branch_when_present():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -2295,7 +2295,7 @@ def test_set_dynamic_block_linear_parameter_uses_basepoint_branch_when_present()
 
 
 def test_basepoint_linear_branch_normalizes_simple_line_targets_like_working_file():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -2370,7 +2370,7 @@ def test_basepoint_linear_branch_normalizes_simple_line_targets_like_working_fil
 
 
 def test_set_dynamic_block_linear_parameter_preserves_explicit_grip_location():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -2423,7 +2423,7 @@ def test_set_dynamic_block_linear_parameter_preserves_explicit_grip_location():
 
 
 def test_dynamic_block_visibility_state_preserves_invisible_property_attdefs_for_linear_blocks():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
@@ -2501,7 +2501,7 @@ def test_dynamic_block_visibility_state_preserves_invisible_property_attdefs_for
 
 
 def test_set_dynamic_block_linear_parameter_keeps_property_attdefs_out_of_visibility_states():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -2566,7 +2566,7 @@ def test_set_dynamic_block_linear_parameter_keeps_property_attdefs_out_of_visibi
 
 
 def test_set_dynamic_block_lookup_parameter_patches_graph_and_linear_values():
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     insert = make_dynamic_properties_insert(doc)
     base = get_dynamic_block_definition(insert)
 
@@ -2704,7 +2704,7 @@ def test_set_dynamic_block_lookup_parameter_patches_graph_and_linear_values():
 
 
 def test_restore_raw_entity_export_replays_insert_attached_attrib_context_data():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_block = source_doc.blocks.new("SRC")
     source_insert = source_block.add_blockref("TARGET", (1, 2))
     source_attrib = source_insert.add_attrib("TAG", "TEXT", insert=(3, 4))
@@ -2716,7 +2716,7 @@ def test_restore_raw_entity_export_replays_insert_attached_attrib_context_data()
 
     assert len(snapshot.attached_entity_snapshots) == 2
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     target_block = target_doc.blocks.new("SRC")
     target_insert = target_block.add_blockref("TARGET", (1, 2))
     target_insert.add_attrib("TAG", "TEXT", insert=(3, 4))
@@ -2737,7 +2737,7 @@ def test_restore_raw_entity_export_replays_insert_attached_attrib_context_data()
 
 
 def test_restore_raw_dynamic_block_layout_replays_insert_attached_attrib_context_data():
-    source_doc = ezdxf.new("R2010")
+    source_doc = dxfpy.new("R2010")
     source_block = source_doc.blocks.new("SRC_LAYOUT")
     source_insert = source_block.add_blockref("TARGET", (1, 2))
     source_attrib = source_insert.add_attrib("TAG", "TEXT", insert=(3, 4))
@@ -2747,7 +2747,7 @@ def test_restore_raw_dynamic_block_layout_replays_insert_attached_attrib_context
     mgr.add_new_dict("ACDB_ANNOTATIONSCALES")
     snapshot = snapshot_raw_dynamic_block_layout(source_block)
 
-    target_doc = ezdxf.new("R2010")
+    target_doc = dxfpy.new("R2010")
     target_block = target_doc.blocks.new("SRC_LAYOUT")
 
     restore_raw_dynamic_block_layout(target_block, snapshot)

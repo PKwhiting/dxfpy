@@ -3,11 +3,11 @@
 import pytest
 from io import StringIO
 
-import ezdxf
-from ezdxf.entities.dimstyle import DimStyle
-from ezdxf.document import Drawing
-from ezdxf.lldxf.const import DXF12
-from ezdxf.lldxf.tagwriter import TagCollector, TagWriter
+import dxfpy
+from dxfpy.entities.dimstyle import DimStyle
+from dxfpy.document import Drawing
+from dxfpy.lldxf.const import DXF12
+from dxfpy.lldxf.tagwriter import TagCollector, TagWriter
 
 TEXT_STYLE = "TextStyle"
 
@@ -82,9 +82,9 @@ def test_set_text_format(dimstyle):
 
 @pytest.fixture(scope="module")
 def dimstyle2():
-    import ezdxf
+    import dxfpy
 
-    doc = ezdxf.new("R2007", setup=("linetypes",))
+    doc = dxfpy.new("R2007", setup=("linetypes",))
     doc.blocks.new("left_arrow")
     doc.blocks.new("right_arrow")
     doc.blocks.new("TestArrow")
@@ -114,7 +114,7 @@ def test_handle_export(dimstyle2):
 
 
 def test_resource_handles_export_R2000():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     setup_doc(doc)
     dimstyle = doc.dimstyles.add("MyStyle")
     dimstyle.set_arrows("arrow", "left_arrow", "right_arrow", "arrow")
@@ -138,7 +138,7 @@ def test_text_stream_for_resource_handles_R2000():
     s = StringIO()
     t = TagWriter(s)
 
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     setup_doc(doc)
     dimstyle = doc.dimstyles.add("MyStyle")
     dimstyle.set_arrows("arrow", "left_arrow", "right_arrow", "arrow")

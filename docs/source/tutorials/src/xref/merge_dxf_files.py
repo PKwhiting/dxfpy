@@ -1,13 +1,13 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
-import ezdxf
-from ezdxf import colors, transform, xref
-from ezdxf.math import Matrix44
-from ezdxf.render import forms
+import dxfpy
+from dxfpy import colors, transform, xref
+from dxfpy.math import Matrix44
+from dxfpy.render import forms
 
 
 def make_gear(name: str) -> None:
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("GEAR", color=colors.YELLOW)
     msp = doc.modelspace()
     gear = forms.gear(
@@ -18,9 +18,9 @@ def make_gear(name: str) -> None:
 
 
 make_gear("gear.dxf")
-merged_doc = ezdxf.new()
+merged_doc = dxfpy.new()
 for index in range(3):
-    sdoc = ezdxf.readfile("gear.dxf")  # this could be different DXF files
+    sdoc = dxfpy.readfile("gear.dxf")  # this could be different DXF files
     transform.inplace(sdoc.modelspace(), Matrix44.translate(index * 10, 0, 0))
     xref.load_modelspace(sdoc, merged_doc)
 merged_doc.saveas("merged.dxf")

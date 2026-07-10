@@ -20,10 +20,10 @@ from __future__ import annotations
 from collections.abc import Iterator
 from pathlib import Path
 
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.entities import Field
-from ezdxf.math import Vec2
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.entities import Field
+from dxfpy.math import Vec2
 
 OUT = Path("~/Desktop/Outbox").expanduser()
 
@@ -33,7 +33,7 @@ class FieldDemoBuilder:
 
     def __init__(self) -> None:
         """Initialize the demo document and modelspace."""
-        self.doc = ezdxf.new("R2018")
+        self.doc = dxfpy.new("R2018")
         self.msp = self.doc.modelspace()
         self.line = self.msp.add_line((0, 20), (10, 20))
         self.circle = self.msp.add_circle((5, 8), radius=3)

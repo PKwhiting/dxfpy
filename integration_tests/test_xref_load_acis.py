@@ -2,35 +2,35 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-import ezdxf.xref
-from ezdxf.document import Drawing
-from ezdxf.entities import Solid3d
-from ezdxf.render import forms
+import dxfpy
+import dxfpy.xref
+from dxfpy.document import Drawing
+from dxfpy.entities import Solid3d
+from dxfpy.render import forms
 
 
 def source_doc_R2007() -> Drawing:
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     msp = doc.modelspace()
     forms.cube().render_3dsolid(msp)
     return doc
 
 
 def source_doc_R2013() -> Drawing:
-    doc = ezdxf.new("R2013")
+    doc = dxfpy.new("R2013")
     msp = doc.modelspace()
     forms.cube().render_3dsolid(msp)
     return doc
 
 
 def test_load_acis_from_R2007():
-    target_doc = ezdxf.new("R2007")
+    target_doc = dxfpy.new("R2007")
     source_doc = source_doc_R2007()
     source_msp = source_doc.modelspace()
     source_cube = source_msp[0]
     assert isinstance(source_cube, Solid3d)
 
-    ezdxf.xref.load_modelspace(source_doc, target_doc)
+    dxfpy.xref.load_modelspace(source_doc, target_doc)
 
     target_msp = target_doc.modelspace()
     loaded_cube = target_msp[0]
@@ -39,13 +39,13 @@ def test_load_acis_from_R2007():
 
 
 def test_load_acis_from_R2013():
-    target_doc = ezdxf.new("R2013")
+    target_doc = dxfpy.new("R2013")
     source_doc = source_doc_R2013()
     source_msp = source_doc.modelspace()
     source_cube = source_msp[0]
     assert isinstance(source_cube, Solid3d)
 
-    ezdxf.xref.load_modelspace(source_doc, target_doc)
+    dxfpy.xref.load_modelspace(source_doc, target_doc)
 
     target_msp = target_doc.modelspace()
     loaded_cube = target_msp[0]
@@ -56,10 +56,10 @@ def test_load_acis_from_R2013():
 
 
 def test_load_acis_from_2007_into_2013():
-    target_doc = ezdxf.new("R2013")  # SAB
+    target_doc = dxfpy.new("R2013")  # SAB
 
     source_doc = source_doc_R2007()
-    ezdxf.xref.load_modelspace(source_doc, target_doc)
+    dxfpy.xref.load_modelspace(source_doc, target_doc)
 
     target_msp = target_doc.modelspace()
     loaded_cube = target_msp[0]
@@ -69,10 +69,10 @@ def test_load_acis_from_2007_into_2013():
 
 
 def test_load_acis_from_2013_into_2007():
-    target_doc = ezdxf.new("R2007")  # SAT
+    target_doc = dxfpy.new("R2007")  # SAT
 
     source_doc = source_doc_R2013()
-    ezdxf.xref.load_modelspace(source_doc, target_doc)
+    dxfpy.xref.load_modelspace(source_doc, target_doc)
 
     target_msp = target_doc.modelspace()
     loaded_cube = target_msp[0]

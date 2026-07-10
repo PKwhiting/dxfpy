@@ -1,9 +1,9 @@
 # Copyright (c) 2020-2021, Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.layouts import VirtualLayout
-from ezdxf import audit
+import dxfpy
+from dxfpy.layouts import VirtualLayout
+from dxfpy import audit
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def layout():
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new()
+    return dxfpy.new()
 
 
 def test_add_simple_entities(layout):

@@ -1,8 +1,8 @@
 # Copyright (c) 2019-2022, Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import colors
+import dxfpy
+from dxfpy import colors
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,18 +11,18 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # This example shows all supported arrow heads.
 #
-# docs: https://ezdxf.mozman.at/docs/render/arrows.html
+# docs: https://dxfpy.mozman.at/docs/render/arrows.html
 # ------------------------------------------------------------------------------
 
 
 def main():
-    doc = ezdxf.new("R2007", setup=True)
+    doc = dxfpy.new("R2007", setup=True)
     msp = doc.modelspace()
     red = {"color": colors.RED}
     white = {"color": colors.WHITE}
     y = 0
 
-    for index, name in enumerate(sorted(ezdxf.ARROWS.__all_arrows__)):
+    for index, name in enumerate(sorted(dxfpy.ARROWS.__all_arrows__)):
         if name == "":
             label = '"" = closed filled'
         else:

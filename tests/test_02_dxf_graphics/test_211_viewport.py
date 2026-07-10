@@ -2,12 +2,12 @@
 # License: MIT License
 import pytest
 
-import ezdxf
-from ezdxf.entities.viewport import Viewport
-from ezdxf.lldxf.extendedtags import ExtendedTags, DXFTag
-from ezdxf.lldxf.const import DXF12, DXF2000
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Z_AXIS
+import dxfpy
+from dxfpy.entities.viewport import Viewport
+from dxfpy.lldxf.extendedtags import ExtendedTags, DXFTag
+from dxfpy.lldxf.const import DXF12, DXF2000
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Z_AXIS
 
 TEST_CLASS = Viewport
 TEST_TYPE = "VIEWPORT"
@@ -215,7 +215,7 @@ def entity(request):
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert TEST_TYPE in ENTITY_CLASSES
 
@@ -296,7 +296,7 @@ def test_write_dxf_r12():
 
 
 def test_post_load_hook_resolves_frozen_layer_handles_into_names():
-    doc = ezdxf.new("R2000")
+    doc = dxfpy.new("R2000")
     l1 = doc.layers.new("Layer1")
     l2 = doc.layers.new("Layer2")
     handles = [l1.dxf.handle, l2.dxf.handle]

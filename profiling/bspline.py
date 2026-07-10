@@ -6,11 +6,11 @@ from datetime import datetime
 from pathlib import Path
 import numpy as np
 
-from ezdxf.acc import USE_C_EXT
-from ezdxf.version import __version__
+from dxfpy.acc import USE_C_EXT
+from dxfpy.version import __version__
 
 # Python implementations:
-from ezdxf.math._bspline import Basis, Evaluator
+from dxfpy.math._bspline import Basis, Evaluator
 
 if USE_C_EXT is False:
     print("C-extension disabled or not available. (pypy3?)")
@@ -19,10 +19,10 @@ if USE_C_EXT is False:
     CEvaluator = Evaluator
 else:
     # Cython implementations:
-    from ezdxf.acc.bspline import Basis as CBasis, Evaluator as CEvaluator
+    from dxfpy.acc.bspline import Basis as CBasis, Evaluator as CEvaluator
 
-from ezdxf.render import random_3d_path
-from ezdxf.math import fit_points_to_cad_cv
+from dxfpy.render import random_3d_path
+from dxfpy.math import fit_points_to_cad_cv
 
 SPLINE_COUNT = 20
 POINT_COUNT = 20
@@ -67,7 +67,7 @@ def open_log(name: str):
         with open(p, mode="wt") as fp:
             fp.write(
                 '"timestamp"; "pytime"; "cytime"; '
-                '"python_version"; "ezdxf_version"\n'
+                '"python_version"; "dxfpy_version"\n'
             )
     log_file = open(p, mode="at")
     return log_file

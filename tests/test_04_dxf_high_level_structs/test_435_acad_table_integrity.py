@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from io import StringIO
 
-import ezdxf
-from ezdxf.document import Drawing
-from ezdxf.entities import DXFEntity, Field, MText, XRecord
-from ezdxf.entities.acad_table import (
+import dxfpy
+from dxfpy.document import Drawing
+from dxfpy.entities import DXFEntity, Field, MText, XRecord
+from dxfpy.entities.acad_table import (
     AcadTableBlockContent,
     AcadTableCell,
     AcadTableData,
@@ -15,9 +15,9 @@ from ezdxf.entities.acad_table import (
     TableContent,
     TableGeometry,
 )
-from ezdxf.layouts import BlockLayout
-from ezdxf.lldxf.tags import DXFTag
-from ezdxf.lldxf.tagwriter import TagCollector
+from dxfpy.layouts import BlockLayout
+from dxfpy.lldxf.tags import DXFTag
+from dxfpy.lldxf.tagwriter import TagCollector
 
 
 @dataclass(frozen=True)
@@ -339,7 +339,7 @@ class AcadTableIntegrityInspector:
 
 
 def test_text_only_acad_table_integrity_survives_roundtrip() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = doc.modelspace().add_table(
         (1, 2),
         [["TITLE", "STATUS"], ["HEADER", "VALUE"], ["DATA", "OK"]],
@@ -359,7 +359,7 @@ def test_text_only_acad_table_integrity_survives_roundtrip() -> None:
 
 
 def test_mixed_field_and_block_table_integrity_survives_roundtrip() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = build_mixed_roundtrip_table(doc)
 
     inspector = AcadTableIntegrityInspector(doc, table)
@@ -380,7 +380,7 @@ def test_mixed_field_and_block_table_integrity_survives_roundtrip() -> None:
 
 
 def test_acexpr_field_children_survive_later_table_rebuilds() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     msp = doc.modelspace()
     line = msp.add_line((0, 0), (10, 0))
     circle = msp.add_circle((25, 0), 2.5)
@@ -419,7 +419,7 @@ def test_acexpr_field_children_survive_later_table_rebuilds() -> None:
 
 
 def test_attributed_block_cell_linked_integrity_survives_roundtrip() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = build_mixed_roundtrip_table(doc)
     values = block_attribute_expectation(doc, "TABLE_INTEGRITY_BLOCK")
 
@@ -438,7 +438,7 @@ def test_attributed_block_cell_linked_integrity_survives_roundtrip() -> None:
 
 
 def test_linked_block_cell_content_omits_rejected_scale_alignment_tags() -> None:
-    doc = ezdxf.new("R2018")
+    doc = dxfpy.new("R2018")
     table = build_mixed_roundtrip_table(doc)
 
     codes = exported_block_cell_content_codes(table)
@@ -584,4 +584,4 @@ def roundtrip(doc: Drawing) -> Drawing:
     """Returns a document loaded from its DXF text representation."""
     stream = StringIO()
     doc.write(stream)
-    return ezdxf.read(StringIO(stream.getvalue()))
+    return dxfpy.read(StringIO(stream.getvalue()))

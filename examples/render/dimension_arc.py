@@ -3,14 +3,14 @@
 from typing import Optional
 import pathlib
 import math
-import ezdxf
-from ezdxf.math import Vec3, UCS, ConstructionArc
+import dxfpy
+from dxfpy.math import Vec3, UCS, ConstructionArc
 import logging
 
 # ------------------------------------------------------------------------------
 # This example shows how to use arc dimension.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/arc_dimension.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/arc_dimension.html
 # ------------------------------------------------------------------------------
 
 logging.basicConfig(level="WARNING")
@@ -24,9 +24,9 @@ if not CWD.exists():
 # Default text attributes:
 TEXT_ATTRIBS = {
     "height": 0.25,
-    "style": ezdxf.options.default_dimension_text_style,
+    "style": dxfpy.options.default_dimension_text_style,
 }
-DIM_TEXT_STYLE = ezdxf.options.default_dimension_text_style
+DIM_TEXT_STYLE = dxfpy.options.default_dimension_text_style
 
 # Discarding the dimension rendering is possible for BricsCAD,
 # but it is incompatible to AutoCAD -> error
@@ -56,7 +56,7 @@ def arc_cra_default(
     show_angle=True,
     override: dict = None,
 ):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     radius = 5
     data = [
@@ -107,7 +107,7 @@ def arc_cra_default(
             # DIMENSION entity, they are just used to render the DIMENSION entity.
             # The return value `dim` is not a DIMENSION entity, instead a
             # DimStyleOverride object is returned, the DIMENSION entity is stored
-            # as dim.dimension, see also ezdxf.override.DimStyleOverride class.
+            # as dim.dimension, see also dxfpy.override.DimStyleOverride class.
             dim.render(discard=BRICSCAD)
 
     doc.set_modelspace_vport(height=70)
@@ -169,7 +169,7 @@ def arc_cra_default_inside_fixed_extension_length():
 
 
 def arc_3p_default(distance: float = 2.0):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     radius = 5
     data = [
@@ -208,7 +208,7 @@ def arc_3p_default(distance: float = 2.0):
 
 
 def dim_arc_3d():
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
 
     for center, radius, sa, ea, distance in [[Vec3(0, 0), 5, 60, 90, 2]]:
@@ -227,7 +227,7 @@ def dim_arc_3d():
 
 
 def arc_units_tol_limits():
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     radius = 5
     distance = 2
@@ -292,7 +292,7 @@ def add_arc_dim(
 
 
 def measure_fixed_angle(angle: float):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     x_dist = 15
     for dimtad, y_dist in [[0, 0], [1, 20], [4, 40]]:
@@ -313,7 +313,7 @@ def measure_fixed_angle(angle: float):
 
 
 def usr_location_absolute(angle: float, rotation: float = None):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     x_dist = 15
     radius = 3.0
@@ -351,7 +351,7 @@ def usr_location_absolute(angle: float, rotation: float = None):
 
 
 def usr_location_relative(angle: float, rotation: float = None):
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     x_dist = 10
     radius = 3.0
@@ -387,11 +387,11 @@ def usr_location_relative(angle: float, rotation: float = None):
 
 
 def show_all_arrow_heads():
-    doc = ezdxf.new(DXFVERSION, setup=True)
+    doc = dxfpy.new(DXFVERSION, setup=True)
     msp = doc.modelspace()
     x_dist = 4.0
     y_dist = 5.0
-    for x, arrow_name in enumerate(sorted(ezdxf.ARROWS.__all_arrows__)):
+    for x, arrow_name in enumerate(sorted(dxfpy.ARROWS.__all_arrows__)):
         for y, angle in enumerate((3.0, 30.0)):
             center = Vec3(x * x_dist, y * y_dist)
             dim = add_arc_dim(

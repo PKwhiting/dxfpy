@@ -2,14 +2,14 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.math import Vec2, BoundingBox2d
-from ezdxf.math.clipping import (
+from dxfpy.math import Vec2, BoundingBox2d
+from dxfpy.math.clipping import (
     greiner_hormann_union,
     greiner_hormann_difference,
     greiner_hormann_intersection,
     line_intersection,
 )
-from ezdxf.render.forms import circle
+from dxfpy.render.forms import circle
 
 
 class TestLineIntersection:

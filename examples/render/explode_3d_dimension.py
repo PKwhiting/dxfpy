@@ -2,15 +2,15 @@
 #  License: MIT License
 import pathlib
 import math
-import ezdxf
-from ezdxf.math import UCS, Vec3
-from ezdxf.layouts import Modelspace
+import dxfpy
+from dxfpy.math import UCS, Vec3
+from dxfpy.layouts import Modelspace
 
 # ------------------------------------------------------------------------------
 # This example shows how to create a dimension in 3d space and as addition how
 # to explode this dimension.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/angular_dimension.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/angular_dimension.html
 # ------------------------------------------------------------------------------
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
@@ -19,7 +19,7 @@ if not CWD.exists():
 
 
 def make_doc():
-    doc = ezdxf.new(setup=True)
+    doc = dxfpy.new(setup=True)
     msp = doc.modelspace()
     base = Vec3(0, 5)
     p1 = Vec3(-4, 3)

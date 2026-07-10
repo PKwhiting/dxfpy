@@ -3,11 +3,11 @@
 from __future__ import unicode_literals
 import pytest
 import os
-import ezdxf
+import dxfpy
 
 
 def test_complex_line_type(tmpdir):
-    dwg = ezdxf.new("R2018")  # DXF R13 or later is required
+    dwg = dxfpy.new("R2018")  # DXF R13 or later is required
     dwg.linetypes.new(
         "GASLEITUNG2",
         dxfattribs={
@@ -26,7 +26,7 @@ def test_complex_line_type(tmpdir):
             "length": 1.45,  # required for complex line types
             # line type definition in acadlt.lin:
             # A,.25,-.1,[BOX,ltypeshp.shx,x=-.1,s=.1],-.1,1
-            # replacing BOX by shape index 132 (got index from an AutoCAD file), ezdxf can't get shape index from ltypeshp.shx
+            # replacing BOX by shape index 132 (got index from an AutoCAD file), dxfpy can't get shape index from ltypeshp.shx
             "pattern": "A,.25,-.1,[132,ltypeshp.shx,x=-.1,s=.1],-.1,1",
         },
     )
@@ -38,7 +38,7 @@ def test_complex_line_type(tmpdir):
     filename = str(tmpdir.join("complex_line_type_%s.dxf" % dwg.dxfversion))
     try:
         dwg.saveas(filename)
-    except ezdxf.DXFError as e:
+    except dxfpy.DXFError as e:
         pytest.fail(
             "DXFError: {0} for DXF version {1}".format(str(e), dwg.dxfversion)
         )

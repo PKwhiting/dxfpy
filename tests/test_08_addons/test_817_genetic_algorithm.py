@@ -3,8 +3,8 @@
 import random
 
 import pytest
-from ezdxf.addons import genetic_algorithm as ga
-from ezdxf.addons import binpacking as bp
+from dxfpy.addons import genetic_algorithm as ga
+from dxfpy.addons import binpacking as bp
 
 
 class TestFloatDNAZeroOne:

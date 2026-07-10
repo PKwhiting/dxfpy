@@ -2,7 +2,7 @@
 # License: MIT License
 import pathlib
 import random
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,7 +12,7 @@ if not CWD.exists():
 # This example shows how to add block references and automatically create ATTRIB
 # entities from ATTDEF templates.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/blocks.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/blocks.html
 # ------------------------------------------------------------------------------
 
 
@@ -27,7 +27,7 @@ FLAG_SYMBOL = [(0, 0), (0, 5), (4, 3), (0, 3)]
 
 
 def main():
-    doc = ezdxf.new("R2007")
+    doc = dxfpy.new("R2007")
     doc.layers.add("FLAGS")
     msp = doc.modelspace()
 

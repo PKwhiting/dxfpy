@@ -1,12 +1,12 @@
 # Copyright (c) 2019-2024 Manfred Moitzi
 # License: MIT License
 import pytest
-import ezdxf
-from ezdxf.layouts import Modelspace
-from ezdxf.entities.mesh import Mesh
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
-from ezdxf.math import Vec3, Matrix44
-from ezdxf.audit import Auditor
+import dxfpy
+from dxfpy.layouts import Modelspace
+from dxfpy.entities.mesh import Mesh
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.math import Vec3, Matrix44
+from dxfpy.audit import Auditor
 
 MESH = """0
 MESH
@@ -45,7 +45,7 @@ def entity():
 
 
 def test_registered():
-    from ezdxf.entities.factory import ENTITY_CLASSES
+    from dxfpy.entities.factory import ENTITY_CLASSES
 
     assert "MESH" in ENTITY_CLASSES
 
@@ -93,7 +93,7 @@ def test_export_without_vertices_or_faces():
 
 @pytest.fixture(scope="module")
 def doc():
-    return ezdxf.new("R2000")
+    return dxfpy.new("R2000")
 
 
 @pytest.fixture(scope="module")
@@ -203,7 +203,7 @@ def test_auditor_fixes_invalid_crease_count(msp: Modelspace):
 
 def test_auditor_destroys_invalid_meshes_without_vertices_or_faces():
     # new document required
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     msp = doc.modelspace()
     # add a mesh without vertices or faces
     mesh = msp.add_mesh()
@@ -216,7 +216,7 @@ def test_auditor_destroys_invalid_meshes_without_vertices_or_faces():
 def test_vertex_format(msp: Modelspace):
     mesh = msp.add_mesh()
     with mesh.edit_data() as mesh_data:
-        with pytest.raises(ezdxf.DXFValueError):
+        with pytest.raises(dxfpy.DXFValueError):
             mesh_data.add_vertex((0, 0))  # only (x, y, z) vertices allowed
 
 

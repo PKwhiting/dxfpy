@@ -1,9 +1,9 @@
 # Copyright (c) 2015-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import zoom
-from ezdxf.lldxf import const
+import dxfpy
+from dxfpy import zoom
+from dxfpy.lldxf import const
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -13,12 +13,12 @@ if not CWD.exists():
 # Multiple example for creating a MPOLYGON entity.
 # The MPOLYGON is very similar to the HATCH entity.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/mpolygon.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/mpolygon.html
 # ------------------------------------------------------------------------------
 
 
 def create_simple_mpolygon_no_fill(dxfversion="R2000"):
-    doc = ezdxf.new(dxfversion)
+    doc = dxfpy.new(dxfversion)
     msp = doc.modelspace()
     mpolygon = msp.add_mpolygon(color=2, fill_color=None)
     mpolygon.paths.add_polyline_path(
@@ -29,7 +29,7 @@ def create_simple_mpolygon_no_fill(dxfversion="R2000"):
 
 
 def create_simple_solid_aci_filled_mpolygon(dxfversion="R2000"):
-    doc = ezdxf.new(dxfversion)
+    doc = dxfpy.new(dxfversion)
     msp = doc.modelspace()
     mpolygon = msp.add_mpolygon(color=1, fill_color=5)
     mpolygon.paths.add_polyline_path(
@@ -40,7 +40,7 @@ def create_simple_solid_aci_filled_mpolygon(dxfversion="R2000"):
 
 
 def create_simple_solid_rgb_filled_mpolygon(dxfversion="R2000"):
-    doc = ezdxf.new(dxfversion)
+    doc = dxfpy.new(dxfversion)
     msp = doc.modelspace()
     mpolygon = msp.add_mpolygon(color=1, fill_color=5)
     mpolygon.paths.add_polyline_path(
@@ -52,7 +52,7 @@ def create_simple_solid_rgb_filled_mpolygon(dxfversion="R2000"):
 
 
 def create_mpolygon_with_bulge(dxfversion="R2000"):
-    doc = ezdxf.new(dxfversion)
+    doc = dxfpy.new(dxfversion)
     msp = doc.modelspace()
     mpolygon = msp.add_mpolygon(color=1, fill_color=5)
     mpolygon.paths.add_polyline_path(
@@ -63,7 +63,7 @@ def create_mpolygon_with_bulge(dxfversion="R2000"):
 
 
 def create_simple_pattern_filled_mpolygon(dxfversion="R2000"):
-    doc = ezdxf.new(dxfversion)
+    doc = dxfpy.new(dxfversion)
     msp = doc.modelspace()
     mpolygon = msp.add_mpolygon()
     mpolygon.set_pattern_fill("ANSI33", color=7, scale=0.01)
@@ -75,7 +75,7 @@ def create_simple_pattern_filled_mpolygon(dxfversion="R2000"):
 
 
 def create_pattern_filled_mpolygon_with_bgcolor():
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     msp = doc.modelspace()
     # This is not supported by TrueView/BricsCAD!
     # TrueView doesn't show this MPOLYGON at all!
@@ -130,7 +130,7 @@ def using_hatch_style():
             flags=const.BOUNDARY_PATH_OUTERMOST,
         )
 
-    doc = ezdxf.new("R2010")
+    doc = dxfpy.new("R2010")
     msp = doc.modelspace()
     # The hatch style tag, group code 75, is not supported for the MPOLYGON
     # entity by Autodesk products!

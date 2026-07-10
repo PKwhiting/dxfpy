@@ -2,7 +2,7 @@
 # License: MIT License
 import pytest
 
-from ezdxf.lldxf.types import DXFTag, get_xcode_for, is_valid_handle
+from dxfpy.lldxf.types import DXFTag, get_xcode_for, is_valid_handle
 
 
 def test_init():

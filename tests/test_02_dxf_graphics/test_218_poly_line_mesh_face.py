@@ -2,9 +2,9 @@
 # License: MIT License
 import pytest
 
-from ezdxf.lldxf.const import VTX_3D_POLYLINE_VERTEX
-from ezdxf import DXFIndexError
-from ezdxf.layouts import VirtualLayout
+from dxfpy.lldxf.const import VTX_3D_POLYLINE_VERTEX
+from dxfpy import DXFIndexError
+from dxfpy.layouts import VirtualLayout
 
 
 @pytest.fixture

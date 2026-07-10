@@ -4,13 +4,13 @@ from typing import Iterable, Sequence, List
 import pytest
 import math
 from functools import partial
-from ezdxf.math import Vec2, BoundingBox2d, area, UVec
-from ezdxf.render import forms
-from ezdxf.math._mapbox_earcut import earcut as _py_earcut
+from dxfpy.math import Vec2, BoundingBox2d, area, UVec
+from dxfpy.render import forms
+from dxfpy.math._mapbox_earcut import earcut as _py_earcut
 
 CYTHON = "Cython"
 try:
-    from ezdxf.acc.mapbox_earcut import earcut as _cy_earcut
+    from dxfpy.acc.mapbox_earcut import earcut as _cy_earcut
 except ImportError:
     CYTHON = "CPython"
     _cy_earcut = _py_earcut

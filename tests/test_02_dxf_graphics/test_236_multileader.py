@@ -2,17 +2,17 @@
 # License: MIT License
 import pytest
 
-import ezdxf
+import dxfpy
 from math import radians
-from ezdxf.audit import Auditor
-from ezdxf.layouts import VirtualLayout
-from ezdxf import colors
-from ezdxf.lldxf import const
-from ezdxf.lldxf.tags import Tags
-from ezdxf.lldxf.extendedtags import ExtendedTags
-from ezdxf.math import Matrix44, Z_AXIS, Vec3, WCSTransform, X_AXIS
+from dxfpy.audit import Auditor
+from dxfpy.layouts import VirtualLayout
+from dxfpy import colors
+from dxfpy.lldxf import const
+from dxfpy.lldxf.tags import Tags
+from dxfpy.lldxf.extendedtags import ExtendedTags
+from dxfpy.math import Matrix44, Z_AXIS, Vec3, WCSTransform, X_AXIS
 
-from ezdxf.entities.mleader import (
+from dxfpy.entities.mleader import (
     LeaderLine,
     LeaderData,
     compile_context_tags,
@@ -21,7 +21,7 @@ from ezdxf.entities.mleader import (
     BlockData,
     MTextData,
 )
-from ezdxf.lldxf.tagwriter import TagCollector, basic_tags_from_text
+from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ def test_synonym_mleader(msp):
 class TestMLeaderStyle:
     @pytest.fixture(scope="class")
     def doc(self):
-        return ezdxf.new("R2007")
+        return dxfpy.new("R2007")
 
     @pytest.fixture(scope="class")
     def new_style(self, doc):
@@ -807,7 +807,7 @@ class TestBlockContext(MLeaderTesting):
 
     def test_get_transformation_matrix(self, ctx):
         # The transformation matrix is stored in transposed order
-        # of ezdxf.math.Matrix44()!
+        # of dxfpy.math.Matrix44()!
         # fmt: off
         assert ctx.block._matrix == [
             1, 0, 0, 18.42,
@@ -824,7 +824,7 @@ class TestBlockContext(MLeaderTesting):
         block = BlockData()
         block.matrix44 = m
         # The transformation matrix is stored in transposed order
-        # of ezdxf.math.Matrix44()!
+        # of dxfpy.math.Matrix44()!
         # fmt: off
         assert block._matrix == [
             1, 0, 0, 4,

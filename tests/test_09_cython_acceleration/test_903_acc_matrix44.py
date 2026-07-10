@@ -6,7 +6,7 @@
 import pytest
 import numpy as np
 
-matrix44 = pytest.importorskip("ezdxf.acc.matrix44")
+matrix44 = pytest.importorskip("dxfpy.acc.matrix44")
 Matrix44: matrix44.Matrix44 = matrix44.Matrix44
 
 
@@ -75,7 +75,7 @@ def test_get_origin():
 
 
 def test_array_inplace_transformation():
-    from ezdxf.math import Vec2
+    from dxfpy.math import Vec2
 
     m = matrix44.Matrix44.translate(1, 2, 0)
     points = [(0, 0), (1, 1), (2, 2)]

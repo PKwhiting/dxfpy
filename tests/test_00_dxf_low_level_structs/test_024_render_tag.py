@@ -2,8 +2,8 @@
 #  License: MIT License
 import pytest
 
-from ezdxf.lldxf.types import dxftag, render_tag
-from ezdxf.math import Vec3
+from dxfpy.lldxf.types import dxftag, render_tag
+from dxfpy.math import Vec3
 
 
 class TestRenderTag:

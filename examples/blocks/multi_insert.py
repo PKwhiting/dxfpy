@@ -1,7 +1,7 @@
 # Copyright (c) 2020-2022 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
+import dxfpy
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -11,7 +11,7 @@ if not CWD.exists():
 # This example shows how to render a single block reference multiple times in a
 # regular grid.
 #
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/blocks.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/blocks.html
 # ------------------------------------------------------------------------------
 
 
@@ -19,7 +19,7 @@ FLAG_SYMBOL = [(0, 0), (0, 5), (4, 3), (0, 3)]
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.add("FLAGS")
 
     flag = doc.blocks.new(name="FLAG")

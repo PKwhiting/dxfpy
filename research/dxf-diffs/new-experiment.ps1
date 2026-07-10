@@ -84,7 +84,7 @@ source_artifacts:
   edited_after_dxf: TBD
   baseline_before_normalized_dxf: TBD
   edited_after_normalized_dxf: TBD
-target_ezdxf_modules:
+target_dxfpy_modules:
 $targetModulesYaml
 notes:
   - Fill in source artifact paths after the experiment runs.
@@ -125,7 +125,7 @@ Example excerpt:
 
 - TBD
 
-## Likely ezdxf Targets
+## Likely dxfpy Targets
 
 $(($TargetEzdxfModules | ForEach-Object { "- $_" }) -join "`r`n")
 

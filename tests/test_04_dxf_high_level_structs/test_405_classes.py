@@ -1,10 +1,10 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
-import ezdxf
-from ezdxf.sections.classes import ClassesSection
-from ezdxf.entities.dxfclass import DXFClass
-from ezdxf.lldxf.tagwriter import TagCollector
-from ezdxf.tools.test import load_entities
+import dxfpy
+from dxfpy.sections.classes import ClassesSection
+from dxfpy.entities.dxfclass import DXFClass
+from dxfpy.lldxf.tagwriter import TagCollector
+from dxfpy.tools.test import load_entities
 
 
 def test_init():
@@ -20,7 +20,7 @@ def test_add_known_class():
 
 def test_add_required_classes():
     classes = ClassesSection()
-    classes.add_required_classes(ezdxf.DXF2004)
+    classes.add_required_classes(dxfpy.DXF2004)
     assert len(classes.classes) > 10  # may change
 
 
@@ -39,7 +39,7 @@ def test_double_keys():
 def test_export_dxf():
     classes = ClassesSection()
     classes.add_class("SUN")
-    collector = TagCollector(dxfversion=ezdxf.DXF2004)
+    collector = TagCollector(dxfversion=dxfpy.DXF2004)
     classes.export_dxf(collector)
     tags = collector.tags
     assert tags[0] == (0, "SECTION")
@@ -50,7 +50,7 @@ def test_export_dxf():
 
 
 def test_load_section():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     entities = load_entities(TEST_CLASSES, "CLASSES")
     classes = ClassesSection(doc, entities)
     assert len(classes.classes) == 3

@@ -2,7 +2,7 @@
 #  License: MIT License
 
 import pytest
-from ezdxf.tools.text import scale_mtext_inline_commands
+from dxfpy.tools.text import scale_mtext_inline_commands
 
 
 @pytest.mark.parametrize(

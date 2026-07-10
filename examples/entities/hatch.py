@@ -1,11 +1,11 @@
 # Copyright (c) 2015-2024 Manfred Moitzi
 # License: MIT License
 import pathlib
-import ezdxf
-from ezdxf import zoom
-from ezdxf.lldxf import const
-from ezdxf.math import Vec2
-from ezdxf.tools import pattern
+import dxfpy
+from dxfpy import zoom
+from dxfpy.lldxf import const
+from dxfpy.math import Vec2
+from dxfpy.tools import pattern
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -14,13 +14,13 @@ if not CWD.exists():
 # ------------------------------------------------------------------------------
 # Multiple example for creating a HATCH entity.
 #
-# docs: https://ezdxf.mozman.at/docs/dxfentities/hatch.html
-# tutorial: https://ezdxf.mozman.at/docs/tutorials/hatch.html
+# docs: https://dxfpy.mozman.at/docs/dxfentities/hatch.html
+# tutorial: https://dxfpy.mozman.at/docs/tutorials/hatch.html
 # ------------------------------------------------------------------------------
 
 
 def create_solid_polyline_hatch():
-    doc = ezdxf.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
+    doc = dxfpy.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
     msp = doc.modelspace()  # we are working in model space
     hatch = msp.add_hatch(color=2)  # by default a SOLID fill
     # if only 1 path - flags = 1 (external) by default
@@ -30,7 +30,7 @@ def create_solid_polyline_hatch():
 
 
 def create_pattern_fill_polyline_hatch():
-    doc = ezdxf.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
+    doc = dxfpy.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
     msp = doc.modelspace()  # we are working in model space
     hatch = msp.add_hatch()  # by default a SOLID fill
     hatch.set_pattern_fill("ANSI33", color=7, scale=0.01)
@@ -41,7 +41,7 @@ def create_pattern_fill_polyline_hatch():
 
 
 def create_user_pattern_fill():
-    doc = ezdxf.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
+    doc = dxfpy.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
     msp = doc.modelspace()  # we are working in model space
     hatch = msp.add_hatch()  # by default a SOLID fill
     offset = Vec2.from_deg_angle(45 + 90, length=0.7)
@@ -86,7 +86,7 @@ EXAMPLE = """; a pattern file
 
 def load_pattern_from_file():
 
-    doc = ezdxf.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
+    doc = dxfpy.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
     msp = doc.modelspace()  # we are working in model space
     hatch = msp.add_hatch()  # by default a SOLID fill
     # load your pattern file fro file system as string:
@@ -112,7 +112,7 @@ def load_pattern_from_file():
 
 
 def create_pattern_fill_hatch_with_bgcolor():
-    doc = ezdxf.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
+    doc = dxfpy.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
     msp = doc.modelspace()  # we are working in model space
     hatch = msp.add_hatch()  # by default a SOLID fill
     hatch.set_pattern_fill("ANSI33", color=7, scale=0.01)
@@ -158,7 +158,7 @@ def using_hatch_style():
             flags=const.BOUNDARY_PATH_OUTERMOST,
         )
 
-    doc = ezdxf.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
+    doc = dxfpy.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
     msp = doc.modelspace()  # we are working in model space
     # first create DXF hatch entities
     hatch_style_0 = msp.add_hatch(color=3, dxfattribs={"hatch_style": 0})
@@ -231,7 +231,7 @@ def using_hatch_style_with_edge_path():
             flags=const.BOUNDARY_PATH_OUTERMOST,
         )
 
-    doc = ezdxf.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
+    doc = dxfpy.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
     msp = doc.modelspace()  # we are working in model space
     # first create DXF hatch entities
     hatch_style_0 = msp.add_hatch(color=3, dxfattribs={"hatch_style": 0})
@@ -255,14 +255,14 @@ def using_hatch_style_with_edge_path():
 
 
 def using_hatch_with_spline_edge():
-    doc = ezdxf.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
+    doc = dxfpy.new("R2010")  # create a new DXF drawing (AutoCAD 2010)
     msp = doc.modelspace()  # we are working in model space
     # draw outline
     fitpoints = [(8, 0, 0), (10, 2, 0), (6, 6, 0), (8, 8, 0)]
     msp.add_line((8, 8), (0, 8))
     msp.add_line((0, 8), (0, 0))
     msp.add_line((0, 0), (8, 0))
-    # use spline with control points created by ezdxf
+    # use spline with control points created by dxfpy
     # Don't know how AutoCAD calculates control points from fit points
     msp.add_spline_control_frame(fit_points=fitpoints)
 

@@ -1,8 +1,8 @@
 # Copyright (c) 2018-2019 Manfred Moitzi
 # License: MIT License
 from binascii import unhexlify
-from ezdxf.lldxf.types import DXFBinaryTag
-from ezdxf.lldxf.tags import binary_data_to_dxf_tags
+from dxfpy.lldxf.types import DXFBinaryTag
+from dxfpy.lldxf.tags import binary_data_to_dxf_tags
 
 
 def test_init():

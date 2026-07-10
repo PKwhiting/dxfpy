@@ -3,8 +3,8 @@
 # test data: http://elib.zib.de/pub/mp-testdata/tsp/tsplib/tsp/
 import random
 from typing import cast
-from ezdxf.addons import genetic_algorithm as ga
-from ezdxf.math import Vec2
+from dxfpy.addons import genetic_algorithm as ga
+from dxfpy.math import Vec2
 
 try:
     import matplotlib.pyplot as plt

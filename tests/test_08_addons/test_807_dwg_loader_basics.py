@@ -2,8 +2,8 @@
 # License: MIT License
 import pytest
 from pathlib import Path
-from ezdxf.addons.dwg.loader import DwgDocument
-from ezdxf.addons.dwg.header_section import (
+from dxfpy.addons.dwg.loader import DwgDocument
+from dxfpy.addons.dwg.header_section import (
     load_commands,
     HEADER_DESCRIPTION,
     CMD_SET_VERSION,
@@ -12,7 +12,7 @@ from ezdxf.addons.dwg.header_section import (
     CMD_SET_VAR,
     ACAD_LATEST,
 )
-from ezdxf.addons.dwg.crc import crc8, crc32
+from dxfpy.addons.dwg.crc import crc8, crc32
 
 FILE1 = Path(__file__).parent / "807_1.dwg"
 pytestmark = pytest.mark.skipif(
@@ -82,7 +82,7 @@ def test_crc32_is_runnable():
 
 
 def test_parse_hex_dump():
-    from ezdxf.tools.test import parse_hex_dump
+    from dxfpy.tools.test import parse_hex_dump
 
     result = parse_hex_dump(R14_TEST_HDR)
     assert len(result) == 584

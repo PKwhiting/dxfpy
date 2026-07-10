@@ -1,13 +1,13 @@
 # Copyright (c) 2020 Manfred Moitzi
 # License: MIT License
 import math, sys
-import ezdxf
+import dxfpy
 from pathlib import Path
 
 OUT_DIR = Path('~/Desktop/Outbox').expanduser()
 
-from ezdxf.lldxf.const import MIRROR_X
-from ezdxf.math import UCS, Vec3, Matrix44, Y_AXIS, X_AXIS, Z_AXIS
+from dxfpy.lldxf.const import MIRROR_X
+from dxfpy.math import UCS, Vec3, Matrix44, Y_AXIS, X_AXIS, Z_AXIS
 
 RED = 1
 GREEN = 3
@@ -44,7 +44,7 @@ def setup_csys(blk, size=3):
     blk.add_text('XZ', dxfattribs=txt_props).set_pos(ucs.to_ocs((size2, size2, 0)), align='MIDDLE_CENTER')
 
 
-doc = ezdxf.new('R2010', setup=True)
+doc = dxfpy.new('R2010', setup=True)
 blk = doc.blocks.new('CSYS')
 setup_csys(blk)
 msp = doc.modelspace()

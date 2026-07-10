@@ -2,9 +2,9 @@
 # License: MIT License
 import pathlib
 import math
-import ezdxf
+import dxfpy
 
-from ezdxf.render.forms import torus
+from dxfpy.render.forms import torus
 
 CWD = pathlib.Path("~/Desktop/Outbox").expanduser()
 if not CWD.exists():
@@ -12,7 +12,7 @@ if not CWD.exists():
 
 
 def main():
-    doc = ezdxf.new()
+    doc = dxfpy.new()
     doc.layers.new("form", dxfattribs={"color": 2})
     normals_layer = doc.layers.new("normals", dxfattribs={"color": 6})
     normals_layer.off()
