@@ -15,8 +15,9 @@ def entities_to_code(
     entities: Iterable[DXFEntity],
     layout: str = "layout",
     ignore: Optional[Iterable[str]] = None,
+    runtime_var: str | None = None,
 ) -> Code:
-    code = _SourceCodeGenerator(layout=layout)
+    code = _SourceCodeGenerator(layout=layout, runtime_var=runtime_var)
     code.translate_entities(entities, ignore=ignore)
     return code.code
 

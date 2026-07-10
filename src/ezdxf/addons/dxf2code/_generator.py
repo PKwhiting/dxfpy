@@ -57,6 +57,12 @@ class _MultiLeaderResources:
         return self.content_type == "block"
 
 
+@dataclass(frozen=True)
+class _FieldConstructionRefs:
+    child_vars: list[str]
+    handle_vars: list[tuple[str, str]]
+
+
 class _SourceCodeGenerator:
     """
     The :class:`_SourceCodeGenerator` translates DXF entities into Python source
@@ -69,10 +75,17 @@ class _SourceCodeGenerator:
 
     """
 
-    def __init__(self, layout: str = "layout", doc: str = "doc", full_document_mode: bool = False):
+    def __init__(
+        self,
+        layout: str = "layout",
+        doc: str = "doc",
+        full_document_mode: bool = False,
+        runtime_var: str | None = None,
+    ):
         self.doc = doc
         self.layout = layout
         self.full_document_mode = full_document_mode
+        self.runtime_var = runtime_var
         self.code = Code()
         self._deferred_code: list[str] = []
         self._post_block_deferred_code: list[str] = []
@@ -174,6 +187,28 @@ class _SourceCodeGenerator:
     def add_post_block_deferred_source_code_lines(self, code: Iterable[str]) -> None:
         assert not isinstance(code, str)
         self._post_block_deferred_code.extend(code)
+
+    def _emit_runtime_object_map(
+        self, handle_vars: Iterable[tuple[str, str]]
+    ) -> None:
+        """Emit source-object mappings for document replay runtime."""
+        if self.runtime_var is None:
+            return
+        unique_handle_vars: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for source_handle, var_name in handle_vars:
+            if source_handle in seen:
+                continue
+            seen.add(source_handle)
+            unique_handle_vars.append((source_handle, var_name))
+        if not unique_handle_vars:
+            return
+        self.add_deferred_source_code_line(f"{self.runtime_var}.register_object_map({{")
+        for source_handle, var_name in unique_handle_vars:
+            self.add_deferred_source_code_line(
+                f"    {json.dumps(source_handle)}: {var_name},"
+            )
+        self.add_deferred_source_code_line("})")
 
     def add_list_source_code(
         self,
@@ -585,12 +620,22 @@ class _SourceCodeGenerator:
         handles = set(field_list.handles)
         return any(field.dxf.handle in handles for field in wrapper.get_field_tree())
 
+    def _runtime_handle_expression(self, handle: str) -> str | None:
+        """Return a document-runtime handle remapping expression."""
+        if self.runtime_var is None:
+            return None
+        source = json.dumps(handle)
+        return f"({self.runtime_var}.mapped_handle({source}) or {source})"
+
     def _format_field_tag_value(self, code: int, value: Any) -> Optional[str]:
         if code in (330, 331):
             if not isinstance(value, str):
                 return None
             if value in self._translated_handles:
                 return f'_entity_map[{json.dumps(value)}].dxf.handle'
+            remapped = self._runtime_handle_expression(value)
+            if remapped is not None:
+                return remapped
             # Some real-world FIELD objects preserve dangling handle references
             # that are not part of the translated entity set.
             return json.dumps(value)
@@ -619,18 +664,23 @@ class _SourceCodeGenerator:
 
     def _emit_text_wrapper_construction(
         self, wrapper, wrapper_var: str, host_var: str
-    ) -> Optional[list[str]]:
+    ) -> Optional[_FieldConstructionRefs]:
         if not wrapper.is_text_wrapper:
             return None
         child_fields = wrapper.get_child_fields()
         if not child_fields:
             return None
         child_vars: list[str] = []
+        handle_vars: list[tuple[str, str]] = []
         child_handle_expr: dict[str, str] = {}
         for index, child in enumerate(child_fields):
             child_var = f"{wrapper_var}_{index}"
             if not self._emit_field_construction(
-                child, child_var, host_var, bind_leaf_to_doc=True
+                child,
+                child_var,
+                host_var,
+                bind_leaf_to_doc=True,
+                handle_vars=handle_vars,
             ):
                 return None
             child_vars.append(child_var)
@@ -643,7 +693,9 @@ class _SourceCodeGenerator:
         self.add_deferred_source_code_line(f"{wrapper_var}.reset([")
         self.add_deferred_source_code_lines(wrapper_reset_source)
         self.add_deferred_source_code_line("])" )
-        return child_vars
+        if wrapper.dxf.handle:
+            handle_vars.append((wrapper.dxf.handle, wrapper_var))
+        return _FieldConstructionRefs(child_vars, handle_vars)
 
     def _emit_field_custom_var_setup(self, field, field_var: str, host_var: str) -> None:
         dwgprops_name = self._dwgprops_name(field)
@@ -673,6 +725,7 @@ class _SourceCodeGenerator:
         host_var: str,
         *,
         bind_leaf_to_doc: bool = False,
+        handle_vars: Optional[list[tuple[str, str]]] = None,
     ) -> bool:
         self.add_import_statement("from ezdxf.entities.dxfobj import Field")
         child_fields = field.get_child_fields()
@@ -707,6 +760,17 @@ class _SourceCodeGenerator:
                 f"    include_eval_option={self._field_has_eval_option(field)},"
             )
             self.add_deferred_source_code_line(")")
+            if handle_vars is not None:
+                for index, child in enumerate(child_fields):
+                    if child.dxf.handle:
+                        handle_vars.append(
+                            (
+                                child.dxf.handle,
+                                f"{field_var}.get_child_fields()[{index}]",
+                            )
+                        )
+            if handle_vars is not None and field.dxf.handle:
+                handle_vars.append((field.dxf.handle, field_var))
             return True
 
         field_reset_source = self._field_reset_source(field)
@@ -722,6 +786,8 @@ class _SourceCodeGenerator:
         self.add_deferred_source_code_lines(field_reset_source)
         self.add_deferred_source_code_line("])"
         )
+        if handle_vars is not None and field.dxf.handle:
+            handle_vars.append((field.dxf.handle, field_var))
         self._emit_field_custom_var_setup(field, field_var, host_var)
         return True
 
@@ -1898,8 +1964,8 @@ class _SourceCodeGenerator:
                 f'_host = _entity_map[{json.dumps(handle)}]'
             )
             register_field_list = self._uses_field_list(wrapper, child)
-            child_vars = self._emit_text_wrapper_construction(wrapper, "_wrapper", "_host")
-            if child_vars is None:
+            field_refs = self._emit_text_wrapper_construction(wrapper, "_wrapper", "_host")
+            if field_refs is None:
                 self.add_deferred_source_code_line(
                     f'# unsupported hosted FIELD on {entity.dxftype()} key {json.dumps(key)}'
                 )
@@ -1907,13 +1973,14 @@ class _SourceCodeGenerator:
             self.add_deferred_source_code_line(
                 f"_host.set_field(_wrapper, key={json.dumps(key)})"
             )
-            for child_var in child_vars:
+            for child_var in field_refs.child_vars:
                 self.add_deferred_source_code_line(
                     f"{child_var}.dxf.owner = _wrapper.dxf.handle"
                 )
             self.add_deferred_source_code_line(
                 "_wrapper.set_reactors([_host.get_field_dict().dxf.handle])"
             )
+            self._emit_runtime_object_map(field_refs.handle_vars)
             if register_field_list:
                 self.add_deferred_source_code_line("_field_list = _host.doc.objects.setup_field_list()")
                 self.add_deferred_source_code_line("_handles = list(_field_list.handles)")
@@ -2363,16 +2430,127 @@ class _SourceCodeGenerator:
             if data.suppress_column_header is None:
                 self.add_source_code_line("e.data.suppress_column_header = None")
 
+    def _acad_table_field_runtime_handle_vars(
+        self,
+        wrapper,
+        primary,
+        constructed_handle_vars: list[tuple[str, str]],
+    ) -> list[tuple[str, str]]:
+        """Return source FIELD handles and replay variable names for a cell."""
+        handle_vars: list[tuple[str, str]] = []
+        wrapper_handle = wrapper.dxf.get("handle")
+        primary_handle = primary.dxf.get("handle")
+        if wrapper_handle:
+            handle_vars.append((wrapper_handle, "_wrapper"))
+        if primary_handle:
+            handle_vars.append((primary_handle, "_primary"))
+        direct_child_handles: set[str] = set()
+        for index, child in enumerate(primary.get_child_fields()):
+            child_handle = child.dxf.get("handle")
+            if child_handle:
+                direct_child_handles.add(child_handle)
+                handle_vars.append(
+                    (child_handle, f"_primary.get_child_fields()[{index}]")
+                )
+        for source_handle, var_name in constructed_handle_vars:
+            if (
+                source_handle != primary_handle
+                and source_handle not in direct_child_handles
+            ):
+                handle_vars.append((source_handle, var_name))
+        return handle_vars
+
+    def _source_acad_table_content_field_copy_handles(
+        self, entity: DXFEntity, cell: AcadTableCell
+    ) -> tuple[str, str] | None:
+        """Return source TABLECONTENT field-copy wrapper and primary handles."""
+        get_linked_cell = getattr(entity, "get_linked_cell", None)
+        if not callable(get_linked_cell) or entity.doc is None:
+            return None
+        try:
+            linked_cell = get_linked_cell(cell.row, cell.col)
+        except (AttributeError, IndexError):
+            return None
+        for content in linked_cell.contents:
+            if getattr(content, "content_type", None) != 2:
+                continue
+            wrapper_handle = content.block_record_handle
+            if not wrapper_handle:
+                continue
+            wrapper = entity.doc.entitydb.get(wrapper_handle)
+            if getattr(wrapper, "dxftype", lambda: "")() != "FIELD":
+                continue
+            primary_handle = ""
+            children = wrapper.get_child_fields()
+            if children and children[0].dxf.handle:
+                primary_handle = children[0].dxf.handle
+            return str(wrapper_handle), str(primary_handle)
+        return None
+
+    def _emit_acad_table_content_copy_mapping(
+        self, entity: DXFEntity, cell: AcadTableCell
+    ) -> None:
+        """Emit runtime mappings for TABLECONTENT field-copy objects."""
+        if self.runtime_var is None:
+            return
+        copy_handles = self._source_acad_table_content_field_copy_handles(entity, cell)
+        if copy_handles is None:
+            return
+        wrapper_handle, primary_handle = copy_handles
+        self.add_deferred_source_code_line(
+            f"{self.runtime_var}.register_acad_table_content_field_copy("
+            f"_host, {cell.row}, {cell.col}, "
+            f"{json.dumps(wrapper_handle)}, {json.dumps(primary_handle)})"
+        )
+
+    def _emit_final_acad_table_field_mappings(
+        self,
+        handle: str,
+        cells: list[tuple[AcadTableCell, object, object]],
+        entity: DXFEntity,
+    ) -> None:
+        """Emit final runtime FIELD mappings after all table fields rebuild."""
+        if self.runtime_var is None or not cells:
+            return
+        self.add_deferred_source_code_line(f'_host = _entity_map[{json.dumps(handle)}]')
+        for cell, wrapper, primary in cells:
+            self.add_deferred_source_code_line(
+                f"_wrapper = _host.get_cell_field({cell.row}, {cell.col})"
+            )
+            self.add_deferred_source_code_line(
+                f"_primary = _host.get_cell_primary_field({cell.row}, {cell.col})"
+            )
+            runtime_handle_vars = self._acad_table_field_runtime_handle_vars(
+                wrapper, primary, []
+            )
+            self.add_deferred_source_code_line(
+                "if _wrapper is not None and _primary is not None:"
+            )
+            self.add_deferred_source_code_line(
+                f"    {self.runtime_var}.register_object_map({{"
+            )
+            for source_handle, var_name in runtime_handle_vars:
+                self.add_deferred_source_code_line(
+                    f"        {json.dumps(source_handle)}: {var_name},"
+                )
+            self.add_deferred_source_code_line("    })")
+            self._emit_acad_table_content_copy_mapping(entity, cell)
+
     def _schedule_acad_table_fields(self, entity: DXFEntity) -> None:
         data = getattr(entity, "data", None)
         handle = entity.dxf.get("handle")
         if data is None or not handle:
             return
+        runtime_cells: list[tuple[AcadTableCell, object, object]] = []
         for cell in data.cells:
             if cell.field_handle is None:
                 continue
-            wrapper = getattr(entity, "get_cell_field", lambda *_: None)(cell.row, cell.col)
-            primary = getattr(entity, "get_cell_primary_field", lambda *_: None)(cell.row, cell.col)
+            wrapper = getattr(entity, "get_cell_field", lambda *_: None)(
+                cell.row, cell.col
+            )
+            primary = getattr(entity, "get_cell_primary_field", lambda *_: None)(
+                cell.row, cell.col
+            )
             if (
                 getattr(wrapper, "dxftype", lambda: "")() != "FIELD"
                 or primary is None
@@ -2412,6 +2590,8 @@ class _SourceCodeGenerator:
             self.add_deferred_source_code_line(
                 "    _field._delete_field_tree(exclude_handles=_child_handles)"
             )
+            runtime_cells.append((cell, wrapper, primary))
+        self._emit_final_acad_table_field_mappings(str(handle), runtime_cells, entity)
 
     def _emit_acad_table_mutations(self, entity: DXFEntity) -> None:
         data = getattr(entity, "data", None)

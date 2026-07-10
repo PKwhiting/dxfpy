@@ -1075,6 +1075,100 @@ def test_document_to_code_file_preserves_acad_table_geometry_block_name(tmp_path
     assert out_table.dxf.block_record_handle == out_geometry.block_record_handle
 
 
+def test_document_to_code_file_replays_mixed_acad_table_fields(tmp_path):
+    from ezdxf.entities import Field
+
+    source_doc = ezdxf.new("R2018")
+    msp = source_doc.modelspace()
+    line = msp.add_line((0, 0), (10, 0))
+    circle = msp.add_circle((5, 0), radius=2.5)
+    block = source_doc.blocks.new("TABLE_MIXED_BLOCK", base_point=(0, 0))
+    block.add_lwpolyline([(0, 0), (4, 0), (4, 2), (0, 2)], close=True)
+    block.add_attdef("NAME", insert=(0.5, 0.5), text="unset")
+    block.add_attdef("CODE", insert=(1.5, 0.5), text="unset")
+    table = msp.add_table(
+        (0, 0),
+        [
+            ["CHECK", "VALUE"],
+            ["Length", "10.0000"],
+            ["Expression", "25.0000"],
+            ["Block", ""],
+        ],
+        col_widths=[30.0, 38.0],
+    )
+    table.set_cell_block(3, 1, "TABLE_MIXED_BLOCK", block_scale=1.25, alignment=5)
+    table.set_cell_block_attribs(3, 1, {"NAME": "Widget", "CODE": "A-42"})
+    table.new_cell_acobjprop_field(
+        1, 1, line, "Length", text="10.0000", register_field_list=True
+    )
+    child1 = Field()
+    child1.set_acobjprop(line, "Length", value=10.0, display="10.0000")
+    child2 = Field()
+    child2.set_acobjprop(circle, "Radius", value=2.5, display="2.5000")
+    table.new_cell_acexpr_field(
+        2,
+        1,
+        "(%<\\_FldIdx 0>%*%<\\_FldIdx 1>%)",
+        [child1, child2],
+        value=25.0,
+        text="25.0000",
+        register_field_list=True,
+    )
+
+    source_path = tmp_path / "source_mixed_acad_table.dxf"
+    script_path = tmp_path / "generated_mixed_acad_table.py"
+    output_path = tmp_path / "generated_mixed_acad_table.dxf"
+    source_doc.saveas(source_path)
+
+    document_to_code_file(str(source_path), str(script_path), str(output_path))
+    script_text = script_path.read_text(encoding="utf-8")
+    assert "restore_acad_table_field_handles" in script_text
+    exec(script_text, {})
+
+    out_doc = ezdxf.readfile(output_path)
+    out_line = next(
+        entity for entity in out_doc.modelspace() if entity.dxftype() == "LINE"
+    )
+    out_circle = next(
+        entity for entity in out_doc.modelspace() if entity.dxftype() == "CIRCLE"
+    )
+    out_table = next(
+        entity for entity in out_doc.modelspace() if entity.dxftype() == "ACAD_TABLE"
+    )
+    length_field = out_table.get_cell_primary_field(1, 1)
+    expr_field = out_table.get_cell_primary_field(2, 1)
+    expr_children = expr_field.get_child_fields()
+    linked_content = next(
+        content
+        for content in out_table.get_linked_cell(2, 1).contents
+        if content.content_type == 2
+    )
+    linked_wrapper = out_doc.entitydb.get(linked_content.block_record_handle)
+    linked_expr = linked_wrapper.get_child_fields()[0]
+    field_list = out_doc.objects.get_field_list()
+    live_field_handles = {
+        entity.dxf.handle for entity in out_doc.objects if entity.dxftype() == "FIELD"
+    }
+    auditor = out_doc.audit()
+
+    assert length_field is not None
+    assert length_field.object_handles == [out_line.dxf.handle]
+    assert expr_field is not None
+    assert [child.object_handles for child in expr_children] == [
+        [out_line.dxf.handle],
+        [out_circle.dxf.handle],
+    ]
+    assert linked_expr.get_child_fields() == expr_children
+    assert out_table.get_cell_block_attribs(3, 1) == {
+        "NAME": "Widget",
+        "CODE": "A-42",
+    }
+    assert field_list is not None
+    assert set(field_list.handles) == live_field_handles
+    assert auditor.has_errors is False
+    assert auditor.fixes == []
+
+
 def test_document_to_code_file_remaps_paper_layout_viewport_handle(tmp_path):
     source_doc = ezdxf.new("R2018")
     layout = source_doc.layout("Layout1")

@@ -18,6 +18,7 @@ from ._api import block_to_code, entities_to_code, table_entries_to_code
 from ._common import _maybe_get, _names, _sort_blocks
 from ._generator import _SourceCodeGenerator
 from ._specs import (
+    AcadTableFieldHandleSpec,
     DocumentCodegenCapture,
     EntityXRecordFallbackSpec,
     ExtensionSnapshot,
@@ -120,6 +121,24 @@ def _acad_table_geometry_block_names(doc) -> set[str]:
         if geometry_name:
             names.add(str(geometry_name))
     return names
+
+
+def _acad_table_field_handle_specs(doc) -> list[AcadTableFieldHandleSpec]:
+    specs: list[AcadTableFieldHandleSpec] = []
+    for entity in doc.entitydb.values():
+        if entity.dxftype() != "ACAD_TABLE":
+            continue
+        handle = entity.dxf.get("handle")
+        data = getattr(entity, "data", None)
+        if not handle or data is None:
+            continue
+        cell_fields: list[tuple[int, int, str]] = []
+        for cell in data.cells:
+            if cell.field_handle is not None:
+                cell_fields.append((cell.row, cell.col, str(cell.field_handle)))
+        if cell_fields:
+            specs.append(AcadTableFieldHandleSpec(str(handle), cell_fields))
+    return specs
 
 
 def _raw_dynamic_acad_table_geometry_block_names(doc) -> set[str]:
@@ -255,9 +274,10 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
             if doc.blocks.get(name) is not None
         ]
     ):
-        code = entities_to_code(block, layout="_table_block")
+        code = entities_to_code(block, layout="_table_block", runtime_var="rt")
         acad_table_geometry_block_codes.append((block.name, code))
         imports.update(code.imports)
+    acad_table_field_handle_specs = _acad_table_field_handle_specs(doc)
     blocks = _sort_blocks([
         block
         for block in doc.blocks
@@ -272,11 +292,13 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
                 snapshot_raw_dynamic_block_layout(block).entity_snapshots
             )
 
-    msp_code = entities_to_code(doc.modelspace(), layout="msp")
+    msp_code = entities_to_code(doc.modelspace(), layout="msp", runtime_var="rt")
     imports.update(msp_code.imports)
 
     for layout_name in paper_layout_names:
-        layout_code = entities_to_code(doc.layout(layout_name), layout="psp")
+        layout_code = entities_to_code(
+            doc.layout(layout_name), layout="psp", runtime_var="rt"
+        )
         paper_layout_codes.append((layout_name, layout_code))
         imports.update(layout_code.imports)
 
@@ -764,6 +786,7 @@ def capture_document_codegen_inputs(doc, source: Path) -> DocumentCodegenCapture
         "paper_layout_block_record_names": paper_layout_block_record_names,
         "paper_layout_codes": paper_layout_codes,
         "acad_table_geometry_block_codes": acad_table_geometry_block_codes,
+        "acad_table_field_handle_specs": acad_table_field_handle_specs,
         "msp_code": msp_code,
         "imports": imports,
         "resource_code": resource_code,

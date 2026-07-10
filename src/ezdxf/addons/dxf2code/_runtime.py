@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 from ezdxf.dynblkhelper import (
     _delete_graph_stack,
@@ -56,11 +56,167 @@ class DocumentCodegenRuntime:
 
     def register_entity_map(self, entity_map: dict[str, DXFEntity]) -> None:
         self.source_entity_map.update(entity_map)
+        self._register_global_handles(entity_map)
+
+    def register_object_map(self, object_map: Mapping[str, DXFEntity]) -> None:
+        """Register source object handles mapped to replay objects.
+
+        Args:
+            object_map: Mapping of source handles to replayed DXF objects.
+
+        """
+        self.source_object_map.update(object_map)
+        self._register_global_handles(object_map)
+
+    def _register_global_handles(self, handle_map: Mapping[str, DXFEntity]) -> None:
+        """Register source-to-target handles in the document global map."""
         global_mapping = _raw_object_handle_mapping(self.doc)
-        for source_handle, entity in entity_map.items():
-            target_handle = entity.dxf.get("handle")
+        for source_handle, entity in handle_map.items():
+            dxf = getattr(entity, "dxf", None)
+            if dxf is None:
+                continue
+            target_handle = dxf.get("handle")
             if source_handle and target_handle:
                 global_mapping[str(source_handle)] = str(target_handle)
+
+    def prepare_acad_table_geometry_restore(self, block_name: str) -> None:
+        """Delete generated table geometry field trees before block restore.
+
+        Args:
+            block_name: Name of the table geometry block to restore.
+
+        """
+        block = self.doc.blocks.get(block_name)
+        if block is None:
+            return
+        for entity in list(self.doc.entitydb.values()):
+            if entity.dxftype() != "ACAD_TABLE":
+                continue
+            if entity.dxf.get("geometry") != block_name:
+                continue
+            destroy = getattr(entity, "_destroy_geometry_field_support", None)
+            if callable(destroy):
+                destroy(block)
+
+    def register_acad_table_content_field_copy(
+        self,
+        table: DXFEntity,
+        row: int,
+        col: int,
+        source_wrapper_handle: str,
+        source_primary_handle: str,
+    ) -> None:
+        """Register source TABLECONTENT field-copy handles for a replayed cell.
+
+        Args:
+            table: Replayed ACAD_TABLE entity.
+            row: Zero-based row index.
+            col: Zero-based column index.
+            source_wrapper_handle: Source wrapper FIELD handle.
+            source_primary_handle: Source primary FIELD handle.
+
+        """
+        wrapper = self._acad_table_content_field_wrapper(table, row, col)
+        if wrapper is None:
+            return
+        object_map: dict[str, DXFEntity] = {source_wrapper_handle: wrapper}
+        primary = self._primary_field(wrapper)
+        if source_primary_handle and primary is not None:
+            object_map[source_primary_handle] = primary
+        self.register_object_map(object_map)
+
+    def restore_acad_table_field_handles(
+        self, source_table_handle: str, cells: list[tuple[int, int, str]]
+    ) -> None:
+        """Restore ACAD_TABLE shell FIELD handles after geometry replay.
+
+        Args:
+            source_table_handle: Source ACAD_TABLE handle.
+            cells: Tuples of row, column, and source wrapper FIELD handle.
+
+        """
+        table = self.source_entity_map.get(source_table_handle)
+        if table is None:
+            return
+        for row, col, source_field_handle in cells:
+            wrapper = self.source_object_map.get(source_field_handle)
+            if wrapper is None or wrapper.dxftype() != "FIELD":
+                continue
+            self._restore_acad_table_cell_field(table, row, col, wrapper)
+
+    def _restore_acad_table_cell_field(
+        self, table: DXFEntity, row: int, col: int, wrapper: DXFEntity
+    ) -> None:
+        """Set one table cell to a replayed geometry wrapper FIELD."""
+        try:
+            cell = table.get_cell(row, col)
+        except (AttributeError, IndexError):
+            return
+        cell.field_handle = wrapper.dxf.handle
+        content_wrapper = self._acad_table_content_field_wrapper(table, row, col)
+        self._sync_content_copy_children(content_wrapper, self._primary_field(wrapper))
+
+    def _acad_table_content_field_wrapper(
+        self, table: DXFEntity, row: int, col: int
+    ) -> DXFEntity | None:
+        """Return the linked TABLECONTENT field-copy wrapper for a cell."""
+        get_linked_cell = getattr(table, "get_linked_cell", None)
+        if not callable(get_linked_cell):
+            return None
+        try:
+            linked_cell = get_linked_cell(row, col)
+        except (AttributeError, IndexError):
+            return None
+        for content in linked_cell.contents:
+            if getattr(content, "content_type", None) != 2:
+                continue
+            handle = getattr(content, "block_record_handle", None)
+            if not handle:
+                continue
+            wrapper = self.doc.entitydb.get(handle)
+            if wrapper is not None and wrapper.dxftype() == "FIELD":
+                return wrapper
+        return None
+
+    @staticmethod
+    def _primary_field(wrapper: DXFEntity | None) -> DXFEntity | None:
+        """Return the primary field for a wrapper FIELD object."""
+        if wrapper is None or wrapper.dxftype() != "FIELD":
+            return None
+        children = wrapper.get_child_fields()
+        if wrapper.is_text_wrapper and children:
+            return children[0]
+        return wrapper
+
+    def _sync_content_copy_children(
+        self, content_wrapper: DXFEntity | None, geometry_primary: DXFEntity | None
+    ) -> None:
+        """Point TABLECONTENT AcExpr child handles at geometry children."""
+        content_primary = self._primary_field(content_wrapper)
+        if content_primary is None or geometry_primary is None:
+            return
+        if content_primary.evaluator_id != geometry_primary.evaluator_id:
+            return
+        geometry_children = geometry_primary.get_child_fields()
+        content_child_count = sum(1 for tag in content_primary.tags if tag.code == 360)
+        if not geometry_children or len(geometry_children) != content_child_count:
+            return
+        handles = [child.dxf.handle for child in geometry_children if child.dxf.handle]
+        if len(handles) != len(geometry_children):
+            return
+        self._replace_field_child_handles(content_primary, handles)
+
+    @staticmethod
+    def _replace_field_child_handles(field: DXFEntity, handles: list[str]) -> None:
+        """Replace FIELD child handle tags with `handles` in order."""
+        index = 0
+        for tag_index, tag in enumerate(field.tags):
+            if tag.code != 360:
+                continue
+            if index >= len(handles):
+                break
+            field.tags[tag_index] = dxftag(360, handles[index])
+            index += 1
 
     def ensure_dynamic_block_extension_dict(self, block_record):
         return _ensure_dynamic_block_extension_dict(block_record)
@@ -246,7 +402,9 @@ class DocumentCodegenRuntime:
         mapped = []
         for handle in handles:
             if handle in self.source_object_map:
-                mapped.append(self.source_object_map[handle].dxf.handle)
+                dxf = getattr(self.source_object_map[handle], "dxf", None)
+                target_handle = dxf.get("handle") if dxf is not None else None
+                mapped.append(target_handle if target_handle else handle)
             elif handle in self.source_entity_map:
                 mapped.append(self.source_entity_map[handle].dxf.handle)
             elif handle in dangling:

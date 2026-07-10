@@ -3,7 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from ._code import Code
-from ._specs import DocumentCodegenCapture, GroupSpec, OwnedObjectSpec, OwnedObjectSpecData
+from ._specs import (
+    AcadTableFieldHandleSpec,
+    DocumentCodegenCapture,
+    GroupSpec,
+    OwnedObjectSpec,
+    OwnedObjectSpecData,
+)
 
 
 def _owned_object_specs_literal(specs: list[OwnedObjectSpec]) -> list[OwnedObjectSpecData]:
@@ -118,7 +124,9 @@ def _emit_paper_layouts(
 
 
 def _emit_acad_table_geometry_blocks(
-    lines: list[str], acad_table_geometry_block_codes: list[tuple[str, Code]]
+    lines: list[str],
+    acad_table_geometry_block_codes: list[tuple[str, Code]],
+    acad_table_field_handle_specs: list[AcadTableFieldHandleSpec],
 ) -> None:
     if not acad_table_geometry_block_codes:
         return
@@ -127,10 +135,19 @@ def _emit_acad_table_geometry_blocks(
     for block_name, code in acad_table_geometry_block_codes:
         lines.append(f"_table_block = doc.blocks.get({block_name!r})")
         lines.append("if _table_block is not None:")
+        lines.append(f"    rt.prepare_acad_table_geometry_restore({block_name!r})")
         lines.append("    _table_block.delete_all_entities()")
         lines.extend(f"    {line}" for line in code.code)
         lines.append("    rt.register_entity_map(_entity_map)")
     lines.append("")
+    if acad_table_field_handle_specs:
+        lines.append("# restore ACAD_TABLE shell FIELD handles")
+        for spec in acad_table_field_handle_specs:
+            lines.append(
+                f"rt.restore_acad_table_field_handles({spec.table_handle!r}, "
+                f"{spec.cell_fields!r})"
+            )
+        lines.append("")
 
 
 def _emit_groups(lines: list[str], group_specs: list[GroupSpec]) -> None:
@@ -217,6 +234,7 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     paper_layout_block_record_names = data["paper_layout_block_record_names"]
     paper_layout_codes = data["paper_layout_codes"]
     acad_table_geometry_block_codes = data["acad_table_geometry_block_codes"]
+    acad_table_field_handle_specs = data["acad_table_field_handle_specs"]
     msp_code = data["msp_code"]
     imports = data["imports"]
     resource_code = data["resource_code"]
@@ -479,7 +497,9 @@ def render_document_codegen_script(data: DocumentCodegenCapture, out_path: Path)
     lines.extend(msp_code.code)
     lines.append("rt.register_entity_map(_entity_map)")
     lines.append("")
-    _emit_acad_table_geometry_blocks(lines, acad_table_geometry_block_codes)
+    _emit_acad_table_geometry_blocks(
+        lines, acad_table_geometry_block_codes, acad_table_field_handle_specs
+    )
     _emit_groups(lines, group_specs)
     if source_fieldlist_handles:
         lines.append("# restore FIELDLIST")

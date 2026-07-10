@@ -133,6 +133,12 @@ class GroupSpec:
     unnamed: int
 
 
+@dataclass(slots=True)
+class AcadTableFieldHandleSpec:
+    table_handle: str
+    cell_fields: list[tuple[int, int, str]]
+
+
 class DocumentCodegenCapture(TypedDict):
     doc: Drawing
     source: Path
@@ -150,6 +156,7 @@ class DocumentCodegenCapture(TypedDict):
     paper_layout_block_record_names: dict[str, str]
     paper_layout_codes: list[tuple[str, Code]]
     acad_table_geometry_block_codes: list[tuple[str, Code]]
+    acad_table_field_handle_specs: list[AcadTableFieldHandleSpec]
     msp_code: Code
     imports: set[str]
     resource_code: Code | None
