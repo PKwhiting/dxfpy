@@ -619,6 +619,89 @@ def test_acad_table_minimal_block_cell_to_code():
     assert inserts[0].dxf.name == "TABLE_BLOCK_CELL_MIN"
 
 
+def test_acad_table_mixed_field_and_attributed_block_cell_to_code() -> None:
+    source_doc = ezdxf.new("R2018")
+    source_msp = source_doc.modelspace()
+    line = source_msp.add_line((0, 0), (10, 0))
+    circle = source_msp.add_circle((5, 0), radius=2.5)
+    block = source_doc.blocks.new("TABLE_MIXED_BLOCK", base_point=(0, 0))
+    block.add_lwpolyline([(0, 0), (4, 0), (4, 2), (0, 2)], close=True)
+    block.add_attdef("NAME", insert=(0.5, 0.5), text="unset")
+    block.add_attdef("CODE", insert=(1.5, 0.5), text="unset")
+    table = source_msp.add_table(
+        (0, 0),
+        [
+            ["CHECK", "VALUE"],
+            ["Length", "10.0000"],
+            ["Expression", "25.0000"],
+            ["Block", ""],
+        ],
+        col_widths=[30.0, 38.0],
+    )
+    table.set_cell_block(3, 1, "TABLE_MIXED_BLOCK", block_scale=1.25, alignment=5)
+    table.set_cell_block_attribs(3, 1, {"NAME": "Widget", "CODE": "A-42"})
+    table.new_cell_acobjprop_field(
+        1, 1, line, "Length", text="10.0000", register_field_list=True
+    )
+    child1 = Field()
+    child1.set_acobjprop(line, "Length", value=10.0, display="10.0000")
+    child2 = Field()
+    child2.set_acobjprop(circle, "Radius", value=2.5, display="2.5000")
+    table.new_cell_acexpr_field(
+        2,
+        1,
+        "(%<\\_FldIdx 0>%*%<\\_FldIdx 1>%)",
+        [child1, child2],
+        value=25.0,
+        text="25.0000",
+        register_field_list=True,
+    )
+
+    target_doc = ezdxf.new("R2018")
+    namespace = {"ezdxf": ezdxf, "doc": target_doc, "msp": target_doc.modelspace()}
+    execute_code_in_namespace(block_to_code(block, drawing="doc"), namespace)
+    execute_code_in_namespace(
+        entities_to_code([line, circle, table], layout="msp"), namespace
+    )
+    new_line = namespace["msp"][0]
+    new_circle = namespace["msp"][1]
+    new_table = next(
+        entity for entity in namespace["msp"] if entity.dxftype() == "ACAD_TABLE"
+    )
+    new_length = new_table.get_cell_primary_field(1, 1)
+    new_expr = new_table.get_cell_primary_field(2, 1)
+    block_cell = new_table.get_cell(3, 1)
+
+    assert new_length is not None
+    assert new_length.evaluator_id == "AcObjProp"
+    assert new_length.object_handles == [new_line.dxf.handle]
+    assert new_expr is not None
+    assert new_expr.evaluator_id == "AcExpr"
+    children = new_expr.get_child_fields()
+    assert len(children) == 2
+    assert children[0].object_handles == [new_line.dxf.handle]
+    assert children[1].object_handles == [new_circle.dxf.handle]
+    assert block_cell.is_block_cell is True
+    assert block_cell.block_scale == 1.25
+    assert block_cell.alignment == 5
+    assert new_table.get_cell_block_name(3, 1) == "TABLE_MIXED_BLOCK"
+    assert new_table.get_cell_block_attribs(3, 1) == {
+        "NAME": "Widget",
+        "CODE": "A-42",
+    }
+    table_content = new_table.get_linked_table_content()
+    assert table_content is not None
+    linked_cell = table_content.linked_data.get_cell(3, 1)
+    block_contents = [
+        content for content in linked_cell.contents if content.is_block_content
+    ]
+    assert len(block_contents) == 1
+    assert len(block_contents[0].block_attributes) == 2
+    auditor = target_doc.audit()
+    assert auditor.has_errors is False
+    assert auditor.fixes == []
+
+
 def test_acad_table_acexpr_field_to_code():
     source_doc = ezdxf.new("R2018")
     source_msp = source_doc.modelspace()

@@ -32,6 +32,7 @@ if TYPE_CHECKING:
         Spline,
         Wipeout,
     )
+    from ezdxf.entities.acad_table import AcadTableCell
     from ezdxf.entities.polygon import DXFPolygon
 
 
@@ -2399,6 +2400,18 @@ class _SourceCodeGenerator:
                 f"    register_field_list={self._uses_field_list(wrapper, primary)},"
             )
             self.add_deferred_source_code_line(")")
+            self.add_deferred_source_code_line(
+                f"_primary = _host.get_cell_primary_field({cell.row}, {cell.col})"
+            )
+            self.add_deferred_source_code_line(
+                "if _field.doc is _host.doc and _primary is not None:"
+            )
+            self.add_deferred_source_code_line(
+                "    _child_handles = _host._transfer_child_fields(_field, _primary)"
+            )
+            self.add_deferred_source_code_line(
+                "    _field._delete_field_tree(exclude_handles=_child_handles)"
+            )
 
     def _emit_acad_table_mutations(self, entity: DXFEntity) -> None:
         data = getattr(entity, "data", None)
@@ -2423,17 +2436,7 @@ class _SourceCodeGenerator:
             row = cell.row
             col = cell.col
             if cell.is_block_cell:
-                block_name = getattr(entity, "get_cell_block_name", lambda *_: "")(row, col)
-                if not block_name:
-                    self.add_source_code_line(
-                        f"# unsupported ACAD_TABLE block cell at ({row}, {col})"
-                    )
-                    continue
-                self.code.blocks.add(block_name)
-                alignment = cell.alignment if cell.alignment is not None else 1
-                self.add_source_code_line(
-                    f"e.set_cell_block({row}, {col}, {json.dumps(block_name)}, block_scale={cell.block_scale}, alignment={alignment})"
-                )
+                self._emit_acad_table_block_cell_mutation(entity, cell)
                 continue
 
             if cell.text_height is not None:
@@ -2460,6 +2463,36 @@ class _SourceCodeGenerator:
                     self.add_source_code_line(
                         f"e.set_cell_fill_color({row}, {col}, {cell.fill_color})"
                     )
+
+    def _emit_acad_table_block_cell_mutation(
+        self, entity: DXFEntity, cell: AcadTableCell
+    ) -> None:
+        """Emit block-cell mutations for an ``ACAD_TABLE`` cell."""
+        row = cell.row
+        col = cell.col
+        block_name = getattr(entity, "get_cell_block_name", lambda *_: "")(
+            row, col
+        )
+        if not block_name:
+            self.add_source_code_line(
+                f"# unsupported ACAD_TABLE block cell at ({row}, {col})"
+            )
+            return
+        self.code.blocks.add(block_name)
+        alignment = cell.alignment if cell.alignment is not None else 1
+        self.add_source_code_line(
+            f"e.set_cell_block({row}, {col}, {json.dumps(block_name)}, "
+            f"block_scale={cell.block_scale}, alignment={alignment})"
+        )
+        get_block_attribs = getattr(entity, "get_cell_block_attribs", None)
+        if not callable(get_block_attribs):
+            return
+        attribs = get_block_attribs(row, col)
+        if attribs:
+            self.add_source_code_line(
+                f"e.set_cell_block_attribs({row}, {col}, "
+                f"{self._format_python_value(attribs)})"
+            )
 
     def _multileader(self, entity: "MultiLeader") -> None:
         resources = self._multileader_supported(entity)
