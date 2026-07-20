@@ -18,6 +18,21 @@ def test_add_known_class():
     assert len(classes.classes) == 1
 
 
+def test_add_color_and_dynamic_block_entity_classes():
+    classes = ClassesSection()
+
+    classes.add_class("DBCOLOR")
+    classes.add_class("BASEPOINTPARAMETERENTITY")
+
+    color_class = classes.get("DBCOLOR")
+    assert color_class.dxf.cpp_class_name == "AcDbColor"
+    basepoint_class = classes.get("BASEPOINTPARAMETERENTITY")
+    assert (
+        basepoint_class.dxf.cpp_class_name
+        == "AcDbBlockBasepointParameterEntity"
+    )
+
+
 def test_add_required_classes():
     classes = ClassesSection()
     classes.add_required_classes(dxfpy.DXF2004)
