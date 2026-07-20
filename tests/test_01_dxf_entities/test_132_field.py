@@ -10,6 +10,41 @@ from dxfpy.entities.dxfobj import Field
 from dxfpy.entities.mtext import MText
 from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
+
+def test_set_text_wrapper_fields_links_multiple_children():
+    doc = dxfpy.new("R2018")
+    first = doc.objects.add_field(owner="0")
+    first.set_dwgprops("First", display="A")
+    second = doc.objects.add_field(owner="0")
+    second.set_dwgprops("Second", display="B")
+    wrapper = doc.objects.add_field(owner="0")
+
+    wrapper.set_text_wrapper_fields(
+        [first, second],
+        field_code="%<\\_FldIdx 0>% / %<\\_FldIdx 1>%",
+        text="---- / ----",
+    )
+
+    assert wrapper.evaluator_id == "_text"
+    assert wrapper.field_code == "%<\\_FldIdx 0>% / %<\\_FldIdx 1>%"
+    assert wrapper.child_handles == [first.dxf.handle, second.dxf.handle]
+
+    stream = io.StringIO()
+    doc.write(stream)
+    stream.seek(0)
+    reloaded = dxfpy.read(stream)
+    reloaded_wrapper = reloaded.entitydb.get(wrapper.dxf.handle)
+    assert isinstance(reloaded_wrapper, Field)
+    assert reloaded_wrapper.field_code == wrapper.field_code
+    assert reloaded_wrapper.child_handles == wrapper.child_handles
+
+
+def test_set_text_wrapper_fields_rejects_invalid_child_type():
+    wrapper = Field()
+
+    with pytest.raises(dxfpy.DXFTypeError):
+        wrapper.set_text_wrapper_fields([None], field_code="")  # type: ignore[list-item]
+
 FIELD = """0
 FIELD
 5

@@ -531,18 +531,40 @@ class Field(DXFObject):
         wrapper_flags: int = 13,
         include_checksum: bool = True,
     ) -> None:
-        if isinstance(child_field, Field):
-            child_handle = child_field.dxf.handle
-        else:
-            child_handle = child_field
-        if not child_handle:
-            raise DXFStructureError("linked child FIELD requires a valid handle")
+        """Configure this FIELD as a single-child text wrapper."""
+        self.set_text_wrapper_fields(
+            [child_field],
+            field_code="%<\\_FldIdx 0>%",
+            text=text,
+            wrapper_flags=wrapper_flags,
+            include_checksum=include_checksum,
+        )
+
+    def set_text_wrapper_fields(
+        self,
+        child_fields: Sequence[Union[Field, str]],
+        *,
+        field_code: str,
+        text: str = "",
+        wrapper_flags: int = 13,
+        include_checksum: bool = True,
+    ) -> None:
+        """Configure this FIELD as a text wrapper for multiple child FIELDs.
+
+        Args:
+            child_fields: Ordered child FIELD entities or handles.
+            field_code: Wrapper text containing ``%<\\_FldIdx n>%`` references.
+            text: Visible host-entity text used for the wrapper checksum.
+            wrapper_flags: Raw wrapper flags stored in group code 94.
+            include_checksum: Include the observed field-text checksum payload.
+        """
+        child_handles = self._require_field_handles(child_fields)
         checksum = self._field_text_checksum(text)
         tags = [
             (1, "_text"),
-            (2, "%<\\_FldIdx 0>%"),
-            (90, 1),
-            (360, child_handle),
+            (2, field_code),
+            (90, len(child_handles)),
+            *((360, handle) for handle in child_handles),
             (97, 0),
             (91, 63),
             (92, 0),
@@ -581,6 +603,25 @@ class Field(DXFObject):
             ]
         )
         self.reset(tags)
+
+    @staticmethod
+    def _require_field_handles(
+        child_fields: Sequence[Union[Field, str]],
+    ) -> list[str]:
+        """Return valid handles for all linked child FIELDs."""
+        handles: list[str] = []
+        for child in child_fields:
+            if isinstance(child, Field):
+                handles.append(child.dxf.handle)
+            elif isinstance(child, str):
+                handles.append(child)
+            else:
+                raise DXFTypeError(
+                    f"invalid FIELD reference: {type(child).__name__}"
+                )
+        if not handles or any(not handle for handle in handles):
+            raise DXFStructureError("linked child FIELDs require valid handles")
+        return handles
 
     def _set_acvar_payload(
         self,
