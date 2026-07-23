@@ -56,6 +56,8 @@ Autodesk for available `header variables`_.
 
     .. automethod:: append
 
+    .. automethod:: set
+
     .. automethod:: replace
 
     .. automethod:: remove

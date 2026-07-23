@@ -8,6 +8,84 @@ for several host entities. The generated DXF stores the field definition and a
 cached display value; AutoCAD or another CAD application is still responsible for
 evaluating fields after the drawing is opened.
 
+Single-call field templates
+---------------------------
+
+The primary authoring API accepts readable ``{{name}}`` placeholders. Plain
+values create or update custom drawing properties automatically, and field
+trees are registered in ``ACAD_FIELDLIST`` by default:
+
+.. code-block:: python
+
+    import dxfpy
+
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("")
+    mtext.set_field(
+        "Client: {{ClientName}}",
+        values={"ClientName": "Example Solar"},
+    )
+
+Drawing-property templates require DXF R2004 or later. Templates containing
+only drawing-variable or object-property sources require DXF R2000 or later.
+Use the MTEXT paragraph code ``\\P`` for line breaks; literal carriage-return
+and newline characters are rejected because they cannot be stored safely in
+ASCII DXF tags.
+
+Arithmetic inside one placeholder creates a calculated field without exposing
+native AutoCAD evaluator or child-index syntax:
+
+.. code-block:: python
+
+    mtext.set_field(
+        "SYSTEM SIZE: {{ModuleCount * (ModuleWatts / 1000)}} kW",
+        values={"ModuleCount": 20, "ModuleWatts": 410},
+    )
+
+Supported operators are ``+``, ``-``, ``*``, ``/``, unary ``+`` and ``-``,
+parentheses, and numeric literals. Expressions are parsed by a restricted
+validator and are never passed to Python ``eval()``.
+
+Use public source helpers when a name refers to a drawing variable or an entity
+property instead of a custom drawing property:
+
+.. code-block:: python
+
+    from dxfpy.fields import drawing_variable, object_property
+
+    line = doc.modelspace().add_line((0, 0), (10, 0))
+    width = doc.modelspace().add_line((0, 0), (0, 5))
+    mtext.set_field(
+        "SHEET {{sheet}} - AREA {{length * width}}",
+        values={
+            "sheet": drawing_variable("CTab", display="A1"),
+            "length": object_property(line, "Length"),
+            "width": object_property(width, "Length"),
+        },
+    )
+
+Omit ``values`` to reference custom drawing properties already stored in
+``doc.header.custom_vars``. Missing names, unused supplied values, malformed
+expressions, non-numeric operands, and invalid object targets are rejected
+before the hosted field is replaced.
+
+Public source helpers
+---------------------
+
+.. module:: dxfpy.fields
+
+.. autofunction:: drawing_property
+
+.. autofunction:: drawing_variable
+
+.. autofunction:: object_property
+
+.. autoclass:: DrawingProperty
+
+.. autoclass:: DrawingVariable
+
+.. autoclass:: ObjectProperty
+
 Supported field hosts
 ---------------------
 

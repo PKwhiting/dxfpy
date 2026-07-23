@@ -91,6 +91,17 @@ class CustomVars:
         # custom properties always stored as strings
         self.properties.append((tag, str(value)))
 
+    def set(self, tag: str, value: str) -> None:
+        """Set or create custom property `tag`.
+
+        :param tag: Custom property name.
+        :param value: Custom property value.
+        """
+        if self.has_tag(tag):
+            self.replace(tag, str(value))
+        else:
+            self.append(tag, str(value))
+
     def get(self, tag: str, default: Optional[str] = None):
         """Returns the value of the first custom property `tag`."""
         for key, value in self.properties:

@@ -14,6 +14,10 @@
 		- expanded inferred `AcObjProp` coverage for arcs, circles, ellipses, splines, polylines, and supported hatch area cases
 		- validated by AutoCAD/Core Console roundtrip artifacts
 	- NEW: multi-child field wrappers for `TEXT`, `MTEXT`, and `MULTILEADER` hosts
+	- NEW: user-facing `set_field()` templates for `TEXT`, `MTEXT`, `ATTRIB`, `ATTDEF`, and `MULTILEADER`
+		- plain values create or update drawing-property fields automatically
+		- arithmetic inside `{{...}}` creates calculated fields without exposing native `_FldIdx` or `AcExpr` syntax
+		- public `drawing_property()`, `drawing_variable()`, and `object_property()` sources support mixed templates
 	- BUGFIX: parse long AutoCAD `FIELD` codes with leading continuation tags
 	- BUGFIX: preserve and validate complete `FIELD` ownership trees during copy, replacement, deletion, and `xref` loading
 	- BUGFIX: parse dynamic-block visibility state references without including auxiliary handles

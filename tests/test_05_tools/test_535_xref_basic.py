@@ -526,6 +526,88 @@ def test_xref_rejects_dictionary_cycle_through_generic_object_extension():
         xref.load_modelspace(sdoc, tdoc)
 
 
+def test_load_template_field_copies_only_referenced_custom_property():
+    sdoc = dxfpy.new("R2018")
+    mtext = sdoc.modelspace().add_mtext("")
+    mtext.set_field("Client: {{ClientName}}", values={"ClientName": "SOURCE"})
+    sdoc.header.custom_vars.append("Unrelated", "IGNORE")
+    tdoc = dxfpy.new("R2018")
+
+    xref.load_modelspace(sdoc, tdoc)
+
+    assert tdoc.header.custom_vars.get("ClientName") == "SOURCE"
+    assert tdoc.header.custom_vars.get("Unrelated") is None
+    target = tdoc.modelspace().query("MTEXT")[0]
+    assert target.get_primary_field().field_code == "\\AcVar CustomDP.ClientName"
+
+
+def test_load_template_field_keeps_conflicting_target_property():
+    sdoc = dxfpy.new("R2018")
+    mtext = sdoc.modelspace().add_mtext("")
+    mtext.set_field("{{ClientName}}", values={"ClientName": "SOURCE"})
+    tdoc = dxfpy.new("R2018")
+    tdoc.header.custom_vars.append("ClientName", "TARGET")
+
+    xref.load_modelspace(sdoc, tdoc)
+
+    assert tdoc.header.custom_vars.get("ClientName") == "TARGET"
+    assert list(tdoc.header.custom_vars) == [("ClientName", "TARGET")]
+
+
+def test_load_nested_template_field_copies_leaf_property_dependencies():
+    sdoc = dxfpy.new("R2018")
+    mtext = sdoc.modelspace().add_mtext("")
+    mtext.set_field(
+        "{{ModuleCount * (ModuleWatts / 1000)}}",
+        values={"ModuleCount": 20, "ModuleWatts": 410},
+    )
+    tdoc = dxfpy.new("R2018")
+
+    xref.load_modelspace(sdoc, tdoc)
+
+    assert tdoc.header.custom_vars.get("ModuleCount") == "20"
+    assert tdoc.header.custom_vars.get("ModuleWatts") == "410"
+
+
+def test_filtered_out_template_field_does_not_copy_custom_property():
+    sdoc = dxfpy.new("R2018")
+    first = sdoc.modelspace().add_mtext("")
+    first.set_field("{{First}}", values={"First": "A"})
+    second = sdoc.modelspace().add_mtext("")
+    second.set_field("{{Second}}", values={"Second": "B"})
+    tdoc = dxfpy.new("R2018")
+
+    xref.load_modelspace(sdoc, tdoc, filter_fn=lambda entity: entity is first)
+
+    assert tdoc.header.custom_vars.get("First") == "A"
+    assert tdoc.header.custom_vars.get("Second") is None
+
+
+def test_load_template_field_rejects_target_before_r2004():
+    sdoc = dxfpy.new("R2018")
+    mtext = sdoc.modelspace().add_mtext("")
+    mtext.set_field("{{Project}}", values={"Project": "A"})
+    tdoc = dxfpy.new("R2000")
+
+    with pytest.raises(dxfpy.DXFVersionError, match="R2004"):
+        xref.load_modelspace(sdoc, tdoc)
+
+    assert len(tdoc.modelspace()) == 0
+    assert len(tdoc.header.custom_vars) == 0
+
+
+def test_load_drawing_variable_field_rejects_r12_target():
+    sdoc = dxfpy.new("R2018")
+    mtext = sdoc.modelspace().add_mtext("A")
+    mtext.new_acvar_field("Author", text="A", register_field_list=True)
+    tdoc = dxfpy.new("R12")
+
+    with pytest.raises(dxfpy.DXFVersionError, match="R2000"):
+        xref.load_modelspace(sdoc, tdoc)
+
+    assert len(tdoc.modelspace()) == 0
+
+
 def test_load_mtext_with_columns():
     sdoc = dxfpy.new("R2000")
     sdoc.styles.add("ARIAL1", font="Arial.ttf")

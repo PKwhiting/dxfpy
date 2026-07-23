@@ -24,6 +24,14 @@ Required DXF version     DXF R2000 (``'AC1015'``)
 
 .. class:: MText
 
+    .. automethod:: set_field
+
+    .. automethod:: get_field
+
+    .. automethod:: get_primary_field
+
+    .. automethod:: remove_field
+
     .. attribute:: dxf.insert
 
         Insertion point (3D Point in :ref:`OCS`)

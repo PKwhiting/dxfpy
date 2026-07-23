@@ -7,7 +7,13 @@ import logging
 import array
 import re
 from dxfpy.lldxf import validator
-from dxfpy.lldxf.const import DXF2000, DXFStructureError, DXFTypeError, SUBCLASS_MARKER
+from dxfpy.lldxf.const import (
+    DXF2000,
+    DXFStructureError,
+    DXFTypeError,
+    DXFVersionError,
+    SUBCLASS_MARKER,
+)
 from dxfpy.lldxf.tags import Tags
 from dxfpy.lldxf.types import dxftag, DXFTag, DXFBinaryTag
 from dxfpy.lldxf.attributes import (
@@ -581,7 +587,9 @@ class Field(DXFObject):
     def register_resources(self, registry: xref.Registry) -> None:
         """Register resources referenced by this complete FIELD tree."""
         with self._resource_registration_scope():
+            registry.require_field_support()
             self._register_base_resources(registry)
+            self._register_custom_property(registry)
             self._register_child_resources(registry, {id(self)})
 
     def get_handle_mapping(self, clone: Self) -> dict[str, str]:
@@ -606,7 +614,49 @@ class Field(DXFObject):
                 continue
             seen.add(marker)
             DXFEntity.register_resources(child, registry)
+            child._register_custom_property(registry)
             child._register_child_resources(registry, seen)
+
+    def _register_custom_property(self, registry: xref.Registry) -> None:
+        """Register a custom drawing property referenced by this FIELD."""
+        name = self._custom_property_name()
+        if name:
+            registry.add_custom_var(name)
+
+    def _custom_property_name(self) -> Optional[str]:
+        """Return the referenced custom drawing-property name if present."""
+        if self.evaluator_id != "AcVar":
+            return None
+        name = self._structured_variable_name()
+        if name is None:
+            name = self._field_code_variable_name()
+        prefix = "CustomDP."
+        return name[len(prefix) :] if name and name.startswith(prefix) else None
+
+    def _structured_variable_name(self) -> Optional[str]:
+        """Read the variable name from the structured FIELD value data."""
+        variable_data = False
+        for tag in self.tags:
+            if tag.code == 6 and tag.value == "Variable":
+                variable_data = True
+                continue
+            if variable_data and tag.code == 1:
+                return str(tag.value)
+            if variable_data and tag.code == 304:
+                return None
+        return None
+
+    def _field_code_variable_name(self) -> Optional[str]:
+        """Read a variable name from a minimal or legacy FIELD code."""
+        prefix = r"\AcVar "
+        field_code = self.field_code
+        if not field_code.startswith(prefix):
+            return None
+        name = field_code[len(prefix) :]
+        format_marker = r' \f "'
+        if format_marker in name:
+            name = name.partition(format_marker)[0]
+        return name
 
     def map_resources(self, clone: Self, mapping: xref.ResourceMapper) -> None:
         """Map FIELD soft pointers and recursively map copied children."""
@@ -778,9 +828,8 @@ class Field(DXFObject):
     ) -> None:
         """Validate ownership, document membership, and graph uniqueness."""
         if root.doc is None:
-            if root.child_handles:
-                raise DXFStructureError("virtual FIELD root cannot have children")
-            cls._mark_unique_field(root, seen)
+            root.pre_bind_hook(doc)
+            root._validate_copyable_tree(seen)
             return
         stack = [root]
         while stack:
@@ -927,6 +976,7 @@ class Field(DXFObject):
         doc = self.doc
         if doc is None:
             raise DXFStructureError("valid DXF document required")
+        self._preflight_field_list_registration(doc)
         field_list = doc.objects.setup_field_list()
         handles = list(field_list.handles)
         known_handles = set(handles)
@@ -938,6 +988,13 @@ class Field(DXFObject):
                 handles.append(handle)
                 known_handles.add(handle)
         field_list.handles = handles
+
+    @staticmethod
+    def _preflight_field_list_registration(doc: Drawing) -> None:
+        """Validate document support and an existing FIELDLIST object."""
+        if doc.dxfversion < DXF2000:
+            raise DXFVersionError("FIELD resources require DXF R2000 or later")
+        doc.objects.get_field_list()
 
     def _deletable_field_tree(self, exclude_handles: set[str]) -> list[Field]:
         """Returns live tree fields not protected by `exclude_handles`."""
@@ -1305,6 +1362,44 @@ class Field(DXFObject):
         if value is not None or display:
             tags.extend(self._field_value_tags(value, display, field_format))
         self.reset(tags)
+
+    @classmethod
+    def _build_virtual_acexpr(
+        cls,
+        expression: str,
+        child_fields: Sequence[Field],
+        *,
+        field_format: str = "%lu2",
+        value: Any = None,
+        display: str = "",
+        include_eval_option: bool = True,
+    ) -> Field:
+        """Build a detached expression FIELD with detached child FIELDs.
+
+        :param expression: Native expression containing child-index references.
+        :param child_fields: Detached child FIELD roots.
+        :param field_format: Native expression field format.
+        :param value: Optional cached numeric value.
+        :param display: Optional cached display text.
+        :param include_eval_option: Include standard FIELD evaluation metadata.
+        :return: Detached expression FIELD tree.
+        """
+        children = list(child_fields)
+        if not children:
+            raise DXFStructureError("expression requires child FIELDs")
+        placeholders = [format(index, "X") for index in range(len(children))]
+        expression_field = cls()
+        expression_field.set_acexpr(
+            expression,
+            placeholders,
+            field_format=field_format,
+            value=value,
+            display=display,
+            include_eval_option=include_eval_option,
+        )
+        expression_field._pending_copy_children = children
+        expression_field._validate_copyable_tree(set())
+        return expression_field
 
     @staticmethod
     def build_acexpr(

@@ -1,7 +1,8 @@
 # Copyright (c) 2019-2024 Manfred Moitzi
 # License: MIT License
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Sequence
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Optional, Sequence, overload
 from typing_extensions import Self
 import math
 
@@ -38,6 +39,7 @@ from .factory import register_entity
 if TYPE_CHECKING:
     from dxfpy.document import Drawing
     from dxfpy.entities import DXFNamespace, DXFEntity, Dictionary, Field
+    from .fieldtemplate import FieldTemplateValue
     from dxfpy.lldxf.tagwriter import AbstractTagWriter
     from dxfpy import xref
 
@@ -243,13 +245,86 @@ class Text(DXFGraphic):
 
         return MText._format_object_property_value(value, field_format)
 
-    def set_field(self, field: Field, key: str = "TEXT") -> Field:
+    @overload
+    def set_field(
+        self,
+        field: Field,
+        key: str = "TEXT",
+        *,
+        register_field_list: bool | None = None,
+    ) -> Field: ...
+
+    @overload
+    def set_field(
+        self,
+        field: str,
+        key: str = "TEXT",
+        *,
+        values: Mapping[str, FieldTemplateValue] | None = None,
+        register_field_list: bool | None = None,
+    ) -> Field: ...
+
+    def set_field(
+        self,
+        field: Field | str,
+        key: str = "TEXT",
+        *,
+        values: Mapping[str, FieldTemplateValue] | None = None,
+        register_field_list: bool | None = None,
+    ) -> Field:
+        """Attach a FIELD object or compile a user-facing FIELD template.
+
+        :param field: Existing FIELD object or ``{{...}}`` template.
+        :param key: Nested ``ACAD_FIELD`` dictionary key.
+        :param values: Named template sources and drawing-property values.
+        :param register_field_list: Register a compiled tree globally; enabled
+            by default for templates. Explicit ``True`` also registers an
+            existing low-level FIELD tree.
+        :return: Attached root FIELD.
+        """
+        if isinstance(field, str):
+            return self._set_field_template(
+                field, key, values, register_field_list
+            )
+        if values is not None:
+            raise const.DXFTypeError("template options require a string template")
+        return self._set_field_object(
+            field, key, register_field_list is True
+        )
+
+    def _set_field_template(
+        self,
+        template: str,
+        key: str,
+        values: Mapping[str, FieldTemplateValue] | None,
+        register_field_list: bool | None,
+    ) -> Field:
+        """Compile and attach a user-facing FIELD template."""
+        from .fieldtemplate import attach_field_template
+
+        register = True if register_field_list is None else register_field_list
+        return attach_field_template(
+            self,
+            template,
+            key=key,
+            values=values,
+            register_field_list=register,
+        )
+
+    def _set_field_object(
+        self, field: Field, key: str, register_field_list: bool = False
+    ) -> Field:
+        """Attach an existing low-level FIELD object."""
         from .dxfobj import Field
 
         if not isinstance(field, Field):
-            raise const.DXFTypeError(f"invalid DXF type: {field.dxftype()}")
+            raise const.DXFTypeError(
+                f"invalid FIELD value: {type(field).__name__}"
+            )
         if self.doc is None:
             raise const.DXFStructureError("valid DXF document required")
+        if register_field_list:
+            Field._preflight_field_list_registration(self.doc)
         try:
             field_dict = self.get_field_dict()
         except AttributeError:
@@ -280,6 +355,8 @@ class Text(DXFGraphic):
             field._bind_to_owner(self.doc, field_dict.dxf.handle)
         field_dict.take_ownership(key, field)
         field._update_child_owners()
+        if register_field_list:
+            field._register_field_tree()
         return field
 
     def remove_field(self, key: str = "TEXT", *, text: Optional[str] = None) -> None:
@@ -340,7 +417,9 @@ class Text(DXFGraphic):
             self.doc, child_fields, reusable
         )
         Field._validate_text_wrapper_code(field_code, len(fields))
-        if register_field_list or existing is not None:
+        if register_field_list:
+            Field._preflight_field_list_registration(self.doc)
+        elif existing is not None:
             self.doc.objects.get_field_list()
         self.new_field_dict()
         fields = Field._bind_field_roots(self.doc, fields, reusable)

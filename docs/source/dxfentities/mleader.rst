@@ -54,6 +54,14 @@ Required DXF version     DXF R2000 (``'AC1015'``)
 
 .. class:: MultiLeader
 
+    .. automethod:: set_field
+
+    .. automethod:: get_field
+
+    .. automethod:: get_primary_field
+
+    .. automethod:: remove_field
+
     .. attribute:: dxf.arrow_head_handle
 
         handle of the arrow head, see also :mod:`ezdxf.render.arrows` module,

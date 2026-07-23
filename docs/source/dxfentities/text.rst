@@ -32,6 +32,14 @@ Inherited DXF attributes :ref:`Common graphical DXF attributes`
 
 .. class:: Text
 
+    .. automethod:: set_field
+
+    .. automethod:: get_field
+
+    .. automethod:: get_primary_field
+
+    .. automethod:: remove_field
+
     .. attribute:: dxf.text
 
         Text content as string.

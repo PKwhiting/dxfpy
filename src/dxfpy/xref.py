@@ -576,6 +576,12 @@ class Registry(Protocol):
     def add_appid(self, name: str) -> None:
         ...
 
+    def add_custom_var(self, name: str) -> None:
+        ...
+
+    def require_field_support(self) -> None:
+        ...
+
 
 class ResourceMapper(Protocol):
     def get_handle(self, handle: str, default="0") -> str:
@@ -1027,6 +1033,7 @@ class _Registry:
         # - entry NO_BLOCK (layout key "0") contains table entries and DXF objects
         self.source_blocks: dict[str, dict[str, DXFEntity]] = {NO_BLOCK: {}}
         self.appids: set[str] = set()
+        self.custom_vars: dict[str, str] = {}
         self.debug_messages: list[str] = []
 
     def debug(self, msg: str) -> None:
@@ -1111,6 +1118,28 @@ class _Registry:
 
     def add_appid(self, name: str) -> None:
         self.appids.add(name.upper())
+
+    def add_custom_var(self, name: str) -> None:
+        """Register a referenced custom drawing property.
+
+        :param name: Source custom-property name.
+        """
+        if self.target_doc.dxfversion < const.DXF2004:
+            raise const.DXFVersionError(
+                "drawing-property fields require DXF R2004 or later"
+            )
+        value = self.source_doc.header.custom_vars.get(name)
+        if value is None:
+            self.debug(f"source custom property {name!r} does not exist")
+            return
+        self.custom_vars.setdefault(name, value)
+
+    def require_field_support(self) -> None:
+        """Require target-document support for FIELD objects."""
+        if self.target_doc.dxfversion < const.DXF2000:
+            raise const.DXFVersionError(
+                "FIELD resources require DXF R2000 or later"
+            )
 
 
 class _Transfer:
@@ -1554,6 +1583,14 @@ class _Transfer:
     def copy_settings(self):
         self.copy_raster_vars()
         self.copy_wipeout_vars()
+        self.copy_custom_vars()
+
+    def copy_custom_vars(self) -> None:
+        """Copy referenced custom properties without replacing target values."""
+        custom_vars = self.registry.target_doc.header.custom_vars
+        for name, value in self.registry.custom_vars.items():
+            if not custom_vars.has_tag(name):
+                custom_vars.append(name, value)
 
     def copy_raster_vars(self):
         sdoc = self.registry.source_doc

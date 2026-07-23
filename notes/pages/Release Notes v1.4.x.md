@@ -50,6 +50,7 @@
 		- `DWGPROPS` helper flows for supported hosts
 		- broader inferred `AcObjProp` coverage for arcs, circles, ellipses, splines, polylines, and supported `HATCH.Area` cases
 		- multi-child field wrappers and independent field-tree copying
+		- single-call `set_field()` templates with automatic drawing properties and calculated placeholders
 	- Improved dynamic-block visibility parsing and required companion-class registration
 	- Major `dxf2code` compatibility improvements:
 		- preserves supported hosted field graphs

@@ -50,6 +50,27 @@ def test_mtext_object_property_field_to_code():
     assert new_child.object_handles == [new_line.dxf.handle]
 
 
+def test_calculated_field_template_to_code():
+    source_doc = dxfpy.new("R2010")
+    mtext = source_doc.modelspace().add_mtext("")
+    mtext.set_field(
+        "SYSTEM SIZE: {{ModuleCount * (ModuleWatts / 1000)}} kW",
+        values={"ModuleCount": 20, "ModuleWatts": 410},
+    )
+
+    new_doc, new_msp = translate_entities_to_new_layout([mtext])
+
+    new_mtext = new_msp[-1]
+    wrapper = new_mtext.get_field()
+    assert wrapper is not None
+    expression = wrapper.get_child_fields()[0]
+    assert new_mtext.text == "SYSTEM SIZE: 8.2 kW"
+    assert expression.evaluator_id == "AcExpr"
+    assert len(expression.get_child_fields()) == 2
+    assert new_doc.header.custom_vars.get("ModuleCount") == "20"
+    assert new_doc.header.custom_vars.get("ModuleWatts") == "410"
+
+
 def test_text_acexpr_field_to_code():
     source_doc = dxfpy.new("R2010")
     source_msp = source_doc.modelspace()
