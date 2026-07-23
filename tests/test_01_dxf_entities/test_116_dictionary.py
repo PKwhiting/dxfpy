@@ -32,6 +32,27 @@ class MockDoc:
         self.objects = MockDoc.Objects()
 
 
+def test_pre_bind_rejects_cyclic_hard_owned_dictionary_graph():
+    first = factory.new("DICTIONARY", {"hard_owned": 1})
+    second = factory.new("DICTIONARY", {"hard_owned": 1})
+    assert isinstance(first, Dictionary)
+    assert isinstance(second, Dictionary)
+    first.add("SECOND", second)
+    second.add("FIRST", first)
+    doc = dxfpy.new("R2018")
+    handles = set(doc.entitydb)
+
+    with pytest.raises(dxfpy.DXFStructureError, match="cyclic hard-owned"):
+        first.copy()
+
+    with pytest.raises(dxfpy.DXFStructureError, match="cyclic hard-owned"):
+        factory.bind(first, doc)
+
+    assert set(doc.entitydb) == handles
+    assert first.dxf.handle is None
+    assert second.dxf.handle is None
+
+
 class TestNoneEmptyDXFDict:
     @pytest.fixture
     def dxfdict(self):

@@ -1038,13 +1038,27 @@ def _parse_visibility_parameter(entity: DXFTagStorage) -> Optional[DynamicBlockV
         state_name = str(tag.value)
         index += 1
         entity_handles: list[str] = []
+        entity_count: Optional[int] = None
         if index < len(tags) and tags[index].code == 94:
+            entity_count = max(int(tags[index].value), 0)
             index += 1
-        while index < len(tags) and tags[index].code == 332:
+        while (
+            index < len(tags)
+            and tags[index].code in (332, 333)
+            and (entity_count is None or len(entity_handles) < entity_count)
+        ):
             entity_handles.append(str(tags[index].value))
             index += 1
         if index < len(tags) and tags[index].code == 95:
+            auxiliary_count = max(int(tags[index].value), 0)
             index += 1
+            while (
+                auxiliary_count
+                and index < len(tags)
+                and tags[index].code == 333
+            ):
+                auxiliary_count -= 1
+                index += 1
         states.append(
             DynamicBlockVisibilityState(state_name, tuple(entity_handles))
         )

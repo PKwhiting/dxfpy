@@ -2423,6 +2423,7 @@ class AcadTableBlockContent(DXFTagStorage):
                 continue
             child_copy = self.doc.objects.add_field(owner="0")
             child_copy.reset(cell.field_tags)
+            self._restore_field_child_ownership(child_copy)
             wrapper_copy = self.doc.objects.add_field(owner=table_content.dxf.handle)
             wrapper_copy.set_text_wrapper(child_copy, text=cell.field_display_text)
             child_copy.dxf.owner = wrapper_copy.dxf.handle

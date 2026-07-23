@@ -44,6 +44,26 @@ def test_text_new_dwgprops_field_creates_object_backed_field():
     assert child.field_code == "\\AcVar CustomDP.ProjectCode"
 
 
+def test_text_set_linked_fields_attaches_multiple_custom_properties():
+    doc = dxfpy.new("R2007")
+    text = doc.modelspace().add_text("---- / ----")
+    first = Field()
+    first.set_dwgprops("ProjectCode", display="----")
+    second = Field()
+    second.set_dwgprops("Revision", display="----")
+
+    wrapper = text.set_linked_fields(
+        [first, second],
+        field_code="%<\\_FldIdx 0>% / %<\\_FldIdx 1>%",
+        register_field_list=True,
+    )
+
+    assert text.get_field() is wrapper
+    assert wrapper.child_handles == [first.dxf.handle, second.dxf.handle]
+    assert first.dxf.owner == wrapper.dxf.handle
+    assert second.dxf.owner == wrapper.dxf.handle
+
+
 def test_graphicsfactory_add_text_dwgprops_field():
     doc = dxfpy.new("R2007")
     txt = doc.modelspace().add_text_dwgprops_field(
@@ -143,6 +163,31 @@ def test_multileader_new_dwgprops_field_creates_object_backed_field():
     assert child.evaluator_id == "AcVar"
     assert child.field_code == "\\AcVar CustomDP.ProjectCode"
     assert doc.header.custom_vars.get("ProjectCode") == "VALUE-123"
+
+
+def test_multileader_set_linked_fields_uses_mleader_wrapper_shape():
+    doc = dxfpy.new("R2007")
+    builder = doc.modelspace().add_multileader_mtext("Standard")
+    builder.set_content("---- / ----")
+    builder.build(insert=Vec2(0, 0))
+    multileader = builder.multileader
+    first = Field()
+    first.set_dwgprops("ProjectCode", display="----")
+    second = Field()
+    second.set_dwgprops("Revision", display="----")
+
+    wrapper = multileader.set_linked_fields(
+        [first, second],
+        field_code="%<\\_FldIdx 0>% / %<\\_FldIdx 1>%",
+        register_field_list=True,
+    )
+
+    assert wrapper.child_handles == [first.dxf.handle, second.dxf.handle]
+    assert (94, 9) in wrapper.tags
+    assert (6, "ACFD_FIELDTEXT_CHECKSUM") not in wrapper.tags
+    field_list = doc.objects.get_field_list()
+    assert field_list is not None
+    assert all(field.dxf.handle in field_list.handles for field in wrapper.get_field_tree())
 
 
 def test_multileader_new_acexpr_field_creates_nested_expression_field():

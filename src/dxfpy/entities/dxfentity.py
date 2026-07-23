@@ -15,6 +15,9 @@ still not a CAD application.
 
 """
 from __future__ import annotations
+from contextlib import contextmanager
+from contextvars import ContextVar
+import logging
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,10 +28,10 @@ from typing import (
     TypeVar,
     Callable,
 )
+import uuid
+
 from typing_extensions import Self
 
-import logging
-import uuid
 from dxfpy import options
 from dxfpy.lldxf import const
 from dxfpy.lldxf.tags import Tags
@@ -55,6 +58,9 @@ if TYPE_CHECKING:
 
 __all__ = ["DXFEntity", "DXFTagStorage", "base_class", "SubclassProcessor"]
 logger = logging.getLogger("dxfpy")
+_RESOURCE_REGISTRATION_PATH: ContextVar[frozenset[int]] = ContextVar(
+    "dxfpy_resource_registration_path", default=frozenset()
+)
 
 # Dynamic attributes created only at request:
 # Source entity of a copy or None if not a copy:
@@ -197,6 +203,21 @@ class DXFEntity:
         (internal API)
         """
         pass
+
+    def pre_bind_hook(
+        self, doc: Drawing, visited: Optional[set[int]] = None
+    ) -> None:
+        """Validate copied dependencies before binding mutates `doc`."""
+        if visited is None:
+            visited = set()
+        marker = id(self)
+        if marker in visited:
+            raise const.DXFStructureError("cyclic hard-owned DXF object graph")
+        visited.add(marker)
+        if self.extension_dict is not None:
+            xdict = self.extension_dict
+            if xdict.has_valid_dictionary:
+                xdict.dictionary.pre_bind_hook(doc, visited)
 
     @classmethod
     def load(cls: Type[T], tags: ExtendedTags, doc: Optional[Drawing] = None) -> T:
@@ -936,6 +957,24 @@ class DXFEntity:
 
     def register_resources(self, registry: xref.Registry) -> None:
         """Register required resources to the resource registry."""
+        with self._resource_registration_scope():
+            self._register_base_resources(registry)
+
+    @contextmanager
+    def _resource_registration_scope(self) -> Iterator[None]:
+        """Track recursive hard-owned resource traversal in this context."""
+        path = _RESOURCE_REGISTRATION_PATH.get()
+        marker = id(self)
+        if marker in path:
+            raise const.DXFStructureError("cyclic hard-owned DXF object graph")
+        token = _RESOURCE_REGISTRATION_PATH.set(path | {marker})
+        try:
+            yield
+        finally:
+            _RESOURCE_REGISTRATION_PATH.reset(token)
+
+    def _register_base_resources(self, registry: xref.Registry) -> None:
+        """Register this entity's direct resources and extension dictionary."""
         if self.xdata:
             for name in self.xdata.data.keys():
                 registry.add_appid(name)
@@ -943,6 +982,23 @@ class DXFEntity:
             for tags in self.appdata.tags():
                 for tag in tags.get_hard_owner_handles():
                     registry.add_handle(tag.value)
+        if self.extension_dict is not None:
+            xdict = self.extension_dict
+            if xdict.has_valid_dictionary:
+                xdict.dictionary.register_resources(registry)
+
+    def get_handle_mapping(self, clone: Self) -> dict[str, str]:
+        """Return recursive source-to-clone mappings for in-object copies."""
+        mapping: dict[str, str] = {}
+        source_handle = self.dxf.handle
+        clone_handle = clone.dxf.handle
+        if source_handle is not None and clone_handle is not None:
+            mapping[source_handle] = clone_handle
+        if self.extension_dict is not None and clone.extension_dict is not None:
+            source_dict = self.extension_dict.dictionary
+            clone_dict = clone.extension_dict.dictionary
+            mapping.update(source_dict.get_handle_mapping(clone_dict))
+        return mapping
 
     def map_resources(self, clone: Self, mapping: xref.ResourceMapper) -> None:
         """Translate resources from self to the copied entity."""
@@ -970,7 +1026,14 @@ class DXFEntity:
         # reactors are not copied automatically, clone.reactors is always None:
         if self.reactors:
             # reactors are soft-pointers (group code 330)
-            mapped_handles = [mapping.get_handle(h) for h in self.reactors.reactors]
+            source_owner = self.dxf.get("owner")
+            clone_owner = clone.dxf.get("owner")
+            mapped_handles = [
+                clone_owner
+                if handle == source_owner and clone_owner not in (None, "0")
+                else mapping.get_handle(handle)
+                for handle in self.reactors.reactors
+            ]
             mapped_handles = [h for h in mapped_handles if h != "0"]
             if mapped_handles:
                 clone.set_reactors(mapped_handles)

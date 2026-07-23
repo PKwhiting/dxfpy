@@ -11,6 +11,7 @@ from dxfpy.dynblkhelper import (
     _clone_property_attdef,
     _new_tag_storage_object,
     _owner_from_raw_tags,
+    _parse_visibility_parameter,
     DynamicBlockBasePointParameter,
     DynamicBlockPropertiesTable,
     DynamicBlockPropertyColumn,
@@ -65,6 +66,65 @@ from dxfpy.dynblkhelper import (
     set_dynamic_block_visibility_parameter,
     set_dynamic_block_visibility_state,
 )
+
+
+def test_visibility_parser_accepts_alternate_child_handle_code():
+    doc = dxfpy.new("R2018")
+    entity = _new_tag_storage_object(
+        doc,
+        "BLOCKVISIBILITYPARAMETER",
+        "0",
+        [
+            [(100, "AcDbEvalExpr"), (90, 1)],
+            [(100, "AcDbBlockElement"), (300, "Visibility")],
+            [(100, "AcDbBlockParameter"), (280, 1), (281, 0)],
+            [(100, "AcDbBlock1PtParameter"), (1010, (0, 0, 0))],
+            [
+                (100, "AcDbBlockVisibilityParameter"),
+                (301, "Visibility"),
+                (331, "AB"),
+                (303, "SHOW"),
+                (94, 1),
+                (333, "AB"),
+                (95, 0),
+            ],
+        ],
+    )
+
+    parameter = _parse_visibility_parameter(entity)
+
+    assert parameter is not None
+    assert parameter.states[0].entity_handles == ("AB",)
+
+
+def test_visibility_parser_excludes_post_count_auxiliary_333_handles():
+    doc = dxfpy.new("R2018")
+    entity = _new_tag_storage_object(
+        doc,
+        "BLOCKVISIBILITYPARAMETER",
+        "0",
+        [
+            [(100, "AcDbEvalExpr"), (90, 1)],
+            [(100, "AcDbBlockElement"), (300, "Visibility")],
+            [(100, "AcDbBlockParameter"), (280, 1), (281, 0)],
+            [(100, "AcDbBlock1PtParameter"), (1010, (0, 0, 0))],
+            [
+                (100, "AcDbBlockVisibilityParameter"),
+                (301, "Visibility"),
+                (331, "AB"),
+                (303, "SHOW"),
+                (94, 1),
+                (332, "AB"),
+                (95, 1),
+                (333, "CD"),
+            ],
+        ],
+    )
+
+    parameter = _parse_visibility_parameter(entity)
+
+    assert parameter is not None
+    assert parameter.states[0].entity_handles == ("AB",)
 
 
 def make_dynamic_insert(doc, current_state: str):
@@ -1041,6 +1101,50 @@ def test_set_dynamic_block_base_point_parameter_creates_basepoint_only_graph():
     assert created.handle
     assert parsed is not None
     assert parsed.location == (2.0, 3.0, 0.0)
+
+
+def test_base_point_parameter_write_roundtrip_registers_companion_classes():
+    doc = dxfpy.new("R2018")
+    block = doc.blocks.new("DYN_BASEPOINT_ROUNDTRIP")
+    block.add_line((0, 0), (1, 0))
+    set_dynamic_block_definition_metadata(
+        block,
+        guid="{GUID}",
+        true_name="DYN_BASEPOINT_ROUNDTRIP",
+    )
+    created = set_dynamic_block_base_point_parameter(
+        block,
+        DynamicBlockBasePointParameter(
+            handle="",
+            label="Base Point",
+            location=(2.0, 3.0, 4.0),
+            base_point=(5.0, 6.0, 7.0),
+            second_point=(8.0, 9.0, 10.0),
+            expr_id=5,
+        ),
+    )
+
+    stream = StringIO()
+    doc.write(stream)
+    loaded = dxfpy.read(StringIO(stream.getvalue()))
+    loaded_block = loaded.blocks.get("DYN_BASEPOINT_ROUNDTRIP")
+    assert loaded_block is not None
+    parameter = get_dynamic_block_base_point_parameter(loaded_block)
+
+    assert parameter is not None
+    assert parameter.handle == created.handle
+    assert parameter.label == "Base Point"
+    assert parameter.location == (2.0, 3.0, 4.0)
+    assert parameter.base_point == (5.0, 6.0, 7.0)
+    assert parameter.second_point == (8.0, 9.0, 10.0)
+    assert parameter.expr_id == 5
+    for name in (
+        "BASEPOINTPARAMETERENTITY",
+        "LINEARPARAMETERENTITY",
+        "LINEARGRIPENTITY",
+        "STRETCHACTIONENTITY",
+    ):
+        assert loaded.classes.get(name).dxf.is_an_entity == 1
 
 
 def test_raw_dynamic_block_definition_snapshot_restore_preserves_supported_linear_shape():

@@ -3,10 +3,12 @@
 from typing import cast
 import io
 import math
+from pathlib import Path
 import dxfpy
 import pytest
 
 from dxfpy.entities.dxfobj import Field
+from dxfpy.entities import factory
 from dxfpy.entities.mtext import MText
 from dxfpy.lldxf.tagwriter import TagCollector, basic_tags_from_text
 
@@ -39,11 +41,112 @@ def test_set_text_wrapper_fields_links_multiple_children():
     assert reloaded_wrapper.child_handles == wrapper.child_handles
 
 
+def test_long_text_wrapper_field_code_uses_continuation_tags():
+    doc = dxfpy.new("R2018")
+    child = doc.objects.add_field(owner="0")
+    child.set_dwgprops("Client", display="Example")
+    wrapper = doc.objects.add_field(owner="0")
+    field_code = "%<\\_FldIdx 0>%" + "x" * 500
+
+    wrapper.set_text_wrapper_fields([child], field_code=field_code)
+
+    code_tags = [tag for tag in wrapper.tags if tag.code in (2, 3)]
+    assert [tag.code for tag in code_tags] == [2, 3, 3]
+    assert all(len(tag.value) <= 250 for tag in code_tags)
+    assert wrapper.field_code == field_code
+
+    stream = io.StringIO()
+    doc.write(stream)
+    stream.seek(0)
+    reloaded = dxfpy.read(stream)
+    reloaded_wrapper = reloaded.entitydb.get(wrapper.dxf.handle)
+    assert isinstance(reloaded_wrapper, Field)
+    assert reloaded_wrapper.field_code == field_code
+
+
 def test_set_text_wrapper_fields_rejects_invalid_child_type():
     wrapper = Field()
 
     with pytest.raises(dxfpy.DXFTypeError):
         wrapper.set_text_wrapper_fields([None], field_code="")  # type: ignore[list-item]
+
+
+def test_set_text_wrapper_fields_rejects_out_of_range_child_index():
+    child = Field.new(handle="ABBA", owner="0", dxfattribs={})
+    wrapper = Field()
+
+    with pytest.raises(dxfpy.DXFStructureError):
+        wrapper.set_text_wrapper_fields(
+            [child], field_code="%<\\_FldIdx 1>%"
+        )
+
+    assert len(wrapper.tags) == 0
+
+
+def test_set_text_wrapper_fields_requires_every_child_reference():
+    first = Field.new(handle="A1", owner="0", dxfattribs={})
+    second = Field.new(handle="A2", owner="0", dxfattribs={})
+    wrapper = Field()
+
+    with pytest.raises(dxfpy.DXFStructureError):
+        wrapper.set_text_wrapper_fields(
+            [first, second], field_code="%<\\_FldIdx 0>%"
+        )
+
+    assert len(wrapper.tags) == 0
+
+
+def test_set_text_wrapper_fields_rejects_malformed_child_reference():
+    child = Field.new(handle="ABBA", owner="0", dxfattribs={})
+    wrapper = Field()
+
+    with pytest.raises(dxfpy.DXFStructureError):
+        wrapper.set_text_wrapper_fields([child], field_code="\\_FldIdx 0")
+
+    assert len(wrapper.tags) == 0
+
+
+def test_set_text_wrapper_fields_rejects_duplicate_child():
+    child = Field.new(handle="A1", owner="0", dxfattribs={})
+    wrapper = Field()
+
+    with pytest.raises(dxfpy.DXFStructureError, match="duplicate or overlap"):
+        wrapper.set_text_wrapper_fields(
+            [child, child],
+            field_code="%<\\_FldIdx 0>% / %<\\_FldIdx 1>%",
+        )
+
+    assert len(wrapper.tags) == 0
+
+
+def test_set_text_wrapper_fields_rejects_ancestor_descendant_overlap():
+    doc = dxfpy.new("R2018")
+    leaf = doc.objects.add_field(owner="0")
+    leaf.set_acvar("Author")
+    expression = doc.objects.add_field(owner="0")
+    expression.set_acexpr("%<\\_FldIdx 0>%", [leaf])
+    leaf.dxf.owner = expression.dxf.handle
+    wrapper = Field()
+
+    with pytest.raises(dxfpy.DXFStructureError, match="duplicate or overlap"):
+        wrapper.set_text_wrapper_fields(
+            [expression, leaf],
+            field_code="%<\\_FldIdx 0>% / %<\\_FldIdx 1>%",
+        )
+
+    assert len(wrapper.tags) == 0
+
+
+def test_set_acexpr_rejects_duplicate_child():
+    child = Field.new(handle="A1", owner="0", dxfattribs={})
+    expression = Field()
+
+    with pytest.raises(dxfpy.DXFStructureError, match="duplicate or overlap"):
+        expression.set_acexpr(
+            "%<\\_FldIdx 0>% + %<\\_FldIdx 1>%", [child, child]
+        )
+
+    assert len(expression.tags) == 0
 
 FIELD = """0
 FIELD
@@ -129,6 +232,29 @@ def test_field_code_overflow():
     assert entity.dxf.n_child_fields == 1
 
 
+def test_load_autocad_field_code_with_leading_continuation_tags():
+    fixture = (
+        Path(__file__).resolve().parents[2]
+        / "examples_dxf"
+        / "mtext_complex_inline_codes.dxf"
+    )
+    field = dxfpy.readfile(fixture).entitydb["A9"]
+    first_code_tag = next(
+        index for index, tag in enumerate(field.tags) if tag.code in (2, 3)
+    )
+    code_tags = []
+    for tag in field.tags[first_code_tag:]:
+        if tag.code not in (2, 3):
+            break
+        code_tags.append(tag)
+    expected = "".join(str(tag.value) for tag in code_tags)
+
+    assert isinstance(field, Field)
+    assert [tag.code for tag in code_tags] == [3, 3, 3, 3, 3, 3, 3, 2]
+    assert len(expected) == 1983
+    assert field.field_code == expected
+
+
 def test_reset_tags_updates_simple_attributes():
     entity = Field()
     entity.reset([(1, "AcVar"), (2, "\\AcVar Login"), (90, 0)])
@@ -159,6 +285,127 @@ def test_child_and_object_handles_from_tags():
     assert entity.is_text_wrapper is True
     assert entity.child_handles == ["A1", "A2"]
     assert entity.object_handles == ["B1"]
+
+
+def test_copy_creates_independent_virtual_child_tree():
+    doc = dxfpy.new("R2018")
+    child = doc.objects.add_field(owner="0")
+    child.set_acvar("Author", display="----")
+    wrapper = doc.objects.add_field(owner="0")
+    wrapper.set_text_wrapper(child)
+    child.dxf.owner = wrapper.dxf.handle
+    source_handles = {wrapper.dxf.handle, child.dxf.handle}
+
+    clone = wrapper.copy()
+    clone_children = clone.get_child_fields()
+
+    assert clone.dxf.handle is None
+    assert clone.child_handles == ["0"]
+    assert len(clone_children) == 1
+    assert clone_children[0] is not child
+    assert clone_children[0].dxf.handle is None
+    assert source_handles == {wrapper.dxf.handle, child.dxf.handle}
+
+
+def test_reset_deletes_omitted_owned_children_and_field_list_entries():
+    doc = dxfpy.new("R2018")
+    child = doc.objects.add_field(owner="0")
+    child.set_acvar("Author", display="----")
+    wrapper = doc.objects.add_field(owner="0")
+    wrapper.set_text_wrapper(child)
+    child.dxf.owner = wrapper.dxf.handle
+    wrapper._register_field_tree()
+
+    wrapper.set_acvar("Login", display="----")
+
+    assert child.is_alive is False
+    assert wrapper.get_child_fields() == []
+    assert doc.objects.get_field_list().handles == [wrapper.dxf.handle]  # type: ignore[union-attr]
+
+
+def test_reset_preserves_owned_child_referenced_by_replacement_payload():
+    doc = dxfpy.new("R2018")
+    child = doc.objects.add_field(owner="0")
+    child.set_acvar("Author", display="----")
+    wrapper = doc.objects.add_field(owner="0")
+    wrapper.set_text_wrapper(child)
+    child.dxf.owner = wrapper.dxf.handle
+
+    wrapper.set_text_wrapper_fields(
+        [child], field_code="prefix %<\\_FldIdx 0>% suffix"
+    )
+
+    assert child.is_alive
+    assert wrapper.get_child_fields() == [child]
+    assert child.dxf.owner == wrapper.dxf.handle
+
+
+def test_pre_bind_rejects_pending_child_count_mismatch_atomically():
+    source_doc = dxfpy.new("R2018")
+    child = source_doc.objects.add_field(owner="0")
+    child.set_acvar("Author", display="----")
+    wrapper = source_doc.objects.add_field(owner="0")
+    wrapper.set_text_wrapper(child)
+    child.dxf.owner = wrapper.dxf.handle
+    clone = wrapper.copy()
+    clone.tags = type(clone.tags)(tag for tag in clone.tags if tag.code != 360)
+    target_doc = dxfpy.new("R2018")
+    target_handles = set(target_doc.entitydb)
+
+    with pytest.raises(dxfpy.DXFStructureError, match="child handle count"):
+        factory.bind(clone, target_doc)
+
+    assert set(target_doc.entitydb) == target_handles
+    assert clone.dxf.handle is None
+    assert clone.doc is source_doc
+
+
+def test_reset_can_promote_owned_descendant_without_deleting_it():
+    doc = dxfpy.new("R2018")
+    leaf = doc.objects.add_field(owner="0")
+    leaf.set_acvar("Author", display="----")
+    expression = doc.objects.add_field(owner="0")
+    expression.set_acexpr("%<\\_FldIdx 0>%", [leaf])
+    leaf.dxf.owner = expression.dxf.handle
+    wrapper = doc.objects.add_field(owner="0")
+    wrapper.set_text_wrapper(expression)
+    expression.dxf.owner = wrapper.dxf.handle
+    wrapper._register_field_tree()
+
+    wrapper.set_text_wrapper_fields(
+        [leaf], field_code="promoted %<\\_FldIdx 0>%"
+    )
+
+    assert expression.is_alive is False
+    assert leaf.is_alive
+    assert wrapper.get_child_fields() == [leaf]
+    assert leaf.dxf.owner == wrapper.dxf.handle
+    assert set(doc.objects.get_field_list().handles) == {  # type: ignore[union-attr]
+        wrapper.dxf.handle,
+        leaf.dxf.handle,
+    }
+
+
+def test_reset_preflights_invalid_field_list_before_deleting_children():
+    doc = dxfpy.new("R2018")
+    child = doc.objects.add_field(owner="0")
+    child.set_acvar("Author", display="----")
+    wrapper = doc.objects.add_field(owner="0")
+    wrapper.set_text_wrapper(child)
+    child.dxf.owner = wrapper.dxf.handle
+    wrapper._register_field_tree()
+    invalid_field_list = doc.objects.add_xrecord()
+    doc.rootdict.add("ACAD_FIELDLIST", invalid_field_list)
+    original_tags = list(wrapper.tags)
+
+    with pytest.raises(dxfpy.DXFStructureError, match="FIELDLIST"):
+        wrapper.set_acvar("Login", display="----")
+
+    assert list(wrapper.tags) == original_tags
+    assert child.is_alive
+    assert child in doc.objects
+    assert doc.entitydb.get(child.dxf.handle) is child
+    assert child.dxf.owner == wrapper.dxf.handle
 
 
 def test_set_text_wrapper_builds_minimal_wrapper_tags():
@@ -268,6 +515,23 @@ def test_build_acexpr_rejects_non_field_children():
         Field.build_acexpr(doc, "%<\\_FldIdx 0>%", [object()])
 
     assert "object" in str(error.value)
+
+
+def test_build_acexpr_validates_all_children_before_copying():
+    doc = dxfpy.new("R2018")
+    valid = Field()
+    valid.set_dwgprops("ProjectCode")
+
+    with pytest.raises(dxfpy.DXFTypeError):
+        Field.build_acexpr(
+            doc,
+            "%<\\_FldIdx 0>%",
+            [valid, object()],  # type: ignore[list-item]
+        )
+
+    assert not any(
+        isinstance(entity, Field) for entity in doc.entitydb.values()
+    )
 
 
 def test_clear_tags_clears_simple_attributes():

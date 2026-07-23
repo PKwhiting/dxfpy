@@ -137,7 +137,7 @@ class Dictionary(DXFObject):
 
     def get_handle_mapping(self, clone: Dictionary) -> dict[str, str]:
         """Returns handle mapping for in-object copies."""
-        handle_mapping: dict[str, str] = dict()
+        handle_mapping = super().get_handle_mapping(clone)
         if not self.is_hard_owner:
             return handle_mapping
 
@@ -145,15 +145,31 @@ class Dictionary(DXFObject):
             if not isinstance(entity, DXFEntity):
                 continue
             copied_entry = clone.get(key)
-            if copied_entry:
-                handle_mapping[entity.dxf.handle] = copied_entry.dxf.handle
+            if isinstance(copied_entry, DXFEntity):
+                handle_mapping.update(entity.get_handle_mapping(copied_entry))
         return handle_mapping
+
+    def register_resources(self, registry: xref.Registry) -> None:
+        """Register resources referenced by hard-owned dictionary entries."""
+        with self._resource_registration_scope():
+            self._register_base_resources(registry)
+            if not self.is_hard_owner:
+                return
+            for _, entry in self.items():
+                if isinstance(entry, DXFEntity):
+                    entry.register_resources(registry)
 
     def map_resources(self, clone: Self, mapping: xref.ResourceMapper) -> None:
         """Translate resources from self to the copied entity."""
         assert isinstance(clone, Dictionary)
         super().map_resources(clone, mapping)
         if self.is_hard_owner:
+            for key, source_entry in self.items():
+                clone_entry = clone.get(key)
+                if isinstance(source_entry, DXFEntity) and isinstance(
+                    clone_entry, DXFEntity
+                ):
+                    source_entry.map_resources(clone_entry, mapping)
             return
         data = dict()
         for key, entity in self.items():
@@ -161,7 +177,7 @@ class Dictionary(DXFObject):
                 continue
             entity_copy = mapping.get_reference_of_copy(entity.dxf.handle)
             if entity_copy:
-                data[key] = entity
+                data[key] = entity_copy
         clone._data = data  # type: ignore
 
     def del_source_of_copy(self) -> None:
@@ -188,6 +204,19 @@ class Dictionary(DXFObject):
             factory.bind(entity, doc)
             # For a correct DXF export add entities to the objects section:
             object_section.add_object(entity)
+
+    def pre_bind_hook(
+        self, doc: Drawing, visited: Optional[set[int]] = None
+    ) -> None:
+        """Validate hard-owned entries before any copied object is bound."""
+        if visited is None:
+            visited = set()
+        super().pre_bind_hook(doc, visited)
+        if not self.dxf.hard_owned:
+            return
+        for _, entity in self.items():
+            if isinstance(entity, DXFEntity):
+                entity.pre_bind_hook(doc, visited)
 
     def load_dxf_attribs(
         self, processor: Optional[SubclassProcessor] = None

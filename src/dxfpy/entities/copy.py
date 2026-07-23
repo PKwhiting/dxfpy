@@ -1,10 +1,12 @@
 # Copyright (c) 2023, Manfred Moitzi
 # License: MIT License
 from __future__ import annotations
-from typing import TYPE_CHECKING, TypeVar, NamedTuple, Optional
+from contextvars import ContextVar
 from copy import deepcopy
 import logging
-from dxfpy.lldxf.const import DXFError
+from typing import TYPE_CHECKING, TypeVar, NamedTuple, Optional
+
+from dxfpy.lldxf.const import DXFError, DXFStructureError
 
 if TYPE_CHECKING:
     from dxfpy.entities import DXFEntity
@@ -45,6 +47,9 @@ class CopyStrategy:
 
     def __init__(self, settings: CopySettings) -> None:
         self.settings = settings
+        self._active_copy_ids: ContextVar[frozenset[int]] = ContextVar(
+            f"dxfpy_active_copy_ids_{id(self)}", default=frozenset()
+        )
 
     def copy(self, entity: T) -> T:
         """Entity copy for usage in the same document or as virtual entity.
@@ -52,6 +57,18 @@ class CopyStrategy:
         This copy is NOT stored in the entity database and does NOT reside in any
         layout, block, table or objects section!
         """
+        marker = id(entity)
+        active_copy_ids = self._active_copy_ids.get()
+        if marker in active_copy_ids:
+            raise DXFStructureError("cyclic hard-owned DXF object graph")
+        token = self._active_copy_ids.set(active_copy_ids | {marker})
+        try:
+            return self._copy_entity(entity)
+        finally:
+            self._active_copy_ids.reset(token)
+
+    def _copy_entity(self, entity: T) -> T:
+        """Copy `entity` after cycle validation."""
         settings = self.settings
         clone = entity.__class__()
         doc = entity.doc

@@ -85,6 +85,7 @@ def bind(entity: DXFEntity, doc: Drawing) -> None:
     """
     assert entity.is_alive, "Can not bind destroyed entity."
     assert doc.entitydb is not None, "Missing entity database."
+    entity.pre_bind_hook(doc)
     entity.doc = doc
     doc.entitydb.add(entity)
 

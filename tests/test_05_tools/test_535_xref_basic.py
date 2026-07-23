@@ -1,9 +1,11 @@
 #  Copyright (c) 2023, Manfred Moitzi
 #  License: MIT License
-from typing import cast
-import pytest
+import io
 from collections import Counter
+from typing import cast
+
 import dxfpy
+import pytest
 from dxfpy import xref, colors, const
 from dxfpy.math import Vec2
 from dxfpy.document import Drawing
@@ -21,6 +23,7 @@ from dxfpy.entities import (
     MultiLeader,
     BlockRecord,
     Underlay,
+    Field,
 )
 
 
@@ -356,6 +359,171 @@ class TestLoadTextEntities:
         tdoc = dxfpy.new()
         xref.load_modelspace(sdoc, tdoc)
         assert tdoc.styles.has_entry("ARIAL") is True
+
+
+def test_load_mtext_field_maps_object_ids_and_registered_tree():
+    sdoc = dxfpy.new("R2018")
+    line = sdoc.modelspace().add_line((0, 0), (10, 0))
+    mtext = sdoc.modelspace().add_mtext("10.0000")
+    child, wrapper = mtext.new_acobjprop_field(
+        line,
+        "Length",
+        text="10.0000",
+        register_field_list=True,
+    )
+    wrapper.append_reactor_handle(line.dxf.handle)
+    child.set_xdata("FIELD_APP", [(1005, line.dxf.handle)])
+    tdoc = dxfpy.new("R2018")
+    forward_handles(tdoc, 20)
+
+    xref.load_modelspace(sdoc, tdoc)
+
+    target_line, target_mtext = tdoc.modelspace()
+    target_wrapper = target_mtext.get_field()
+    target_child = target_mtext.get_primary_field()
+    assert target_wrapper is not None
+    assert target_child is not None
+    assert target_line.dxf.handle != line.dxf.handle
+    assert [
+        (tag.code, tag.value)
+        for tag in target_child.tags
+        if tag.code in (330, 331)
+    ] == [(331, target_line.dxf.handle), (330, target_line.dxf.handle)]
+    assert target_wrapper.child_handles == [target_child.dxf.handle]
+    assert target_child.dxf.owner == target_wrapper.dxf.handle
+    assert set(target_wrapper.get_reactors()) == {
+        target_wrapper.dxf.owner,
+        target_line.dxf.handle,
+    }
+    assert target_child.get_xdata("FIELD_APP") == [
+        (1005, target_line.dxf.handle)
+    ]
+    assert tdoc.appids.has_entry("FIELD_APP")
+    field_list = tdoc.objects.get_field_list()
+    assert field_list is not None
+    assert set(field_list.handles) == {
+        target_wrapper.dxf.handle,
+        target_child.dxf.handle,
+    }
+
+    stream = io.StringIO()
+    tdoc.write(stream)
+    loaded = dxfpy.read(io.StringIO(stream.getvalue()))
+    loaded_mtext = loaded.modelspace()[1]
+    loaded_child = loaded_mtext.get_primary_field()
+    assert loaded_child is not None
+    assert loaded_child.object_handles == [loaded.modelspace()[0].dxf.handle]
+
+
+def test_load_nested_field_tree_maps_leaf_object_ids():
+    sdoc = dxfpy.new("R2018")
+    line = sdoc.modelspace().add_line((0, 0), (10, 0))
+    leaf = Field()
+    leaf.set_acobjprop(line, "Length", value=10.0, display="10.0000")
+    sdoc.modelspace().add_mtext_acexpr_field(
+        "%<\\_FldIdx 0>% * 2",
+        [leaf],
+        value=20.0,
+        text="20.0000",
+        register_field_list=True,
+    )
+    tdoc = dxfpy.new("R2018")
+
+    xref.load_modelspace(sdoc, tdoc)
+
+    target_line, target_mtext = tdoc.modelspace()
+    target_tree = target_mtext.get_field().get_field_tree()
+    assert len(target_tree) == 3
+    target_leaf = target_tree[-1]
+    assert target_leaf.object_handles == [target_line.dxf.handle]
+    for parent in target_tree:
+        for child in parent.get_child_fields():
+            assert child.dxf.owner == parent.dxf.handle
+
+
+def test_load_field_maps_filtered_soft_pointer_to_null_handle():
+    sdoc = dxfpy.new("R2018")
+    line = sdoc.modelspace().add_line((0, 0), (10, 0))
+    mtext = sdoc.modelspace().add_mtext("10.0000")
+    mtext.new_acobjprop_field(line, "Length", text="10.0000")
+    tdoc = dxfpy.new("R2018")
+
+    xref.load_modelspace(sdoc, tdoc, filter_fn=lambda entity: entity is mtext)
+
+    target_child = tdoc.modelspace()[0].get_primary_field()
+    assert target_child is not None
+    assert [
+        tag.value for tag in target_child.tags if tag.code in (330, 331)
+    ] == ["0", "0"]
+    assert tdoc.objects.get_field_list() is None
+
+
+def test_load_nested_soft_dictionary_uses_mapped_target_entry():
+    sdoc = dxfpy.new("R2018")
+    material = sdoc.materials.new("FIELD_MATERIAL")
+    line = sdoc.modelspace().add_line(
+        (0, 0),
+        (1, 0),
+        dxfattribs={"material_handle": material.dxf.handle},
+    )
+    soft_dictionary = line.new_extension_dict().add_dictionary(
+        "SOFT", hard_owned=False
+    )
+    soft_dictionary.add("MATERIAL", material)
+    tdoc = dxfpy.new("R2018")
+
+    xref.load_modelspace(sdoc, tdoc)
+
+    target_line = tdoc.modelspace()[0]
+    target_dictionary = target_line.get_extension_dict().get("SOFT")
+    assert target_dictionary.get("MATERIAL") is tdoc.materials.get(
+        "FIELD_MATERIAL"
+    )
+
+
+def test_load_entity_reactor_maps_copied_extension_field_handle():
+    sdoc = dxfpy.new("R2018")
+    line = sdoc.modelspace().add_line((0, 0), (1, 0))
+    mtext = sdoc.modelspace().add_mtext("A")
+    child, _ = mtext.new_acvar_field("Author", text="A")
+    line.set_reactors([child.dxf.handle])
+    tdoc = dxfpy.new("R2018")
+
+    xref.load_modelspace(sdoc, tdoc)
+
+    target_line, target_mtext = tdoc.modelspace()
+    target_child = target_mtext.get_primary_field()
+    assert target_child is not None
+    assert target_line.get_reactors() == [target_child.dxf.handle]
+
+
+def test_xref_rejects_cyclic_hard_owned_dictionary_graph():
+    sdoc = dxfpy.new("R2018")
+    line = sdoc.modelspace().add_line((0, 0), (1, 0))
+    extension_dictionary = line.new_extension_dict().dictionary
+    first = sdoc.objects.add_dictionary(
+        owner=extension_dictionary.dxf.handle, hard_owned=True
+    )
+    second = sdoc.objects.add_dictionary(owner=first.dxf.handle, hard_owned=True)
+    extension_dictionary.add("FIRST", first)
+    first.add("SECOND", second)
+    second.add("FIRST", first)
+    tdoc = dxfpy.new("R2018")
+
+    with pytest.raises(dxfpy.DXFStructureError, match="cyclic hard-owned"):
+        xref.load_modelspace(sdoc, tdoc)
+
+
+def test_xref_rejects_dictionary_cycle_through_generic_object_extension():
+    sdoc = dxfpy.new("R2018")
+    line = sdoc.modelspace().add_line((0, 0), (1, 0))
+    root = line.new_extension_dict().dictionary
+    xrecord = root.add_xrecord("XRECORD")
+    xrecord.new_extension_dict().dictionary.add("ROOT", root)
+    tdoc = dxfpy.new("R2018")
+
+    with pytest.raises(dxfpy.DXFStructureError, match="cyclic hard-owned"):
+        xref.load_modelspace(sdoc, tdoc)
 
 
 def test_load_mtext_with_columns():

@@ -245,29 +245,41 @@ class Text(DXFGraphic):
 
     def set_field(self, field: Field, key: str = "TEXT") -> Field:
         from .dxfobj import Field
-        from . import factory
 
         if not isinstance(field, Field):
             raise const.DXFTypeError(f"invalid DXF type: {field.dxftype()}")
         if self.doc is None:
             raise const.DXFStructureError("valid DXF document required")
-
-        field_dict = self.new_field_dict()
-        existing = field_dict.get(key)
+        try:
+            field_dict = self.get_field_dict()
+        except AttributeError:
+            field_dict = None
+            existing = None
+        else:
+            existing = field_dict.get(key)
         if existing is field:
             return field
+        requires_binding = field._requires_binding_to(self.doc)
+        reusable_handles: set[str] = set()
+        if isinstance(existing, Field):
+            self.doc.objects.get_field_list()
+            reusable_handles = existing._reusable_field_handles()
+        field_handles = field._validate_replacement_tree(
+            self.doc, reusable_handles
+        )
+
+        if field_dict is None:
+            field_dict = self.new_field_dict()
         if isinstance(existing, Field):
             field_dict.discard(key)
-            existing._delete_field_tree(exclude_handles=field._field_tree_handles())
+            existing._delete_field_tree(exclude_handles=field_handles)
         elif existing is not None:
             field_dict.remove(key)
 
-        if field.doc is None:
-            factory.bind(field, self.doc)
-            self.doc.objects.add_object(field)
-        elif field.doc is not self.doc:
-            raise const.DXFStructureError("field belongs to a different DXF document")
+        if requires_binding:
+            field._bind_to_owner(self.doc, field_dict.dxf.handle)
         field_dict.take_ownership(key, field)
+        field._update_child_owners()
         return field
 
     def remove_field(self, key: str = "TEXT", *, text: Optional[str] = None) -> None:
@@ -294,10 +306,55 @@ class Text(DXFGraphic):
             raise const.DXFStructureError(
                 f"expected a FIELD entity, got {str(field)} for key: {key}"
             )
+        self.doc.objects.get_field_list()  # type: ignore[union-attr]
         field_dict.discard(key)
         field._delete_field_tree()
         if text is not None:
             self.dxf.text = text
+
+    def set_linked_fields(
+        self,
+        child_fields: Sequence[Field],
+        key: str = "TEXT",
+        *,
+        field_code: str,
+        text: Optional[str] = None,
+        register_field_list: bool = False,
+    ) -> Field:
+        """Attach multiple direct child FIELDs through one text wrapper.
+
+        :param child_fields: Ordered direct child FIELD entities.
+        :param key: Nested ``ACAD_FIELD`` dictionary key.
+        :param field_code: Wrapper code containing ``_FldIdx`` references.
+        :param text: Optional visible TEXT content.
+        :param register_field_list: Register the complete tree globally.
+        :return: The attached wrapper FIELD.
+        """
+        from .dxfobj import Field
+
+        if self.doc is None:
+            raise const.DXFStructureError("valid DXF document required")
+        existing = self.get_field(key)
+        reusable = existing._reusable_field_handles() if existing else set()
+        fields = Field._validate_field_roots(
+            self.doc, child_fields, reusable
+        )
+        Field._validate_text_wrapper_code(field_code, len(fields))
+        if register_field_list or existing is not None:
+            self.doc.objects.get_field_list()
+        self.new_field_dict()
+        fields = Field._bind_field_roots(self.doc, fields, reusable)
+        final_text = text if text is not None else self.dxf.text
+        wrapper = self.doc.objects.add_field(owner="0")
+        wrapper.set_text_wrapper_fields(fields, field_code=field_code, text=final_text)
+        self.set_field(wrapper, key=key)
+        wrapper._update_child_owners()
+        wrapper.set_reactors([self.get_field_dict().dxf.handle])
+        if text is not None:
+            self.dxf.text = text
+        if register_field_list:
+            wrapper._register_field_tree()
+        return wrapper
 
     def set_linked_field(
         self,
@@ -307,34 +364,14 @@ class Text(DXFGraphic):
         text: Optional[str] = None,
         register_field_list: bool = False,
     ) -> Field:
-        from .dxfobj import Field
-        from . import factory
-
-        if not isinstance(field, Field):
-            raise const.DXFTypeError(f"invalid DXF type: {field.dxftype()}")
-        if self.doc is None:
-            raise const.DXFStructureError("valid DXF document required")
-        if field.doc is None:
-            factory.bind(field, self.doc)
-            self.doc.objects.add_object(field)
-        elif field.doc is not self.doc:
-            raise const.DXFStructureError("field belongs to a different DXF document")
-
-        final_text = text if text is not None else self.dxf.text
-
-        wrapper = self.doc.objects.add_field(owner="0")
-        wrapper.set_text_wrapper(field, text=final_text)
-        self.set_field(wrapper, key=key)
-        field.dxf.owner = wrapper.dxf.handle
-        wrapper.set_reactors([self.get_field_dict().dxf.handle])
-
-        if text is not None:
-            self.dxf.text = text
-
-        if register_field_list:
-            wrapper._register_field_tree()
-
-        return wrapper
+        """Attach one child FIELD through a text wrapper."""
+        return self.set_linked_fields(
+            [field],
+            key=key,
+            field_code="%<\\_FldIdx 0>%",
+            text=text,
+            register_field_list=register_field_list,
+        )
 
     def new_linked_field(
         self,
@@ -347,12 +384,16 @@ class Text(DXFGraphic):
         if self.doc is None:
             raise const.DXFStructureError("valid DXF document required")
         field = self.doc.objects.add_field(owner="0", dxfattribs=dxfattribs)
-        wrapper = self.set_linked_field(
-            field,
-            key=key,
-            text=text,
-            register_field_list=register_field_list,
-        )
+        try:
+            wrapper = self.set_linked_field(
+                field,
+                key=key,
+                text=text,
+                register_field_list=register_field_list,
+            )
+        except Exception:
+            field._delete_field_tree(validate_field_list=False)
+            raise
         return field, wrapper
 
     def new_acvar_field(
@@ -468,12 +509,16 @@ class Text(DXFGraphic):
             value=value,
             display=display or "",
         )
-        wrapper = self.set_linked_field(
-            expr,
-            key=key,
-            text=text,
-            register_field_list=register_field_list,
-        )
+        try:
+            wrapper = self.set_linked_field(
+                expr,
+                key=key,
+                text=text,
+                register_field_list=register_field_list,
+            )
+        except Exception:
+            expr._delete_field_tree(validate_field_list=False)
+            raise
         return expr, wrapper
 
     def load_dxf_attribs(

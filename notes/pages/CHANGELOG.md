@@ -13,6 +13,11 @@
 		- added `DWGPROPS` helpers for supported hosts
 		- expanded inferred `AcObjProp` coverage for arcs, circles, ellipses, splines, polylines, and supported hatch area cases
 		- validated by AutoCAD/Core Console roundtrip artifacts
+	- NEW: multi-child field wrappers for `TEXT`, `MTEXT`, and `MULTILEADER` hosts
+	- BUGFIX: parse long AutoCAD `FIELD` codes with leading continuation tags
+	- BUGFIX: preserve and validate complete `FIELD` ownership trees during copy, replacement, deletion, and `xref` loading
+	- BUGFIX: parse dynamic-block visibility state references without including auxiliary handles
+	- BUGFIX: register required base-point, linear, grip, and stretch companion classes when writing dynamic blocks
 	- NEW: major `ezdxf.addons.dxf2code` compatibility improvements for fields and `MULTILEADER`
 		- preserves supported hosted field graphs during code generation roundtrip
 		- recreates MTEXT-content and block-content `MULTILEADER` entities, custom `MLEADERSTYLE`, and arrow-head mappings
