@@ -4,6 +4,7 @@ import pytest
 
 import dxfpy
 from dxfpy.entities.textstyle import Textstyle, get_textstyle
+from dxfpy.entities.layer import Layer
 from dxfpy.entities import DXFEntity
 
 
@@ -159,6 +160,16 @@ def test_empty_style_name_is_discarded_from_document():
 
     assert len(doc.styles) == 1
     assert style.is_alive is False
+
+
+def test_empty_layer_name_is_discarded_from_document():
+    doc = dxfpy.new()
+    layer = Layer.new("FEFD", dxfattribs={"name": ""})
+    doc.entitydb.add(layer)
+
+    doc.layers.load(doc, iter([doc.layers.head, layer]))
+
+    assert layer.is_alive is False
 
 
 @pytest.fixture(scope="module")
