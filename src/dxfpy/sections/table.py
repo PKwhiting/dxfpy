@@ -242,7 +242,17 @@ class Table(Generic[T]):
         (internal API).
         """
         assert entry.dxftype() == self.TABLE_TYPE
-        self.entries[self.key(entry.dxf.name)] = entry
+        name = entry.dxf.name
+        if not name:
+            logger.warning(
+                "Ignored empty %s table entry %s.",
+                self.TABLE_TYPE,
+                entry.dxf.handle,
+            )
+            if self.doc is not None:
+                self.doc.entitydb.delete_entity(entry)
+            return
+        self.entries[self.key(name)] = entry
 
     def add_entry(self, entry: T) -> None:
         """Add a table `entry`, created by other object than this table.
@@ -483,6 +493,14 @@ class TextstyleTable(Table[Textstyle]):
         """
         if entry.dxf.name == "" and (entry.dxf.flags & 1):  # shx shape file
             self.shx_files[self.key(entry.dxf.font)] = entry
+        elif not entry.dxf.name:
+            logger.warning(
+                "Ignored empty %s table entry %s.",
+                self.TABLE_TYPE,
+                entry.dxf.handle,
+            )
+            if self.doc is not None:
+                self.doc.entitydb.delete_entity(entry)
         else:
             self.entries[self.key(entry.dxf.name)] = entry
 

@@ -150,6 +150,17 @@ def test_malformed_layer():
     assert style.dxf.oblique == 30.0
 
 
+def test_empty_style_name_is_discarded_from_document():
+    doc = dxfpy.new()
+    style = Textstyle.from_text(MALFORMED_STYLE.replace("STY_EZDXF", ""))
+    doc.entitydb.add(style)
+
+    doc.styles.load(doc, iter([doc.styles.head, style]))
+
+    assert len(doc.styles) == 1
+    assert style.is_alive is False
+
+
 @pytest.fixture(scope="module")
 def msp():
     doc = dxfpy.new()
