@@ -29,6 +29,7 @@ __all__ = [
 ]
 
 FieldScalar: TypeAlias = str | int | float | Decimal
+_DEFERRED_EXPRESSION_DISPLAY = "####"
 
 
 @dataclass(frozen=True)
@@ -605,9 +606,11 @@ class _FieldTemplateCompiler:
         self,
         host: _FieldTemplateHost,
         values: Mapping[str, FieldTemplateValue],
+        deferred: bool,
     ) -> None:
         self._resolver = _SourceResolver(host, values)
         self._include_eval_option = host.dxftype() != "MULTILEADER"
+        self._deferred = deferred
 
     def compile(self, template: str) -> _CompiledTemplate:
         """Compile a FIELD template without mutating a document."""
@@ -654,9 +657,7 @@ class _FieldTemplateCompiler:
         if expression.is_direct_reference:
             source = sources[expression.names[0]]
             return source.new_field(), source.display
-        value = expression.evaluate(sources)
-        cached_value = _finite_float(value)
-        display = _decimal_text(value)
+        cached_value, display = self._expression_cache(expression, sources)
         children = [sources[name].new_field() for name in expression.names]
         field = Field._build_virtual_acexpr(
             expression.field_code(),
@@ -667,6 +668,22 @@ class _FieldTemplateCompiler:
         )
         return field, display
 
+    def _expression_cache(
+        self,
+        expression: _Expression,
+        sources: Mapping[str, _ResolvedSource],
+    ) -> tuple[float | None, str]:
+        """Return the calculated or deferred expression cache.
+
+        :param expression: Validated arithmetic expression.
+        :param sources: Resolved expression sources.
+        :return: Native numeric cache and visible display text.
+        """
+        if self._deferred:
+            return None, _DEFERRED_EXPRESSION_DISPLAY
+        value = expression.evaluate(sources)
+        return _finite_float(value), _decimal_text(value)
+
 
 def attach_field_template(
     host: _FieldTemplateHost,
@@ -674,6 +691,7 @@ def attach_field_template(
     *,
     key: str,
     values: Mapping[str, FieldTemplateValue] | None,
+    deferred: bool,
     register_field_list: bool,
 ) -> Field:
     """Compile and attach a user-facing FIELD template to `host`.
@@ -682,6 +700,7 @@ def attach_field_template(
     :param template: User-facing template containing ``{{...}}`` expressions.
     :param key: Nested ``ACAD_FIELD`` dictionary key.
     :param values: Named template sources and drawing-property values.
+    :param deferred: Defer arithmetic cache evaluation to the CAD application.
     :param register_field_list: Register the complete tree globally.
     :return: Attached text-wrapper FIELD.
     """
@@ -693,8 +712,12 @@ def attach_field_template(
         raise const.DXFVersionError(
             "FIELD templates require DXF R2000 or later"
         )
+    if type(deferred) is not bool:
+        raise const.DXFTypeError("deferred must be a bool")
     supplied_values = _require_values(values)
-    compiled = _FieldTemplateCompiler(host, supplied_values).compile(template)
+    compiled = _FieldTemplateCompiler(host, supplied_values, deferred).compile(
+        template
+    )
     wrapper = host.set_linked_fields(
         compiled.child_fields,
         key=key,

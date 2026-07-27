@@ -124,6 +124,114 @@ def test_calculation_supports_add_subtract_multiply_divide_and_unary():
     assert mtext.text == "-10"
 
 
+def test_deferred_calculation_accepts_empty_drawing_properties():
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("")
+
+    wrapper = mtext.set_field(
+        "{{A * B}}",
+        values={"A": "", "B": ""},
+        deferred=True,
+    )
+
+    expression = wrapper.get_child_fields()[0]
+    assert mtext.text == "####"
+    assert expression.evaluator_id == "AcExpr"
+    assert (301, "####") in expression.tags
+    assert all(tag.code != 140 for tag in expression.tags)
+    assert doc.header.custom_vars.has_tag("A")
+    assert doc.header.custom_vars.has_tag("B")
+    assert doc.header.custom_vars.get("A") == ""
+    assert doc.header.custom_vars.get("B") == ""
+
+    loaded = roundtrip(doc)
+    loaded_mtext = loaded.modelspace().query("MTEXT")[0]
+    loaded_expression = loaded_mtext.get_primary_field()
+    assert loaded_mtext.text == "####"
+    assert loaded_expression is not None
+    assert (301, "####") in loaded_expression.tags
+    assert all(tag.code != 140 for tag in loaded_expression.tags)
+
+
+def test_empty_calculation_requires_explicit_deferred_option():
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("ORIGINAL")
+
+    with pytest.raises(dxfpy.DXFValueError, match="not numeric"):
+        mtext.set_field("{{A * B}}", values={"A": "", "B": ""})
+
+    assert mtext.text == "ORIGINAL"
+    assert mtext.get_field() is None
+    assert len(doc.header.custom_vars) == 0
+
+
+def test_deferred_calculation_skips_all_local_numeric_evaluation():
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("")
+
+    mtext.set_field(
+        "{{Dividend / Divisor}}",
+        values={"Dividend": "pending", "Divisor": 0},
+        deferred=True,
+    )
+
+    assert mtext.text == "####"
+
+
+def test_deferred_does_not_change_direct_property_display():
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("")
+
+    mtext.set_field(
+        "{{Client}} / {{A * B}}",
+        values={"Client": "Acme", "A": "", "B": ""},
+        deferred=True,
+    )
+
+    assert mtext.text == "Acme / ####"
+
+
+def test_all_inherited_text_hosts_support_deferred_calculations():
+    doc = dxfpy.new("R2018")
+    text = doc.modelspace().add_text("")
+    block = doc.blocks.new("DEFERRED_ATTRIB")
+    attdef = block.add_attdef("VALUE")
+    insert = doc.modelspace().add_blockref(block.name, (0, 0))
+    attrib = insert.add_attrib("VALUE", "")
+    multileader = make_multileader(doc)
+
+    for host in (text, attdef, attrib, multileader):
+        wrapper = host.set_field(
+            "{{A * B}}",
+            values={"A": "", "B": ""},
+            deferred=True,
+        )
+        expression = wrapper.get_child_fields()[0]
+        assert (301, "####") in expression.tags
+
+    assert text.dxf.text == "####"
+    assert attdef.dxf.text == "####"
+    assert attrib.dxf.text == "####"
+    assert multileader.get_mtext_content() == "####"
+
+
+@pytest.mark.parametrize("deferred", [0, 1, None, ""])
+def test_deferred_option_requires_bool(deferred):
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("ORIGINAL")
+
+    with pytest.raises(dxfpy.DXFTypeError, match="deferred must be a bool"):
+        mtext.set_field(
+            "{{A * B}}",
+            values={"A": "", "B": ""},
+            deferred=deferred,  # type: ignore[arg-type]
+        )
+
+    assert mtext.text == "ORIGINAL"
+    assert mtext.get_field() is None
+    assert len(doc.header.custom_vars) == 0
+
+
 def test_repeated_template_expression_reuses_direct_child():
     doc = dxfpy.new("R2018")
     mtext = doc.modelspace().add_mtext("")
@@ -341,6 +449,31 @@ def test_low_level_field_rejects_template_only_options():
 
     with pytest.raises(dxfpy.DXFTypeError, match="template options"):
         mtext.set_field(field, values={"Author": "A"})  # type: ignore[call-overload]
+
+    assert mtext.get_field() is None
+
+
+@pytest.mark.parametrize("deferred", [0, 1, None, ""])
+def test_low_level_field_rejects_invalid_deferred_option(deferred):
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("VALUE")
+    field = Field()
+    field.set_acvar("Author", display="VALUE")
+
+    with pytest.raises(dxfpy.DXFTypeError, match="deferred must be a bool"):
+        mtext.set_field(field, deferred=deferred)  # type: ignore[call-overload]
+
+    assert mtext.get_field() is None
+
+
+def test_low_level_field_rejects_enabled_deferred_template_option():
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("VALUE")
+    field = Field()
+    field.set_acvar("Author", display="VALUE")
+
+    with pytest.raises(dxfpy.DXFTypeError, match="template options"):
+        mtext.set_field(field, deferred=True)  # type: ignore[call-overload]
 
     assert mtext.get_field() is None
 

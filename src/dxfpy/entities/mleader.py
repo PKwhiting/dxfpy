@@ -384,6 +384,7 @@ class MultiLeader(DXFGraphic):
         key: str = "TEXT",
         *,
         values: Mapping[str, FieldTemplateValue] | None = None,
+        deferred: bool = False,
         register_field_list: bool | None = None,
     ) -> Field: ...
 
@@ -393,6 +394,7 @@ class MultiLeader(DXFGraphic):
         key: str = "TEXT",
         *,
         values: Mapping[str, FieldTemplateValue] | None = None,
+        deferred: bool = False,
         register_field_list: bool | None = None,
     ) -> Field:
         """Attach a FIELD object or compile a user-facing FIELD template.
@@ -400,16 +402,20 @@ class MultiLeader(DXFGraphic):
         :param field: Existing FIELD object or ``{{...}}`` template.
         :param key: Nested ``ACAD_FIELD`` dictionary key.
         :param values: Named template sources and drawing-property values.
+        :param deferred: Defer arithmetic cache evaluation to the CAD
+            application.
         :param register_field_list: Register a compiled tree globally; enabled
             by default for templates. Explicit ``True`` also registers an
             existing low-level FIELD tree.
         :return: Attached root FIELD.
         """
+        if type(deferred) is not bool:
+            raise const.DXFTypeError("deferred must be a bool")
         if isinstance(field, str):
             return self._set_field_template(
-                field, key, values, register_field_list
+                field, key, values, deferred, register_field_list
             )
-        if values is not None:
+        if values is not None or deferred:
             raise const.DXFTypeError("template options require a string template")
         return self._set_field_object(
             field, key, register_field_list is True
@@ -420,6 +426,7 @@ class MultiLeader(DXFGraphic):
         template: str,
         key: str,
         values: Mapping[str, FieldTemplateValue] | None,
+        deferred: bool,
         register_field_list: bool | None,
     ) -> Field:
         """Compile and attach a user-facing FIELD template."""
@@ -431,6 +438,7 @@ class MultiLeader(DXFGraphic):
             template,
             key=key,
             values=values,
+            deferred=deferred,
             register_field_list=register,
         )
 

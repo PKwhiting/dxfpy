@@ -46,6 +46,21 @@ Supported operators are ``+``, ``-``, ``*``, ``/``, unary ``+`` and ``-``,
 parentheses, and numeric literals. Expressions are parsed by a restricted
 validator and are never passed to Python ``eval()``.
 
+Pass ``deferred=True`` when calculated operands should be evaluated later by
+the CAD application. Deferred arithmetic skips local numeric evaluation and
+uses ``####`` as its cached display, so empty drawing properties are supported:
+
+.. code-block:: python
+
+    mtext.set_field(
+        "{{A * B}}",
+        values={"A": "", "B": ""},
+        deferred=True,
+    )
+
+The option applies to every arithmetic placeholder in the template. Direct
+property placeholders still use their supplied cached display values.
+
 Use public source helpers when a name refers to a drawing variable or an entity
 property instead of a custom drawing property:
 

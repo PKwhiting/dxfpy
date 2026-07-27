@@ -17,6 +17,7 @@
 	- NEW: user-facing `set_field()` templates for `TEXT`, `MTEXT`, `ATTRIB`, `ATTDEF`, and `MULTILEADER`
 		- plain values create or update drawing-property fields automatically
 		- arithmetic inside `{{...}}` creates calculated fields without exposing native `_FldIdx` or `AcExpr` syntax
+		- `deferred=True` creates calculated fields with a `####` cache when operands should be evaluated later by the CAD application
 		- public `drawing_property()`, `drawing_variable()`, and `object_property()` sources support mixed templates
 	- BUGFIX: parse long AutoCAD `FIELD` codes with leading continuation tags
 	- BUGFIX: preserve and validate complete `FIELD` ownership trees during copy, replacement, deletion, and `xref` loading
