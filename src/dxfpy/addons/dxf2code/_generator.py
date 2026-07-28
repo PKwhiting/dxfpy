@@ -985,6 +985,7 @@ class _SourceCodeGenerator:
         handles = list(parameter.all_entity_handles)
         for state in parameter.states:
             handles.extend(state.entity_handles)
+            handles.extend(state.auxiliary_handles)
         for handle in handles:
             path = get_dynamic_block_entity_rep_index_path(block, handle)
             if not path:
@@ -1159,7 +1160,7 @@ class _SourceCodeGenerator:
                     f"set_dynamic_block_definition_metadata(b, guid={json.dumps(self._dynamic_block_guid(block_record))}, true_name={json.dumps(self._dynamic_block_true_name(block_record))}, rep_index={rep_index}, annotative={block_record.has_xdata('AcadAnnotative')})"
                 )
             if parameter is not None:
-                state_handle_exprs: list[tuple[str, list[str]]] = []
+                state_handle_exprs: list[tuple[str, list[str], list[str]]] = []
                 for state in parameter.states:
                     handle_exprs = []
                     for handle in state.entity_handles:
@@ -1170,7 +1171,18 @@ class _SourceCodeGenerator:
                             )
                             return
                         handle_exprs.append(expr)
-                    state_handle_exprs.append((state.name, handle_exprs))
+                    auxiliary_exprs = []
+                    for handle in state.auxiliary_handles:
+                        expr = self._dynamic_block_entity_handle_expr(block, handle)
+                        if expr is None:
+                            self.add_source_code_line(
+                                "# unsupported dynamic block visibility metadata: unresolved auxiliary handle"
+                            )
+                            return
+                        auxiliary_exprs.append(expr)
+                    state_handle_exprs.append(
+                        (state.name, handle_exprs, auxiliary_exprs)
+                    )
                 all_handle_exprs = []
                 for handle in parameter.all_entity_handles:
                     expr = self._dynamic_block_entity_handle_expr(block, handle)
@@ -1184,12 +1196,17 @@ class _SourceCodeGenerator:
                     "from dxfpy.dynblkhelper import DynamicBlockVisibilityParameter, DynamicBlockVisibilityState, set_dynamic_block_visibility_parameter"
                 )
                 self.add_source_code_line("_dyn_states = (")
-                for name, handle_exprs in state_handle_exprs:
+                for name, handle_exprs, auxiliary_exprs in state_handle_exprs:
                     handles = ", ".join(handle_expr for handle_expr in handle_exprs)
                     if len(handle_exprs) == 1:
                         handles += ","
+                    auxiliary = ", ".join(
+                        handle_expr for handle_expr in auxiliary_exprs
+                    )
+                    if len(auxiliary_exprs) == 1:
+                        auxiliary += ","
                     self.add_source_code_line(
-                        f"    DynamicBlockVisibilityState({json.dumps(name)}, ({handles})),"
+                        f"    DynamicBlockVisibilityState({json.dumps(name)}, ({handles}), ({auxiliary})),"
                     )
                 self.add_source_code_line(")")
                 self.add_source_code_line("_dyn_param = DynamicBlockVisibilityParameter(")

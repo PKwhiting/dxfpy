@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 __all__ = [
     "DynamicBlockVisibilityState",
     "DynamicBlockVisibilityParameter",
+    "DynamicBlockPointParameter",
     "DynamicBlockBasePointParameter",
     "DynamicBlockLinearGrip",
     "DynamicBlockLinearParameter",
@@ -46,6 +47,7 @@ __all__ = [
     "DynamicBlockPropertyRepresentation",
     "get_dynamic_block_definition",
     "get_dynamic_block_reference",
+    "get_dynamic_block_true_name",
     "is_dynamic_block_definition",
     "get_dynamic_block_record_handle",
     "get_dynamic_block_visibility_parameter",
@@ -53,6 +55,7 @@ __all__ = [
     "get_dynamic_block_visibility_state",
     "get_dynamic_block_visibility_state_handles",
     "get_dynamic_block_visibility_entities",
+    "get_dynamic_block_point_parameters",
     "get_dynamic_block_entity_rep_index_path",
     "get_dynamic_block_entity_by_rep_index_path",
     "get_dynamic_block_entity_handle_by_rep_index_path",
@@ -732,6 +735,7 @@ def _apply_property_attdef_visibility(
 class DynamicBlockVisibilityState:
     name: str
     entity_handles: tuple[str, ...] = ()
+    auxiliary_handles: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -742,6 +746,16 @@ class DynamicBlockVisibilityParameter:
     location: tuple[float, float, float]
     states: tuple[DynamicBlockVisibilityState, ...]
     all_entity_handles: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class DynamicBlockPointParameter:
+    handle: str
+    label: str
+    name: str
+    base_offset: tuple[float, float, float]
+    origin_offset: tuple[float, float, float]
+    expr_id: int = -1
 
 
 @dataclass(frozen=True)
@@ -978,6 +992,23 @@ def is_dynamic_block_definition(block_record: BlockRecord) -> bool:
     return block_record.has_xdata(AcDbDynamicBlockGUID)
 
 
+def get_dynamic_block_true_name(
+    source: Union[Insert, BlockLayout, BlockRecord], doc: Optional[Drawing] = None
+) -> str:
+    """Return the recorded true name of a dynamic block definition."""
+    block_record = _resolve_dynamic_block_record(source, doc)
+    if block_record is None:
+        return ""
+    for appid in (AcDbDynamicBlockTrueName, AcDbDynamicBlockTrueName2):
+        try:
+            name = block_record.get_xdata(appid).get_first_value(1000, "")
+        except const.DXFValueError:
+            continue
+        if name:
+            return str(name)
+    return str(block_record.dxf.name)
+
+
 def get_dynamic_block_record_handle(block_record: BlockRecord) -> str:
     """Returns handle of the dynamic block record for an indirect dynamic block
     reference. Returns an empty string if the block record do not reference a dynamic
@@ -1026,6 +1057,10 @@ def _parse_visibility_parameter(entity: DXFTagStorage) -> Optional[DynamicBlockV
     label = str(element_tags.get_first_value(300, ""))
     location = location_tags.get_first_value(1010, (0.0, 0.0, 0.0))
     parameter_name = str(visibility_tags.get_first_value(301, ""))
+    try:
+        parsed_location = _point3d(location)
+    except (IndexError, TypeError, ValueError):
+        return None
     all_entity_handles = tuple(str(value) for code, value in visibility_tags if code == 331)
     tags = list(visibility_tags)
     states: list[DynamicBlockVisibilityState] = []
@@ -1040,7 +1075,7 @@ def _parse_visibility_parameter(entity: DXFTagStorage) -> Optional[DynamicBlockV
         entity_handles: list[str] = []
         entity_count: Optional[int] = None
         if index < len(tags) and tags[index].code == 94:
-            entity_count = max(int(tags[index].value), 0)
+            entity_count = _non_negative_count(tags[index].value)
             index += 1
         while (
             index < len(tags)
@@ -1049,27 +1084,40 @@ def _parse_visibility_parameter(entity: DXFTagStorage) -> Optional[DynamicBlockV
         ):
             entity_handles.append(str(tags[index].value))
             index += 1
+        auxiliary_handles: list[str] = []
         if index < len(tags) and tags[index].code == 95:
-            auxiliary_count = max(int(tags[index].value), 0)
+            auxiliary_count = _non_negative_count(tags[index].value)
             index += 1
             while (
                 auxiliary_count
                 and index < len(tags)
                 and tags[index].code == 333
             ):
+                auxiliary_handles.append(str(tags[index].value))
                 auxiliary_count -= 1
                 index += 1
         states.append(
-            DynamicBlockVisibilityState(state_name, tuple(entity_handles))
+            DynamicBlockVisibilityState(
+                state_name,
+                tuple(entity_handles),
+                tuple(auxiliary_handles),
+            )
         )
     return DynamicBlockVisibilityParameter(
         handle=entity.dxf.handle or "",
         label=label,
         parameter_name=parameter_name,
-        location=(float(location[0]), float(location[1]), float(location[2])),
+        location=parsed_location,
         states=tuple(states),
         all_entity_handles=all_entity_handles,
     )
+
+
+def _non_negative_count(value: Any) -> int:
+    try:
+        return max(int(value), 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 def _point3d(value: Any) -> tuple[float, float, float]:
@@ -1092,6 +1140,34 @@ def _get_subclass(entity: DXFTagStorage, *names: str):
         except const.DXFKeyError:
             continue
     raise const.DXFKeyError(names[0])
+
+
+def _parse_point_parameter(
+    entity: DXFTagStorage,
+) -> Optional[DynamicBlockPointParameter]:
+    if entity.dxftype() != "BLOCKPOINTPARAMETER":
+        return None
+    try:
+        element_tags = entity.xtags.get_subclass("AcDbBlockElement")
+        point_tags = entity.xtags.get_subclass("AcDbBlock1PtParameter")
+        parameter_tags = entity.xtags.get_subclass("AcDbBlockPointParameter")
+    except const.DXFKeyError:
+        return None
+    base_offset = point_tags.get_first_value(1010, None)
+    origin_offset = parameter_tags.get_first_value(1011, None)
+    if base_offset is None or origin_offset is None:
+        return None
+    try:
+        return DynamicBlockPointParameter(
+            handle=entity.dxf.handle or "",
+            label=str(element_tags.get_first_value(300, "")),
+            name=str(parameter_tags.get_first_value(303, "")),
+            base_offset=_point3d(base_offset),
+            origin_offset=_point3d(origin_offset),
+            expr_id=_eval_expr_id(entity),
+        )
+    except (IndexError, TypeError, ValueError):
+        return None
 
 
 def _parse_linear_grip(entity: DXFTagStorage) -> Optional[DynamicBlockLinearGrip]:
@@ -1696,7 +1772,7 @@ def get_dynamic_block_visibility_entities(
         if base_block is None or ref_block is None:
             return ()
         result: list[DXFEntity] = []
-        for handle in handles:
+        for handle in dict.fromkeys(handles):
             path = get_dynamic_block_entity_rep_index_path(base_block, handle)
             if not path:
                 continue
@@ -1712,10 +1788,45 @@ def get_dynamic_block_visibility_entities(
     if entitydb is None:
         return ()
     result: list[DXFEntity] = []
-    for handle in handles:
-        entity = entitydb.get(handle)
+    for handle in dict.fromkeys(handles):
+        path = get_dynamic_block_entity_rep_index_path(block, handle)
+        entity = get_dynamic_block_entity_by_rep_index_path(block, path)
         if entity is not None:
             result.append(entity)
+    return tuple(result)
+
+
+def get_dynamic_block_point_parameters(
+    source: Union[Insert, BlockLayout, BlockRecord],
+    state: str = "",
+    doc: Optional[Drawing] = None,
+) -> tuple[DynamicBlockPointParameter, ...]:
+    """Return point parameters referenced by one visibility state."""
+    parameter = get_dynamic_block_visibility_parameter(source, doc)
+    if parameter is None:
+        return ()
+    if not state and isinstance(source, Insert):
+        state = get_dynamic_block_visibility_state(source, doc)
+    selected = next((item for item in parameter.states if item.name == state), None)
+    if selected is None:
+        return ()
+    block_record = _resolve_dynamic_block_record(source, doc)
+    entitydb = block_record.doc.entitydb if block_record is not None else None
+    graph = _get_enhanced_block_graph(block_record) if block_record else None
+    if entitydb is None or graph is None:
+        return ()
+    result: list[DynamicBlockPointParameter] = []
+    handles = selected.entity_handles + selected.auxiliary_handles
+    for handle in dict.fromkeys(handles):
+        entity = entitydb.get(handle)
+        if (
+            not isinstance(entity, DXFTagStorage)
+            or entity.dxf.owner != graph.dxf.handle
+        ):
+            continue
+        point = _parse_point_parameter(entity)
+        if point is not None:
+            result.append(point)
     return tuple(result)
 
 
@@ -5407,6 +5518,11 @@ def _new_tag_storage_object(doc: Drawing, dxftype: str, owner: str, subclasses) 
 
 
 def _set_owner_reactor(entity: DXFTagStorage, owner: str) -> None:
+    entity.dxf.owner = owner
+    for index, tag in enumerate(entity.xtags.noclass):
+        if tag.code == 330:
+            entity.xtags.noclass[index] = dxftag(330, owner)
+            break
     entity.set_reactors([owner])
 
 
@@ -7243,6 +7359,10 @@ def set_dynamic_block_visibility_parameter(
         _apply_visibility_state_to_block(block, parameter, parameter.states[0].name)
 
     xdict = _ensure_dynamic_block_extension_dict(block_record)
+    previous_graph = xdict.get("ACAD_ENHANCEDBLOCK")
+    allowed_auxiliary_owners = {"0"}
+    if isinstance(previous_graph, DXFTagStorage):
+        allowed_auxiliary_owners.add(previous_graph.dxf.handle)
     graph = _new_tag_storage_object(
         doc,
         "ACAD_EVALUATION_GRAPH",
@@ -7317,6 +7437,14 @@ def set_dynamic_block_visibility_parameter(
     )
     _set_owner_reactor(graph, xdict.dxf.handle)
     xdict.add("ACAD_ENHANCEDBLOCK", graph)
+    for state in parameter.states:
+        for handle in state.auxiliary_handles:
+            entity = doc.entitydb.get(handle)
+            if (
+                isinstance(entity, DXFTagStorage)
+                and entity.dxf.owner in allowed_auxiliary_owners
+            ):
+                _set_owner_reactor(entity, graph.dxf.handle)
     purge = _new_tag_storage_object(
         doc,
         "ACDB_DYNAMICBLOCKPURGEPREVENTER_VERSION",
@@ -7349,7 +7477,8 @@ def set_dynamic_block_visibility_parameter(
                 (303, state.name),
                 (94, len(state.entity_handles)),
                 *[(332, handle) for handle in state.entity_handles],
-                (95, 0),
+                (95, len(state.auxiliary_handles)),
+                *[(333, handle) for handle in state.auxiliary_handles],
             ]
         )
 

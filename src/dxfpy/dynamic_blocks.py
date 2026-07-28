@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from dxfpy import dynblkhelper
-from dxfpy.dynblkhelper import DynamicBlockPropertiesTable
-from dxfpy.entities import DXFEntity, Insert
+from dxfpy.dynblkhelper import (
+    DynamicBlockPointParameter,
+    DynamicBlockPropertiesTable,
+)
+from dxfpy.entities import DXFEntity, DXFGraphic, Insert
+from dxfpy.layouts import BaseLayout, BlockLayout
 from dxfpy.lldxf import const
+from dxfpy.math import UVec
 
 if TYPE_CHECKING:
-    from dxfpy.layouts import BlockLayout
+    from dxfpy.document import Drawing
 
 __all__ = [
     "DynamicBlockError",
@@ -16,6 +22,8 @@ __all__ = [
     "DynamicBlockVisibilityError",
     "UnknownVisibilityStateError",
     "UnsupportedDynamicBlockReferenceError",
+    "DynamicBlockDefinition",
+    "DynamicBlockPointParameter",
     "DynamicBlockReference",
 ]
 
@@ -38,6 +46,210 @@ class UnknownVisibilityStateError(DynamicBlockVisibilityError):
 
 class UnsupportedDynamicBlockReferenceError(DynamicBlockVisibilityError):
     """Raised when a dynamic block reference shape is not safely editable."""
+
+
+class DynamicBlockDefinition:
+    """High-level facade for inspecting dynamic block definitions."""
+
+    def __init__(self, block: BlockLayout) -> None:
+        """Initialize the facade.
+
+        :param block: Dynamic block definition to inspect.
+        """
+        self._block = block
+
+    @classmethod
+    def find(cls, document: Drawing, name: str) -> DynamicBlockDefinition | None:
+        """Find a dynamic definition by block or recorded true name.
+
+        :param document: Document containing the definition.
+        :param name: Block-table or recorded true name.
+        :return: Matching definition facade or ``None``.
+        """
+        direct = document.blocks.get(name)
+        if direct is not None and cls._is_dynamic(direct):
+            return cls(direct)
+        normalized = name.casefold()
+        for block in document.blocks:
+            if cls._matches_true_name(block, normalized):
+                return cls(block)
+        return None
+
+    @property
+    def block(self) -> BlockLayout:
+        """Return the wrapped block definition."""
+        return self._block
+
+    @property
+    def document(self) -> Drawing:
+        """Return the owning document.
+
+        :raises DXFStructureError: If the definition is not document-bound.
+        """
+        document = self._block.doc
+        if document is None:
+            raise const.DXFStructureError("dynamic block requires a document")
+        return document
+
+    @property
+    def name(self) -> str:
+        """Return the block-table name."""
+        return self._block.name
+
+    @property
+    def true_name(self) -> str:
+        """Return the recorded dynamic block name."""
+        return dynblkhelper.get_dynamic_block_true_name(self._block)
+
+    @property
+    def has_visibility(self) -> bool:
+        """Return ``True`` if visibility states are available."""
+        return bool(self.visibility_state_names)
+
+    @property
+    def visibility_state_names(self) -> tuple[str, ...]:
+        """Return all available visibility-state names."""
+        return dynblkhelper.get_dynamic_block_visibility_states(self._block)
+
+    @property
+    def property_table(self) -> DynamicBlockPropertiesTable | None:
+        """Return the dynamic property table when present."""
+        return dynblkhelper.get_dynamic_block_properties_table(self._block)
+
+    @property
+    def has_property_table(self) -> bool:
+        """Return ``True`` if a dynamic property table is available."""
+        return self.property_table is not None
+
+    def visible_entities(self, state: str) -> tuple[DXFEntity, ...]:
+        """Return entities visible in one state.
+
+        :param state: Visibility-state name.
+        :raises UnknownVisibilityStateError: If ``state`` is unknown.
+        """
+        self._validate_visibility_state(state)
+        return dynblkhelper.get_dynamic_block_visibility_entities(
+            self._block, state
+        )
+
+    def point_parameters(
+        self, state: str
+    ) -> tuple[DynamicBlockPointParameter, ...]:
+        """Return point parameters referenced by one state.
+
+        :param state: Visibility-state name.
+        :raises UnknownVisibilityStateError: If ``state`` is unknown.
+        """
+        self._validate_visibility_state(state)
+        return dynblkhelper.get_dynamic_block_point_parameters(
+            self._block, state
+        )
+
+    def copy_visible_entities(
+        self,
+        state: str,
+        target: BaseLayout,
+        *,
+        predicate: Callable[[DXFGraphic], bool] | None = None,
+    ) -> tuple[DXFGraphic, ...]:
+        """Copy visible graphics into a same-document layout.
+
+        :param state: Visibility-state name.
+        :param target: Layout receiving copied graphics.
+        :param predicate: Optional source-entity filter.
+        :return: Copied graphics in visibility-record order.
+        """
+        self._validate_target(target)
+        self._validate_materializable_state(state)
+        copied: list[DXFGraphic] = []
+        for entity in self.visible_entities(state):
+            if not self._should_copy(entity, predicate):
+                continue
+            duplicate = entity.copy_to_layout(target)
+            duplicate.dxf.invisible = 0
+            copied.append(duplicate)
+        return tuple(copied)
+
+    def materialize_visibility_state(
+        self,
+        state: str,
+        target: BaseLayout,
+        insertion: UVec,
+        *,
+        predicate: Callable[[DXFGraphic], bool] | None = None,
+    ) -> Insert:
+        """Insert a static anonymous block for one visibility state.
+
+        :param state: Visibility-state name.
+        :param target: Layout receiving the block reference.
+        :param insertion: Block-reference insertion point.
+        :param predicate: Optional source-entity filter.
+        :return: Inserted static block reference.
+        """
+        self._validate_visibility_state(state)
+        self._validate_target(target)
+        block = self.document.blocks.new_anonymous_block(
+            type_char="U", base_point=self._block.base_point
+        )
+        try:
+            self.copy_visible_entities(state, block, predicate=predicate)
+            return target.add_blockref(block.name, insertion)
+        except Exception:
+            self.document.blocks.delete_block(block.name, safe=False)
+            raise
+
+    def _validate_visibility_state(self, state: str) -> None:
+        """Require a known visibility state."""
+        if state not in self.visibility_state_names:
+            raise UnknownVisibilityStateError(
+                f"unknown dynamic block visibility state: {state!r}"
+            )
+
+    def _validate_target(self, target: BaseLayout) -> None:
+        """Require a target in the definition's document."""
+        if target.doc is not self.document:
+            raise const.DXFStructureError(
+                "dynamic block target requires the source document"
+            )
+
+    def _validate_materializable_state(self, state: str) -> None:
+        """Reject visibility paths that require nested-block evaluation."""
+        self._validate_visibility_state(state)
+        handles = dynblkhelper.get_dynamic_block_visibility_state_handles(
+            self._block, state
+        )
+        for handle in handles:
+            path = dynblkhelper.get_dynamic_block_entity_rep_index_path(
+                self._block, handle
+            )
+            if len(path) > 1:
+                raise DynamicBlockVisibilityError(
+                    "nested visibility paths cannot be materialized"
+                )
+
+    @staticmethod
+    def _should_copy(
+        entity: DXFEntity,
+        predicate: Callable[[DXFGraphic], bool] | None,
+    ) -> bool:
+        """Return whether one source entity should be copied."""
+        return (
+            isinstance(entity, DXFGraphic)
+            and entity.is_alive
+            and (predicate is None or predicate(entity))
+        )
+
+    @staticmethod
+    def _is_dynamic(block: BlockLayout) -> bool:
+        """Return whether a block is a dynamic definition."""
+        return dynblkhelper.is_dynamic_block_definition(block.block_record)
+
+    @classmethod
+    def _matches_true_name(cls, block: BlockLayout, name: str) -> bool:
+        """Return whether a dynamic definition has a true-name match."""
+        return cls._is_dynamic(block) and (
+            dynblkhelper.get_dynamic_block_true_name(block).casefold() == name
+        )
 
 
 class DynamicBlockReference:

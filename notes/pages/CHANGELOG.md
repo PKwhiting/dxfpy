@@ -1,4 +1,8 @@
 ## Version 1.4.4 - dev
+	- NEW: definition-level dynamic-block inspection and static visibility-state materialization
+		- resolves definitions by block-table or recorded true name
+		- exposes primary and auxiliary point parameters for visibility states
+		- copies filtered visible graphics into same-document layouts
 	- NEW: first-class support for `FIELD` DXF objects
 		- `FIELD` objects are loaded/exported as real typed DXF objects instead of unimplemented placeholders
 		- low-level helpers added for field inspection and authoring
