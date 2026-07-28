@@ -7,6 +7,7 @@
 	- NEW: first-class support for `FIELD` DXF objects
 		- `FIELD` objects are loaded/exported as real typed DXF objects instead of unimplemented placeholders
 		- low-level helpers added for field inspection and authoring
+		- `Field.get_custom_property_names()` inspects custom drawing-property sources across a complete field tree
 	- NEW: experimental object-backed `MTEXT` field authoring API
 		- `layout.add_mtext_acvar_field()`
 		- `layout.add_mtext_acobjprop_field()`

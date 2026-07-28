@@ -489,6 +489,36 @@ def test_set_dwgprops_builds_formatted_title_field():
     assert field.field_code == "\\AcVar CustomDP.Title \\f \"%tc1\""
 
 
+def test_get_custom_property_names_returns_complete_tree_in_order():
+    doc = dxfpy.new("R2018")
+    project = doc.objects.add_field(owner="0")
+    project.set_dwgprops("Project Code")
+    author = doc.objects.add_field(owner="0")
+    author.set_acvar("Author")
+    title = doc.objects.add_field(owner="0")
+    title.set_dwgprops("Title", field_format="%tc1")
+    wrapper = doc.objects.add_field(owner="0")
+    wrapper.set_text_wrapper_fields(
+        [project, author, title],
+        field_code=(
+            "%<\\_FldIdx 0>% / %<\\_FldIdx 1>% / %<\\_FldIdx 2>%"
+        ),
+    )
+
+    assert wrapper.get_custom_property_names() == ["Project Code", "Title"]
+
+
+def test_get_custom_property_names_supports_legacy_field_code():
+    field = Field.new(
+        dxfattribs={
+            "evaluator_id": "AcVar",
+            "field_code": '\\AcVar CustomDP.Company Name \\f "%tc1"',
+        }
+    )
+
+    assert field.get_custom_property_names() == ["Company Name"]
+
+
 def test_set_acexpr_builds_expression_field_with_two_children():
     child1 = Field.new(handle="A1", owner="0", dxfattribs={})
     child2 = Field.new(handle="A2", owner="0", dxfattribs={})

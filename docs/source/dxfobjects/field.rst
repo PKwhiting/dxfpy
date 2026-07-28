@@ -51,6 +51,8 @@ Factory function         :meth:`ezdxf.sections.objects.ObjectsSection.add_field`
 
     .. automethod:: get_field_tree
 
+    .. automethod:: get_custom_property_names
+
     .. automethod:: clear
 
     .. automethod:: reset

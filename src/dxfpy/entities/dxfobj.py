@@ -762,6 +762,17 @@ class Field(DXFObject):
             stack.extend(reversed(field.get_child_fields()))
         return result
 
+    def get_custom_property_names(self) -> list[str]:
+        """Return custom drawing-property names referenced by this FIELD tree.
+
+        :return: Names in depth-first FIELD-tree order.
+        """
+        return [
+            name
+            for field in self.get_field_tree()
+            if (name := field._custom_property_name())
+        ]
+
     @classmethod
     def _bind_field_roots(
         cls,

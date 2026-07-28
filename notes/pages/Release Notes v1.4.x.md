@@ -44,6 +44,7 @@
 	- Definition-level dynamic-block inspection and static visibility-state materialization
 	- Experimental support for object-backed `MTEXT` field authoring
 	- First-class support for `FIELD` DXF objects
+		- custom drawing-property source inspection across complete field trees
 	- Initial convenience API for:
 		- drawing-variable fields
 		- object-property fields
