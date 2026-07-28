@@ -511,12 +511,36 @@ def test_get_custom_property_names_returns_complete_tree_in_order():
 def test_get_custom_property_names_supports_legacy_field_code():
     field = Field.new(
         dxfattribs={
-            "evaluator_id": "AcVar",
-            "field_code": '\\AcVar CustomDP.Company Name \\f "%tc1"',
+            "field_code": '\\AcVar CustomDP.Company Name   \\f   "%tc1"',
         }
     )
 
     assert field.get_custom_property_names() == ["Company Name"]
+
+
+def test_get_custom_property_names_falls_back_from_structured_variable():
+    field = Field()
+    field.reset(
+        [
+            (1, "AcVar"),
+            (2, "\\AcVar CustomDP.Project Code"),
+            (6, "Variable"),
+            (1, "Author"),
+        ]
+    )
+
+    assert field.get_custom_property_names() == ["Project Code"]
+
+
+def test_get_custom_property_names_rejects_mismatched_evaluator():
+    field = Field.new(
+        dxfattribs={
+            "evaluator_id": "AcExpr",
+            "field_code": "\\AcVar CustomDP.Project Code",
+        }
+    )
+
+    assert field.get_custom_property_names() == []
 
 
 def test_set_acexpr_builds_expression_field_with_two_children():

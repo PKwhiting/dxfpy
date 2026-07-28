@@ -47,6 +47,9 @@ __all__ = [
 logger = logging.getLogger("dxfpy")
 FIELD_CODE_CHUNK_SIZE = 250
 FIELD_INDEX_PATTERN = re.compile(r"%<\\_FldIdx (-?\d+)>%")
+ACVAR_FIELD_CODE_PATTERN = re.compile(
+    r'^\\AcVar (.*?)(?:\s+\\f\s+"[^"]*")?$'
+)
 
 
 class DXFObject(DXFEntity):
@@ -625,13 +628,18 @@ class Field(DXFObject):
 
     def _custom_property_name(self) -> Optional[str]:
         """Return the referenced custom drawing-property name if present."""
-        if self.evaluator_id != "AcVar":
+        if self.evaluator_id not in ("", "AcVar"):
             return None
-        name = self._structured_variable_name()
-        if name is None:
-            name = self._field_code_variable_name()
         prefix = "CustomDP."
-        return name[len(prefix) :] if name and name.startswith(prefix) else None
+        names = self._structured_variable_name(), self._field_code_variable_name()
+        return next(
+            (
+                name[len(prefix) :]
+                for name in names
+                if name and name.startswith(prefix)
+            ),
+            None,
+        )
 
     def _structured_variable_name(self) -> Optional[str]:
         """Read the variable name from the structured FIELD value data."""
@@ -648,15 +656,8 @@ class Field(DXFObject):
 
     def _field_code_variable_name(self) -> Optional[str]:
         """Read a variable name from a minimal or legacy FIELD code."""
-        prefix = r"\AcVar "
-        field_code = self.field_code
-        if not field_code.startswith(prefix):
-            return None
-        name = field_code[len(prefix) :]
-        format_marker = r' \f "'
-        if format_marker in name:
-            name = name.partition(format_marker)[0]
-        return name
+        match = ACVAR_FIELD_CODE_PATTERN.fullmatch(self.field_code)
+        return match.group(1).strip() if match else None
 
     def map_resources(self, clone: Self, mapping: xref.ResourceMapper) -> None:
         """Map FIELD soft pointers and recursively map copied children."""
