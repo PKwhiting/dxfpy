@@ -43,6 +43,10 @@ Set DXF tags as list of (group code, value) tuples or as
 :class:`ezdxf.lldxf.tags.Tags` data structure, valid DXF tags for XDATA are
 documented in the section about the :ref:`xdata_internals` internals.
 The mandatory first tag (1001, AppID) is inserted automatically if not present.
+For database-bound entities, the corresponding APPID table entry is registered
+automatically. Missing entries from structured lower-level XDATA operations are
+repaired when the document is written. Raw-tag overrides remain the caller's
+responsibility.
 
 Set only new XDATA tags::
 

@@ -189,7 +189,8 @@ see also the internals of :ref:`xdata_internals`:
 Group Code        Description
 ================= ==============================================================
 1000              Strings up to 255 bytes long
-1001              (fixed) Registered application name up to 31 bytes long
+1001              (fixed) Registered ASCII application name; modern AutoCAD
+                  may emit names longer than the legacy 31-byte limit
 1002              (fixed) An extended data control string ``'{'``  or ``'}'``
 1004              Binary data
 1005              Database Handle of entities in the drawing database

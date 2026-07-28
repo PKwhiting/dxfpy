@@ -27,6 +27,7 @@ from dxfpy.lldxf.tags import (
 from dxfpy.tools import take2
 from dxfpy import options
 from dxfpy.lldxf.repair import filter_invalid_xdata_group_codes
+from dxfpy.lldxf.validator import is_valid_table_name
 
 if TYPE_CHECKING:
     from dxfpy.entities import DXFEntity
@@ -38,6 +39,23 @@ logger = logging.getLogger("dxfpy")
 
 def has_valid_xdata_group_codes(tags: Tags) -> bool:
     return all(tag.code in VALID_XDATA_GROUP_CODES for tag in tags)
+
+
+def validate_xdata_appid(appid: str) -> str:
+    """Validate and return an XDATA application name."""
+    if not isinstance(appid, str):
+        raise DXFTypeError("XDATA APPID must be a string")
+    try:
+        encoded = appid.encode("ascii")
+    except UnicodeEncodeError as error:
+        raise DXFValueError("XDATA APPID must contain ASCII characters") from error
+    if not encoded:
+        raise DXFValueError("XDATA APPID must not be empty")
+    if any(byte < 32 or byte == 127 for byte in encoded):
+        raise DXFValueError("XDATA APPID must not contain control characters")
+    if not is_valid_table_name(appid):
+        raise DXFValueError(f"invalid XDATA APPID: {appid!r}")
+    return appid
 
 
 class XData:
@@ -58,22 +76,38 @@ class XData:
 
     def __contains__(self, appid: str) -> bool:
         """Returns ``True`` if  DXF tags for `appid` exist."""
-        return appid in self.data
+        return self._existing_key(appid) is not None
+
+    @property
+    def appids(self) -> tuple[str, ...]:
+        """Return application names used by this XDATA container."""
+        return tuple(self.data)
 
     def update_keys(self):
         """Update APPID keys. (internal API)"""
-        self.data = {tags[0].value: tags for tags in self.data.values()}
+        values = tuple(self.data.values())
+        self.data.clear()
+        for tags in values:
+            self._add(tags)
+
+    def _existing_key(self, appid: str) -> Optional[str]:
+        normalized = appid.casefold()
+        return next(
+            (name for name in self.data if name.casefold() == normalized),
+            None,
+        )
 
     def _add(self, tags: Tags) -> None:
         tags = Tags(tags)
         if len(tags):
             appid = tags[0].value
-            if appid in self.data:
-                logger.info(f"Duplicate XDATA appid {appid} in one entity")
-            if has_valid_xdata_group_codes(tags):
-                self.data[appid] = tags
-            else:
+            existing_key = self._existing_key(appid)
+            if not has_valid_xdata_group_codes(tags):
                 raise DXFValueError(f"found invalid XDATA group code in {tags}")
+            if existing_key is not None:
+                logger.info(f"Duplicate XDATA appid {appid} in one entity")
+                del self.data[existing_key]
+            self.data[appid] = tags
 
     def add(
         self, appid: str, tags: Iterable[Union[tuple[int, Any], DXFTag]]
@@ -92,8 +126,12 @@ class XData:
         internals about :ref:`xdata_internals`.
 
         """
+        appid = validate_xdata_appid(appid)
         data = Tags(dxftag(code, value) for code, value in tags)
-        if len(data) == 0 or data[0] != (XDATA_MARKER, appid):
+        markers = [tag for tag in data if tag.code == XDATA_MARKER]
+        if markers and (len(markers) != 1 or data[0] != (XDATA_MARKER, appid)):
+            raise DXFValueError("invalid nested or mismatched XDATA APPID marker")
+        if not markers:
             data.insert(0, dxftag(XDATA_MARKER, appid))
         self._add(data)
 
@@ -105,17 +143,18 @@ class XData:
              DXFValueError: no data for `appid` exist
 
         """
-        if appid in self.data:
-            return self.data[appid]
-        else:
+        key = self._existing_key(appid)
+        if key is None:
             raise DXFValueError(appid)
+        return self.data[key]
 
     def discard(self, appid):
         """Delete DXF tags for `appid`. None existing appids are silently
         ignored.
         """
-        if appid in self.data:
-            del self.data[appid]
+        key = self._existing_key(appid)
+        if key is not None:
+            del self.data[key]
 
     def export_dxf(self, tagwriter: AbstractTagWriter) -> None:
         for appid, tags in self.data.items():
@@ -170,7 +209,8 @@ class XData:
             tags: list content as DXFTags or (code, value) tuples, list name and
                 curly braces '{' '}' tags will be added
         """
-        if appid not in self.data:
+        appid = validate_xdata_appid(appid)
+        if appid not in self:
             data = [(XDATA_MARKER, appid)]
             data.extend(xdata_list(name, tags))
             self.add(appid, data)
@@ -187,7 +227,7 @@ class XData:
 
         """
         try:
-            xdata = self.get(appid)
+            xdata = Tags(self.get(appid))
         except DXFValueError:
             pass
         else:
@@ -196,7 +236,7 @@ class XData:
             except NotFoundException:
                 pass
             else:
-                self.add(appid, tags)
+                self.add(str(xdata[0].value), tags)
 
     def replace_xlist(self, appid: str, name: str, tags: Iterable) -> None:
         """Replaces list `name` of existing XDATA `appid` by `tags`. Appends
@@ -214,14 +254,16 @@ class XData:
             DXFValueError: XDATA `appid` do not exist
 
         """
-        xdata = self.get(appid)
+        appid = validate_xdata_appid(appid)
+        xdata = Tags(self.get(appid))
+        canonical_appid = str(xdata[0].value)
         try:
             data = remove_named_list_from_xdata(name, xdata)
         except NotFoundException:
             data = xdata
         xlist = xdata_list(name, tags)
         data.extend(xlist)
-        self.add(appid, data)
+        self.add(canonical_appid, data)
 
     def transform(self, m: Matrix44) -> None:
         """Transform XDATA tags with group codes 1011, 1012, 1013, 1041 and

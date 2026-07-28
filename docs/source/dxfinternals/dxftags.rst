@@ -143,8 +143,9 @@ Group Code        Description
 ================= ==============================================================
 1000              Strings in extended data can be up to 255 bytes long (with the
                   256th byte reserved for the null character)
-1001              (fixed) Registered application name (ASCII string up to 31 bytes
-                  long) for XDATA
+1001              (fixed) Registered ASCII application name for XDATA. Legacy
+                  references specify 31 bytes, but modern AutoCAD emits longer
+                  built-in names.
 1002              (fixed) An extended data control string can be either ``'{'``
                   or ``'}'``. These braces enable applications to organize their
                   data by subdividing the data into lists. Lists can be nested.

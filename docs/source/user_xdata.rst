@@ -29,9 +29,8 @@ not allowed.
 This classes assume a certain XDATA structure and therefore can not manage
 arbitrary XDATA!
 
-This classes do not create the required AppID table entry, only the
-default AppID "EZDXF" exist by default. Setup a new AppID in the AppID
-table: :code:`doc.appids.add("MYAPP")`.
+Required AppID table entries are registered automatically when the document is
+written. The default AppID "EZDXF" also exists in new documents.
 
 For usage look at this `example`_ at github or go to the tutorial:
 :ref:`tut_custom_data`.

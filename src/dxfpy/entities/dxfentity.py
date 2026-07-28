@@ -856,6 +856,7 @@ class DXFEntity:
         if self.xdata is None:
             self.xdata = XData()
         self.xdata.add(appid, tags)
+        self._ensure_xdata_appids()
 
     def discard_xdata(self, appid: str) -> None:
         """Discard extended data for `appid`. Does not raise an exception if
@@ -901,6 +902,7 @@ class DXFEntity:
         if self.xdata is None:
             self.xdata = XData()
         self.xdata.set_xlist(appid, name, tags)
+        self._ensure_xdata_appids()
 
     def discard_xdata_list(self, appid: str, name: str) -> None:
         """Discard tag list `name` for extended data `appid`. Does not raise
@@ -927,6 +929,18 @@ class DXFEntity:
         """
         assert self.xdata is not None
         self.xdata.replace_xlist(appid, name, tags)
+        self._ensure_xdata_appids()
+
+    def _ensure_xdata_appids(self) -> None:
+        """Register XDATA application names for a database-bound entity."""
+        document = self.doc
+        handle = self.dxf.get("handle")
+        if document is None or not handle:
+            return
+        if document.entitydb.get(handle) is not self or self.xdata is None:
+            return
+        for appid in self.xdata.appids:
+            document.ensure_appid(appid)
 
     def has_reactors(self) -> bool:
         """Returns ``True`` if entity has reactors."""

@@ -30,6 +30,7 @@ from dxfpy.entities.material import MaterialCollection
 from dxfpy.entities.acad_table import TableStyleManager
 from dxfpy.entities.mleader import MLeaderStyleCollection
 from dxfpy.entities.mline import MLineStyleCollection
+from dxfpy.entities.xdata import validate_xdata_appid
 from dxfpy.entitydb import EntityDB
 from dxfpy.groupby import groupby
 from dxfpy.layouts import Modelspace, Paperspace
@@ -658,6 +659,7 @@ class Drawing:
         if self.dxfversion > DXF12:
             self.classes.add_required_classes(self.dxfversion)
             self.classes.update_instance_counters()
+        self.ensure_xdata_appids()
         self._create_appids()
         self._update_header_vars()
         self.update_extents()
@@ -739,8 +741,38 @@ class Drawing:
         dxfpy_meta[WRITTEN_BY_EZDXF] = dxfpy_marker_string()
 
     def _create_appid_if_not_exist(self, name: str, flags: int = 0) -> None:
-        if name not in self.appids:
-            self.appids.new(name, {"flags": flags})
+        self.ensure_appid(name, flags)
+
+    def ensure_appid(self, name: str, flags: int = 0) -> bool:
+        """Register one APPID table entry when missing.
+
+        :param name: Application name to register.
+        :param flags: APPID table-entry flags.
+        :return: ``True`` when a new entry was created.
+        """
+        name = validate_xdata_appid(name)
+        if name in self.appids:
+            return False
+        self.appids.new(name, {"flags": flags})
+        return True
+
+    def ensure_xdata_appids(self) -> tuple[str, ...]:
+        """Register every application name referenced by live XDATA.
+
+        :return: Newly registered application names.
+        """
+        referenced: dict[str, None] = {}
+        for entity in self.entitydb.values():
+            xdata = entity.xdata
+            if not entity.is_alive or xdata is None:
+                continue
+            for name in xdata.appids:
+                referenced.setdefault(name, None)
+        registered: list[str] = []
+        for name in referenced:
+            if self.ensure_appid(name):
+                registered.append(name)
+        return tuple(registered)
 
     def _create_appids(self):
         self._create_appid_if_not_exist("EZDXF", 0)

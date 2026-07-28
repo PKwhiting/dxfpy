@@ -144,8 +144,6 @@ data if already present:
 
 .. code-block:: python
 
-    doc.appids.new('YOUR_APPID')  # IMPORTANT: create an APP ID entry
-
     circle = msp.add_circle((10, 10), 100)
     circle.set_xdata(
         'YOUR_APPID',

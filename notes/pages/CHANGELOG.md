@@ -1,4 +1,5 @@
 ## Version 1.4.4 - dev
+	- BUGFIX: register APPID table entries for authored and serialized XDATA
 	- NEW: definition-level dynamic-block inspection and static visibility-state materialization
 		- resolves definitions by block-table or recorded true name
 		- exposes primary and auxiliary point parameters for visibility states

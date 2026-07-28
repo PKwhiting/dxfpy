@@ -24,11 +24,8 @@ essentially a way to store additional information beyond the standard DXF proper
 that particular entity. The XDATA section is divided into sub-sections, each associated 
 with an AppID.
 
-It's important that the AppID is registered in the AppID table::
-
-    doc.appids.add("YOUR_ID")
-
-- :meth:`ezdxf.sections.table.AppIDTable.add`
+The AppID is registered in the AppID table automatically when XDATA is added to
+a document-bound entity or when the document is written.
 
 Example::
 
@@ -89,7 +86,7 @@ Example::
     - :ref:`dxf_tags_internals`
 
     **Classes:**
-    
+
     - :class:`ezdxf.entities.xdata.XData`
     - :class:`ezdxf.entities.xdict.ExtensionDict`
     - :class:`ezdxf.entities.XRecord`
@@ -102,4 +99,3 @@ Example::
     - :class:`ezdxf.entities.xdata.XDataUserDict`
     - :class:`ezdxf.urecord.UserRecord`
     - :class:`ezdxf.urecord.BinaryRecord`
-    

@@ -1,6 +1,8 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 # created 2019-02-14
+from io import StringIO
+
 import pytest
 import dxfpy
 
@@ -9,6 +11,7 @@ from dxfpy.lldxf.tagwriter import TagCollector
 from dxfpy.entities import DXFEntity, is_graphic_entity, Insert
 from dxfpy.lldxf.extendedtags import DXFTag
 from dxfpy.entities.line import Line
+from dxfpy.entities.xdata import XData
 
 ENTITY = """0
 DXFENTITY
@@ -390,6 +393,134 @@ class TestXData:
         ]
         xdata = entity.get_xdata("ACAD")
         assert len(xdata) == 6 + 5
+
+
+def test_bound_entity_set_xdata_registers_appid():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+
+    line.set_xdata("CUSTOM_APP", [(1000, "value")])
+
+    assert "CUSTOM_APP" in doc.appids
+
+
+def test_bound_entity_set_xdata_list_registers_appid():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+
+    line.set_xdata_list("CUSTOM_LIST_APP", "VALUES", [(1070, 1)])
+
+    assert "CUSTOM_LIST_APP" in doc.appids
+
+
+def test_document_write_registers_appids_from_low_level_xdata():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+    line.xdata = XData()
+    line.xdata.add("LOW_LEVEL_APP", [(1000, "value")])
+    assert "LOW_LEVEL_APP" not in doc.appids
+
+    stream = StringIO()
+    doc.write(stream)
+
+    assert "LOW_LEVEL_APP" in doc.appids
+    loaded = dxfpy.read(StringIO(stream.getvalue()))
+    assert "LOW_LEVEL_APP" in loaded.appids
+    assert loaded.modelspace().query("LINE").first.has_xdata("LOW_LEVEL_APP")
+
+
+@pytest.mark.parametrize(
+    "appid", ["", "NON_ASCII_ä", "BAD\nAPP", "BAD\x00APP"]
+)
+def test_set_xdata_rejects_invalid_appids(appid):
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+
+    with pytest.raises(DXFValueError):
+        line.set_xdata(appid, [(1000, "value")])
+
+    assert appid not in doc.appids
+
+
+def test_failed_set_xdata_does_not_register_appid():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+
+    with pytest.raises(DXFValueError):
+        line.set_xdata("INVALID_DATA", [(1, "invalid group code")])
+
+    assert "INVALID_DATA" not in doc.appids
+
+
+def test_set_xdata_accepts_modern_long_autocad_appid():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+    appid = "AcadAnnotativeAttributeDecomposition"
+
+    line.set_xdata(appid, [(1000, "value")])
+
+    assert appid in doc.appids
+
+
+def test_failed_xdata_replacement_preserves_existing_data():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+    line.set_xdata("STABLE_APP", [(1000, "original")])
+
+    with pytest.raises(DXFValueError):
+        line.set_xdata("stable_app", [(1, "invalid group code")])
+
+    assert line.get_xdata("STABLE_APP")[0] == (1000, "original")
+
+
+def test_set_xdata_rejects_nested_appid_markers():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+
+    with pytest.raises(DXFValueError):
+        line.set_xdata(
+            "FIRST_APP",
+            [(1000, "value"), (1001, "SECOND_APP")],
+        )
+
+    assert "FIRST_APP" not in doc.appids
+    assert "SECOND_APP" not in doc.appids
+
+
+def test_xdata_appids_are_case_insensitive():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+
+    line.set_xdata("MixedCase", [(1000, "first")])
+    line.set_xdata("MIXEDCASE", [(1000, "second")])
+
+    assert line.xdata is not None
+    assert len(line.xdata) == 1
+    assert line.get_xdata("mixedcase")[0] == (1000, "second")
+
+
+def test_xdata_list_appids_are_case_insensitive():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+    line.set_xdata_list("MixedList", "VALUES", [(1070, 1)])
+
+    line.set_xdata_list("MIXEDLIST", "VALUES", [(1070, 2)])
+
+    values = line.get_xdata_list("mixedlist", "VALUES")
+    assert (1070, 2) in values
+    assert (1070, 1) not in values
+    line.discard_xdata_list("MIXEDLIST", "VALUES")
+    assert line.has_xdata_list("mixedlist", "VALUES") is False
+
+
+def test_virtual_copy_does_not_register_appid_in_source_document():
+    doc = dxfpy.new("R2018")
+    line = doc.modelspace().add_line((0, 0), (1, 0))
+    clone = line.copy()
+
+    clone.set_xdata("VIRTUAL_APP", [(1000, "value")])
+
+    assert "VIRTUAL_APP" not in doc.appids
 
 
 class TestReactors:
