@@ -67,6 +67,26 @@ optional predicate can filter source graphics without embedding application
 layer conventions in dxfpy. Arbitrary dynamic block actions and nested
 visibility paths are not materialized.
 
+Property Table Row Matching
+---------------------------
+
+The :class:`~dxfpy.dynamic_blocks.DynamicBlockPropertiesTable` returned by
+``property_table`` can
+select the first row matching a complete property mapping. Columns such as a
+visibility-state output can be excluded by source DXF type::
+
+    row = definition.property_table.find_matching_row(
+        {"MODE": "B", "COUNT": 2},
+        ignored_source_types=("BLOCKVISIBILITYPARAMETER",),
+    )
+
+Missing required properties raise :class:`KeyError`; extra properties are
+ignored. ``None`` and ``""`` are treated as equivalent blank table cells.
+
+.. autoclass:: dxfpy.dynamic_blocks.DynamicBlockPropertiesTable
+
+    .. automethod:: find_matching_row
+
 DynamicBlockDefinition
 ----------------------
 

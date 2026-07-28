@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 from dxfpy import dynblkhelper
 from dxfpy.dynblkhelper import (
     DynamicBlockPointParameter,
+    DynamicBlockPropertyColumn,
+    DynamicBlockPropertyRow,
     DynamicBlockPropertiesTable,
 )
 from dxfpy.entities import DXFEntity, DXFGraphic, Insert
@@ -24,6 +26,9 @@ __all__ = [
     "UnsupportedDynamicBlockReferenceError",
     "DynamicBlockDefinition",
     "DynamicBlockPointParameter",
+    "DynamicBlockPropertyColumn",
+    "DynamicBlockPropertyRow",
+    "DynamicBlockPropertiesTable",
     "DynamicBlockReference",
 ]
 

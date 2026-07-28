@@ -42,6 +42,8 @@
 	- In development
 	- Automatic APPID registration for authored and serialized XDATA
 	- Definition-level dynamic-block inspection and static visibility-state materialization
+		- property-table row matching for complete property mappings
+	- Direct ASCII and Binary DXF loading from bytes and binary streams
 	- Experimental support for object-backed `MTEXT` field authoring
 	- First-class support for `FIELD` DXF objects
 		- custom drawing-property source inspection across complete field trees

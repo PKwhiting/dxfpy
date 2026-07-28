@@ -5,6 +5,9 @@ import pytest
 import dxfpy
 from dxfpy.dynamic_blocks import (
     DynamicBlockDefinition,
+    DynamicBlockPropertiesTable,
+    DynamicBlockPropertyColumn,
+    DynamicBlockPropertyRow,
     DynamicBlockReference,
     DynamicBlockVisibilityError,
     NotDynamicBlockReferenceError,
@@ -21,6 +24,112 @@ from dxfpy.dynblkhelper import (
 
 def load_visibility_fixture():
     return dxfpy.readzip("integration_tests/data/dynblks.zip", "dynblk1.dxf")
+
+
+def make_property_table(
+    rows: tuple[DynamicBlockPropertyRow, ...] | None = None,
+) -> DynamicBlockPropertiesTable:
+    default_rows = (
+        DynamicBlockPropertyRow(0, (None, 1, "STATE_A")),
+        DynamicBlockPropertyRow(1, ("B", 2, "STATE_B")),
+    )
+    return DynamicBlockPropertiesTable(
+        handle="",
+        label="Block Table",
+        table_name="Block Table1",
+        description="",
+        location=(0.0, 0.0, 0.0),
+        grip_location=None,
+        columns=(
+            DynamicBlockPropertyColumn("", "ATTDEF", "MODE", "Mode"),
+            DynamicBlockPropertyColumn("", "ATTDEF", "COUNT", "Count"),
+            DynamicBlockPropertyColumn(
+                "",
+                "BLOCKVISIBILITYPARAMETER",
+                "VISIBILITY",
+                "Visibility",
+            ),
+        ),
+        rows=rows if rows is not None else default_rows,
+    )
+
+
+def test_property_table_finds_first_matching_row():
+    table = make_property_table(
+        rows=(
+            DynamicBlockPropertyRow(3, ("B", 2, "FIRST")),
+            DynamicBlockPropertyRow(4, ("B", 2, "SECOND")),
+        )
+    )
+
+    row = table.find_matching_row(
+        {"MODE": "B", "COUNT": 2, "EXTRA": "ignored"},
+        ignored_source_types=("BLOCKVISIBILITYPARAMETER",),
+    )
+
+    assert row is table.rows[0]
+
+
+@pytest.mark.parametrize(
+    ("stored", "supplied"), ((None, ""), ("", None))
+)
+def test_property_table_treats_none_and_empty_string_as_blank(stored, supplied):
+    table = make_property_table(
+        rows=(DynamicBlockPropertyRow(0, (stored, 1, "STATE_A")),)
+    )
+
+    row = table.find_matching_row(
+        {"MODE": supplied, "COUNT": 1},
+        ignored_source_types=("BLOCKVISIBILITYPARAMETER",),
+    )
+
+    assert row is table.rows[0]
+
+
+def test_property_table_requires_every_included_property():
+    table = make_property_table()
+
+    with pytest.raises(KeyError, match="COUNT"):
+        table.find_matching_row(
+            {"MODE": "B"},
+            ignored_source_types=("BLOCKVISIBILITYPARAMETER",),
+        )
+
+
+def test_property_table_rejects_string_source_type_collection():
+    table = make_property_table()
+
+    with pytest.raises(TypeError, match="collection of strings"):
+        table.find_matching_row(
+            {"MODE": "B", "COUNT": 2},
+            ignored_source_types="BLOCKVISIBILITYPARAMETER",  # type: ignore[arg-type]
+        )
+
+
+def test_property_table_returns_none_when_no_row_matches():
+    table = make_property_table()
+
+    row = table.find_matching_row(
+        {"MODE": "C", "COUNT": 2},
+        ignored_source_types=("BLOCKVISIBILITYPARAMETER",),
+    )
+
+    assert row is None
+
+
+def test_property_table_rejects_malformed_rows():
+    table = make_property_table(
+        rows=(
+            DynamicBlockPropertyRow(1, ("B", 2, "STATE_B")),
+            DynamicBlockPropertyRow(7, ("B", 2)),
+        )
+    )
+
+    with pytest.raises(dxfpy.DXFStructureError, match="row 7"):
+        table.find_matching_row(
+            {"MODE": "B", "COUNT": 2},
+            ignored_source_types=("BLOCKVISIBILITYPARAMETER",),
+        )
 
 
 def test_dynamic_block_reference_requires_insert_entity():

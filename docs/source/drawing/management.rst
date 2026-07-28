@@ -11,7 +11,7 @@ Create New Drawings
 Open Drawings
 -------------
 
-Open DXF drawings from file system or text stream, byte stream usage is not supported.
+Open DXF drawings from the file system, text streams, binary streams, or bytes.
 
 DXF files prior to R2007 requires file encoding defined by header variable $DWGCODEPAGE, DXF R2007 and later
 requires an UTF-8 encoding.
@@ -36,6 +36,10 @@ AC1032      R2018      UTF-8          AutoCAD R2018
 .. autofunction:: ezdxf.readfile
 
 .. autofunction:: ezdxf.read
+
+.. autofunction:: dxfpy.readbytes
+
+.. autofunction:: dxfpy.readstream
 
 .. autofunction:: ezdxf.readzip
 

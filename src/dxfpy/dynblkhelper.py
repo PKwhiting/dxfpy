@@ -6,6 +6,7 @@ This module contains both dynamic-block authoring/inspection helpers and the raw
 snapshot/restore helpers used by replay and code-generation fidelity workflows.
 """
 from __future__ import annotations
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from io import StringIO
 import io
@@ -894,6 +895,89 @@ class DynamicBlockPropertiesTable:
     grip_location: Optional[tuple[float, float, float]]
     columns: tuple[DynamicBlockPropertyColumn, ...]
     rows: tuple[DynamicBlockPropertyRow, ...]
+
+    def find_matching_row(
+        self,
+        properties: Mapping[str, Any],
+        *,
+        ignored_source_types: Collection[str] = (),
+    ) -> Optional[DynamicBlockPropertyRow]:
+        """Return the first row matching all non-ignored property columns.
+
+        ``None`` and an empty string are equivalent blank cell values.
+
+        :param properties: Property values keyed by column name.
+        :param ignored_source_types: Column source DXF types to exclude.
+        :return: First matching row or ``None``.
+        :raises KeyError: If a required property is missing.
+        :raises DXFStructureError: If a row has an invalid value count.
+        """
+        self._validate_row_value_counts()
+        columns = self._matching_columns(ignored_source_types)
+        self._require_properties(properties, columns)
+        return next(
+            (
+                row
+                for row in self.rows
+                if self._row_matches(row, columns, properties)
+            ),
+            None,
+        )
+
+    def _matching_columns(
+        self, ignored_source_types: Collection[str]
+    ) -> tuple[tuple[int, DynamicBlockPropertyColumn], ...]:
+        """Return indexed columns included in row matching."""
+        if isinstance(ignored_source_types, str):
+            raise TypeError("ignored_source_types must be a collection of strings")
+        ignored = frozenset(ignored_source_types)
+        return tuple(
+            (index, column)
+            for index, column in enumerate(self.columns)
+            if column.source_dxftype not in ignored
+        )
+
+    @staticmethod
+    def _require_properties(
+        properties: Mapping[str, Any],
+        columns: tuple[tuple[int, DynamicBlockPropertyColumn], ...],
+    ) -> None:
+        """Require values for every included column."""
+        missing = next(
+            (column.name for _, column in columns if column.name not in properties),
+            None,
+        )
+        if missing is not None:
+            raise KeyError(missing)
+
+    @classmethod
+    def _row_matches(
+        cls,
+        row: DynamicBlockPropertyRow,
+        columns: tuple[tuple[int, DynamicBlockPropertyColumn], ...],
+        properties: Mapping[str, Any],
+    ) -> bool:
+        """Return whether one row matches all included columns."""
+        return all(
+            cls._normalize_property_value(properties[column.name])
+            == cls._normalize_property_value(row.values[index])
+            for index, column in columns
+        )
+
+    @staticmethod
+    def _normalize_property_value(value: Any) -> Any:
+        """Normalize an empty AutoCAD property-table cell."""
+        return "" if value is None else value
+
+    def _validate_row_value_counts(self) -> None:
+        """Require every row to align with the table columns."""
+        expected = len(self.columns)
+        for row in self.rows:
+            if len(row.values) != expected:
+                raise const.DXFStructureError(
+                    f"dynamic property row {row.index} has "
+                    f"{len(row.values)} values for {expected} columns"
+                )
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,7 @@
 # Copyright (C) 2018-2023, Manfred Moitzi
 # License: MIT License
 from __future__ import annotations
-from typing import TextIO, TYPE_CHECKING, Union, Sequence, Optional
+from typing import BinaryIO, TextIO, TYPE_CHECKING, Union, Sequence, Optional
 import base64
 import io
 import pathlib
@@ -10,6 +10,8 @@ import os
 from dxfpy.tools.standards import setup_drawing
 from dxfpy.lldxf.const import DXF2013
 from dxfpy.document import Drawing
+
+_BINARY_DXF_SIGNATURE = b"AutoCAD Binary DXF\r\n\x1a\x00"
 
 if TYPE_CHECKING:
     from dxfpy.lldxf.validator import DXFInfo
@@ -93,6 +95,83 @@ def read(stream: TextIO) -> Drawing:
     from dxfpy.document import Drawing
 
     return Drawing.read(stream)
+
+
+def readbytes(
+    data: bytes,
+    encoding: Optional[str] = None,
+    errors: str = "surrogateescape",
+) -> Drawing:
+    """Read an ASCII or Binary DXF document from bytes.
+
+    :param data: Complete DXF document data.
+    :param encoding: Optional ASCII DXF encoding override. Ignored for Binary
+        DXF data.
+    :param errors: Decoding error handler for text values.
+    :return: Loaded DXF document.
+    :raises TypeError: If `data` is not bytes.
+    """
+    if not isinstance(data, bytes):
+        raise TypeError("DXF data must be bytes")
+    if data.startswith(_BINARY_DXF_SIGNATURE):
+        return _read_binary_dxf_data(data, errors)
+    return _read_ascii_dxf_data(data, encoding, errors)
+
+
+def readstream(
+    stream: BinaryIO,
+    encoding: Optional[str] = None,
+    errors: str = "surrogateescape",
+) -> Drawing:
+    """Read an ASCII or Binary DXF document from a binary stream.
+
+    Reading starts at the current position and consumes the stream through EOF.
+
+    :param stream: Binary input stream.
+    :param encoding: Optional ASCII DXF encoding override. Ignored for Binary
+        DXF data.
+    :param errors: Decoding error handler for text values.
+    :return: Loaded DXF document.
+    :raises TypeError: If the stream does not return bytes.
+    """
+    data = stream.read()
+    if not isinstance(data, bytes):
+        raise TypeError("binary DXF stream required")
+    return readbytes(data, encoding=encoding, errors=errors)
+
+
+def _read_binary_dxf_data(data: bytes, errors: str) -> Drawing:
+    """Load native Binary DXF data."""
+    from dxfpy.lldxf.tagger import binary_tags_loader
+
+    return Drawing.load(binary_tags_loader(data, errors=errors))
+
+
+def _read_ascii_dxf_data(
+    data: bytes, encoding: Optional[str], errors: str
+) -> Drawing:
+    """Detect and decode ASCII DXF data."""
+    normalized = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    detected = _detect_ascii_dxf_encoding(normalized)
+    document = read(io.StringIO(normalized.decode(encoding or detected, errors)))
+    _apply_encoding_override(document, encoding)
+    return document
+
+
+def _detect_ascii_dxf_encoding(data: bytes) -> str:
+    """Return the encoding declared by ASCII DXF data."""
+    stream = io.StringIO(data.decode("utf-8", errors="ignore"))
+    return dxf_stream_info(stream).encoding
+
+
+def _apply_encoding_override(
+    document: Drawing, encoding: Optional[str]
+) -> None:
+    """Store a supported explicit ASCII DXF encoding."""
+    from dxfpy.tools.codepage import is_supported_encoding
+
+    if encoding is not None and is_supported_encoding(encoding):
+        document.encoding = encoding
 
 
 def readfile(
@@ -236,30 +315,7 @@ def decode_base64(data: bytes, errors: str = "surrogateescape") -> Drawing:
         UnicodeDecodeError: if `errors` is "strict" and a decoding error occurs
 
     """
-    # Copyright (c) 2020, Joseph Flack
-    # License: MIT License
-    # Decode base64 encoded data into binary data
-    binary_data = base64.b64decode(data)
-
-    # Replace windows line ending '\r\n' by universal line ending '\n'
-    binary_data = binary_data.replace(b"\r\n", b"\n")
-
-    # Read DXF file info from data, basic DXF information in the HEADER
-    # section is ASCII encoded so encoding setting here is not important
-    # for this task:
-    text = binary_data.decode("utf-8", errors="ignore")
-    stream = io.StringIO(text)
-    info = dxf_stream_info(stream)
-    stream.close()
-
-    # Use encoding info to create correct decoded text input stream for dxfpy
-    text = binary_data.decode(info.encoding, errors=errors)
-    stream = io.StringIO(text)
-
-    # Load DXF document from data stream
-    doc = read(stream)
-    stream.close()
-    return doc
+    return readbytes(base64.b64decode(data), errors=errors)
 
 
 def find_support_file(

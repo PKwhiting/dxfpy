@@ -33,7 +33,15 @@ from dxfpy.colors import (
 from dxfpy.enums import InsertUnits
 from dxfpy.lldxf import const
 from dxfpy.lldxf.validator import is_dxf_file, is_dxf_stream
-from dxfpy.filemanagement import readzip, new, read, readfile, decode_base64
+from dxfpy.filemanagement import (
+    readzip,
+    new,
+    read,
+    readbytes,
+    readstream,
+    readfile,
+    decode_base64,
+)
 from dxfpy.tools.standards import (
     setup_linetypes,
     setup_styles,
