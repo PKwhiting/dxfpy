@@ -54,6 +54,8 @@ STACKING = {
     "#": tl.Stacking.SLANTED,
 }
 
+MIN_MTEXT_COLUMN_WIDTH = 1e-6
+
 
 def make_default_tab_stops(cap_height: float, width: float) -> list[tl.TabStop]:
     tab_stops = []
@@ -153,7 +155,7 @@ def super_glue():
 
 def defined_width(mtext: MText) -> float:
     width = mtext.dxf.get("width", 0.0)
-    if width < 1e-6:
+    if width < MIN_MTEXT_COLUMN_WIDTH:
         width, height = estimate_mtext_extents(mtext)
     return width
 

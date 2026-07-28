@@ -44,6 +44,7 @@
 	- Definition-level dynamic-block inspection and static visibility-state materialization
 		- property-table row matching for complete property mappings
 	- Direct ASCII and Binary DXF loading from bytes and binary streams
+	- Configurable single-line MTEXT measurement and fitting
 	- Experimental support for object-backed `MTEXT` field authoring
 	- First-class support for `FIELD` DXF objects
 		- custom drawing-property source inspection across complete field trees

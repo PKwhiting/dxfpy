@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import (
     TYPE_CHECKING,
+    Any,
     Union,
     Iterable,
     Iterator,
@@ -64,7 +65,7 @@ from . import factory
 from .dxfentity import base_class, SubclassProcessor
 from .dxfgfx import DXFGraphic, acdb_entity
 from .xdata import XData
-from .copy import default_copy
+from .copy import CopyStrategy, default_copy
 
 if TYPE_CHECKING:
     from dxfpy.audit import Auditor
@@ -280,9 +281,14 @@ class MTextColumns:
         self.heights: list[float] = []
         self._has_linked_column_xdata: bool = False
 
-    def deep_copy(self) -> MTextColumns:
+    def deep_copy(
+        self, copy_strategy: CopyStrategy = default_copy
+    ) -> MTextColumns:
+        """Return a deep copy using `copy_strategy` for linked columns."""
         columns = self.shallow_copy()
-        columns.linked_columns = [mtext.copy() for mtext in self.linked_columns]
+        columns.linked_columns = [
+            mtext.copy(copy_strategy) for mtext in self.linked_columns
+        ]
         return columns
 
     def shallow_copy(self) -> MTextColumns:
@@ -1434,7 +1440,9 @@ class MText(DXFGraphic):
         field = self.doc.objects.add_field(owner="0", dxfattribs=dxfattribs)
         return self.set_field(field, key=key)
 
-    def copy_data(self, entity: Self, copy_strategy=default_copy) -> None:
+    def copy_data(
+        self, entity: Self, copy_strategy: CopyStrategy = default_copy
+    ) -> None:
         assert isinstance(entity, MText)
         entity.text = self.text
         entity._force_optional_flow_direction = self._force_optional_flow_direction
@@ -1442,7 +1450,7 @@ class MText(DXFGraphic):
         entity._force_optional_line_spacing_factor = self._force_optional_line_spacing_factor
         if self.has_columns:
             # copies also the linked MTEXT column entities!
-            entity._columns = self._columns.deep_copy()  # type: ignore
+            entity._columns = self._columns.deep_copy(copy_strategy)  # type: ignore
 
     def load_dxf_attribs(
         self, processor: Optional[SubclassProcessor] = None
