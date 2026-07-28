@@ -33,6 +33,7 @@ from dxfpy.dynblkhelper import (
     get_dynamic_block_lookup_actions,
     get_dynamic_block_lookup_grips,
     get_dynamic_block_lookup_parameters,
+    get_dynamic_block_point_parameters,
     get_dynamic_block_properties_table,
     get_dynamic_block_property_columns,
     get_dynamic_block_property_assoc_networks,
@@ -97,7 +98,52 @@ def test_visibility_parser_accepts_alternate_child_handle_code():
     assert parameter.states[0].entity_handles == ("AB",)
 
 
-def test_visibility_parser_excludes_post_count_auxiliary_333_handles():
+def test_point_parameters_include_auxiliary_visibility_handles():
+    doc = dxfpy.new("R2018")
+    block = doc.blocks.new("POINTS")
+    line = block.add_line((0, 0), (1, 0))
+    point = _new_tag_storage_object(
+        doc,
+        "BLOCKPOINTPARAMETER",
+        "0",
+        [
+            [(100, "AcDbEvalExpr"), (90, 7)],
+            [(100, "AcDbBlockElement"), (300, "Endpoint")],
+            [(100, "AcDbBlockParameter"), (280, 1), (281, 0)],
+            [(100, "AcDbBlock1PtParameter"), (1010, (3, 4, 0))],
+            [
+                (100, "AcDbBlockPointParameter"),
+                (303, "END"),
+                (1011, (5, 6, 0)),
+            ],
+        ],
+    )
+    parameter = DynamicBlockVisibilityParameter(
+        handle="",
+        label="Visibility",
+        parameter_name="Visibility",
+        location=(0, 0, 0),
+        states=(
+            DynamicBlockVisibilityState(
+                "SHOW",
+                (line.dxf.handle,),
+                (point.dxf.handle,),
+            ),
+        ),
+    )
+    set_dynamic_block_visibility_parameter(block, parameter, guid="{GUID}")
+
+    points = get_dynamic_block_point_parameters(block, "SHOW")
+
+    assert len(points) == 1
+    assert points[0].label == "Endpoint"
+    assert points[0].name == "END"
+    assert points[0].base_offset == (3.0, 4.0, 0.0)
+    assert points[0].origin_offset == (5.0, 6.0, 0.0)
+    assert points[0].expr_id == 7
+
+
+def test_visibility_parser_separates_post_count_auxiliary_333_handles():
     doc = dxfpy.new("R2018")
     entity = _new_tag_storage_object(
         doc,
@@ -125,6 +171,7 @@ def test_visibility_parser_excludes_post_count_auxiliary_333_handles():
 
     assert parameter is not None
     assert parameter.states[0].entity_handles == ("AB",)
+    assert parameter.states[0].auxiliary_handles == ("CD",)
 
 
 def make_dynamic_insert(doc, current_state: str):

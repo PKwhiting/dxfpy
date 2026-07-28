@@ -16,6 +16,7 @@ from dxfpy.addons.dxf2code import (
 )
 from dxfpy._fidelity_compare import compare_replay_documents
 from dxfpy.dynblkhelper import (
+    _new_tag_storage_object,
     DynamicBlockBasePointParameter,
     DynamicBlockLinearParameter,
     DynamicBlockLookupAction,
@@ -34,6 +35,7 @@ from dxfpy.dynblkhelper import (
     get_dynamic_block_linear_parameters,
     get_dynamic_block_lookup_actions,
     get_dynamic_block_lookup_parameters,
+    get_dynamic_block_point_parameters,
     get_dynamic_block_properties_table,
     get_dynamic_block_reference,
     get_dynamic_block_stretch_actions,
@@ -1420,6 +1422,56 @@ def test_dynamic_block_visibility_unresolved_state_handle_uses_raw_layout_fallba
     assert "restore_raw_dynamic_block_layout" in script
     assert "_dyn_states = (" not in script
     compile(script, "<dxf2code>", "exec")
+
+
+def test_dynamic_block_auxiliary_points_use_raw_layout_fallback():
+    source_doc = dxfpy.new("R2018")
+    base = source_doc.blocks.new("AUXILIARY_POINT_VISIBILITY")
+    line = base.add_line((0, 0), (1, 0))
+    point = _new_tag_storage_object(
+        source_doc,
+        "BLOCKPOINTPARAMETER",
+        "0",
+        [
+            [(100, "AcDbEvalExpr"), (90, 7)],
+            [(100, "AcDbBlockElement"), (300, "Endpoint")],
+            [(100, "AcDbBlockParameter"), (280, 1), (281, 0)],
+            [(100, "AcDbBlock1PtParameter"), (1010, (3, 0, 0))],
+            [
+                (100, "AcDbBlockPointParameter"),
+                (303, "END"),
+                (1011, (5, 0, 0)),
+            ],
+        ],
+    )
+    set_dynamic_block_visibility_parameter(
+        base,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility State",
+            parameter_name="Visibility1",
+            location=(0.0, 10.0, 0.0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "STATE_A",
+                    (line.dxf.handle,),
+                    (point.dxf.handle,),
+                ),
+            ),
+        ),
+        guid="{GUID}",
+    )
+    code = block_to_code(base, drawing="doc")
+    script = code.import_str() + "\n" + str(code)
+    target_doc = dxfpy.new("R2018")
+    exec(script, {"doc": target_doc, "_entity_map": {}})
+
+    assert "restore_raw_dynamic_block_layout" in script
+    replayed = target_doc.blocks.get(base.name)
+    assert replayed is not None
+    points = get_dynamic_block_point_parameters(replayed, "STATE_A")
+    assert len(points) == 1
+    assert points[0].name == "END"
 
 
 def test_dynamic_block_rep_etag_dangling_handle_emits_null_handle():

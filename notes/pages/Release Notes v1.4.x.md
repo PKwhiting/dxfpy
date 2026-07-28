@@ -40,6 +40,7 @@
 	- Requires PyPy 3.11, latest `Pillow` release does not provide PyPy 3.10 wheels
 - # Release v1.4.4
 	- In development
+	- Definition-level dynamic-block inspection and static visibility-state materialization
 	- Experimental support for object-backed `MTEXT` field authoring
 	- First-class support for `FIELD` DXF objects
 	- Initial convenience API for:

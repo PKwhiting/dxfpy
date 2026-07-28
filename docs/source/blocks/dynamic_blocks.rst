@@ -49,6 +49,43 @@ raises :class:`UnsupportedDynamicBlockReferenceError` instead of modifying a
 direct dynamic block reference or an anonymous block representation shared by
 multiple live INSERT entities.
 
+Definition Inspection
+---------------------
+
+Use :class:`DynamicBlockDefinition` to inspect a definition before creating an
+INSERT. Definitions can be resolved by their block-table name or recorded
+AutoCAD true name::
+
+    definition = DynamicBlockDefinition.find(doc, "STRINGING")
+    if definition is not None:
+        print(definition.visibility_state_names)
+        print(definition.point_parameters("STATE_A"))
+
+The facade can copy visible graphics into another layout in the same document,
+or materialize a visibility state as a static anonymous block reference. An
+optional predicate can filter source graphics without embedding application
+layer conventions in dxfpy. Arbitrary dynamic block actions and nested
+visibility paths are not materialized.
+
+DynamicBlockDefinition
+----------------------
+
+.. autoclass:: DynamicBlockDefinition
+
+    .. automethod:: find
+    .. autoproperty:: block
+    .. autoproperty:: document
+    .. autoproperty:: name
+    .. autoproperty:: true_name
+    .. autoproperty:: has_visibility
+    .. autoproperty:: visibility_state_names
+    .. autoproperty:: property_table
+    .. autoproperty:: has_property_table
+    .. automethod:: visible_entities
+    .. automethod:: point_parameters
+    .. automethod:: copy_visible_entities
+    .. automethod:: materialize_visibility_state
+
 .. seealso::
 
     example script: `change_dynamic_block_visibility.py`_ in the

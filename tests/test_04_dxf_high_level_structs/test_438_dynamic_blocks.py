@@ -4,6 +4,7 @@ import pytest
 
 import dxfpy
 from dxfpy.dynamic_blocks import (
+    DynamicBlockDefinition,
     DynamicBlockReference,
     DynamicBlockVisibilityError,
     NotDynamicBlockReferenceError,
@@ -11,6 +12,7 @@ from dxfpy.dynamic_blocks import (
     UnsupportedDynamicBlockReferenceError,
 )
 from dxfpy.dynblkhelper import (
+    _new_tag_storage_object,
     DynamicBlockVisibilityParameter,
     DynamicBlockVisibilityState,
     set_dynamic_block_visibility_parameter,
@@ -158,3 +160,131 @@ def test_dynamic_block_reference_exposes_property_table_metadata():
     assert dynamic.has_property_table is True
     assert table is not None
     assert table.table_name == "Block Table1"
+
+
+def test_dynamic_block_definition_finds_true_name_and_point_parameters():
+    doc, block = make_point_definition()
+
+    definition = DynamicBlockDefinition.find(doc, "STRINGING")
+
+    assert definition is not None
+    assert definition.block is block
+    assert definition.true_name == "STRINGING"
+    assert definition.visibility_state_names == ("SHOW",)
+    points = definition.point_parameters("SHOW")
+    assert len(points) == 1
+    assert points[0].name == "END"
+    assert points[0].base_offset == (3.0, 0.0, 0.0)
+    assert points[0].origin_offset == (5.0, 0.0, 0.0)
+
+
+def test_dynamic_block_definition_materializes_filtered_static_state():
+    doc, _ = make_point_definition()
+    definition = DynamicBlockDefinition.find(doc, "STRINGING")
+    assert definition is not None
+
+    insert = definition.materialize_visibility_state(
+        "SHOW",
+        doc.modelspace(),
+        (10, 20),
+        predicate=lambda entity: entity.dxf.layer != "UNSEEN",
+    )
+
+    rendered = insert.block()
+    assert len(rendered) == 1
+    assert rendered.base_point == (2, 3, 0)
+    assert rendered[0].dxf.color == 1
+    assert rendered[0].dxf.invisible == 0
+
+
+def test_dynamic_block_definition_rejects_unknown_state():
+    doc, _ = make_point_definition()
+    definition = DynamicBlockDefinition.find(doc, "STRINGING")
+    assert definition is not None
+
+    with pytest.raises(UnknownVisibilityStateError):
+        definition.point_parameters("MISSING")
+
+
+def test_dynamic_block_definition_points_survive_roundtrip():
+    doc, _ = make_point_definition()
+    stream = StringIO()
+    doc.write(stream)
+
+    loaded = dxfpy.read(StringIO(stream.getvalue()))
+    definition = DynamicBlockDefinition.find(loaded, "STRINGING")
+
+    assert definition is not None
+    points = definition.point_parameters("SHOW")
+    assert len(points) == 1
+    assert points[0].name == "END"
+    assert points[0].base_offset == (3.0, 0.0, 0.0)
+
+
+def test_dynamic_block_definition_ignores_unrelated_visibility_handles():
+    doc = dxfpy.new("R2018")
+    block = doc.blocks.new("DYNAMIC")
+    unrelated = doc.modelspace().add_line((0, 0), (1, 0))
+    set_dynamic_block_visibility_parameter(
+        block,
+        DynamicBlockVisibilityParameter(
+            handle="",
+            label="Visibility",
+            parameter_name="Visibility",
+            location=(0, 0, 0),
+            states=(
+                DynamicBlockVisibilityState(
+                    "SHOW", (unrelated.dxf.handle,)
+                ),
+            ),
+        ),
+        guid="{GUID}",
+    )
+    definition = DynamicBlockDefinition(block)
+
+    assert definition.visible_entities("SHOW") == ()
+
+
+def make_point_definition():
+    doc = dxfpy.new("R2018")
+    block = doc.blocks.new_anonymous_block(
+        type_char="U", base_point=(2, 3)
+    )
+    visible = block.add_line((0, 0), (1, 0), dxfattribs={"color": 1})
+    hidden = block.add_line(
+        (0, 0), (2, 0), dxfattribs={"color": 2, "layer": "UNSEEN"}
+    )
+    hidden.dxf.invisible = 1
+    point = _new_tag_storage_object(
+        doc,
+        "BLOCKPOINTPARAMETER",
+        "0",
+        [
+            [(100, "AcDbEvalExpr"), (90, 7)],
+            [(100, "AcDbBlockElement"), (300, "Endpoint")],
+            [(100, "AcDbBlockParameter"), (280, 1), (281, 0)],
+            [(100, "AcDbBlock1PtParameter"), (1010, (3, 0, 0))],
+            [
+                (100, "AcDbBlockPointParameter"),
+                (303, "END"),
+                (1011, (5, 0, 0)),
+            ],
+        ],
+    )
+    parameter = DynamicBlockVisibilityParameter(
+        handle="",
+        label="Visibility",
+        parameter_name="Visibility",
+        location=(0, 0, 0),
+        states=(
+            DynamicBlockVisibilityState(
+                "SHOW",
+                (visible.dxf.handle, hidden.dxf.handle),
+                (point.dxf.handle,),
+            ),
+        ),
+    )
+    set_dynamic_block_visibility_parameter(
+        block, parameter, guid="{GUID}", true_name="STRINGING"
+    )
+    return doc, block
