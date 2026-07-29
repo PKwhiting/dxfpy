@@ -1,6 +1,7 @@
 # Copyright (c) 2019 Manfred Moitzi
 # License: MIT License
 
+from dxfpy.addons.dxf2code import Code
 from dxfpy.addons.dxf2code._format import (
     _fmt_api_call,
     _fmt_dxf_tags,
@@ -12,7 +13,7 @@ from dxfpy.math import Vec3
 
 
 def test_fmt_mapping():
-    data = {"a": 1, "b": "str", "c": Vec3(), "d": 'xxx "yyy" \'zzz\''}
+    data = {"a": 1, "b": "str", "c": Vec3(), "d": "xxx \"yyy\" 'zzz'"}
     result = list(_fmt_mapping(data))
     assert result[0] == "'a': 1,"
     assert result[1] == "'b': \"str\","
@@ -63,3 +64,20 @@ def test_fmt_dxf_tags():
     code = "[{}]".format("".join(_fmt_dxf_tags(tags)))
     result = eval(code, globals())
     assert result == tags
+
+
+def test_code_source_str_sorts_imports_before_generated_code():
+    code = Code()
+    code.add_import("import zebra")
+    code.add_import("import alpha")
+    code.add_line("result = alpha.value")
+
+    assert code.source_str() == ("import alpha\nimport zebra\nresult = alpha.value")
+
+
+def test_code_source_str_indents_nonempty_sections():
+    code = Code()
+    code.add_import("import alpha")
+    code.add_line("pass")
+
+    assert code.source_str(indent=4) == "    import alpha\n    pass"
