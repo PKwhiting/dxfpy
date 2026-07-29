@@ -91,6 +91,7 @@ __all__ = [
     "sync_layer_annotation_scale_xrecords",
     "sync_handseed",
     "sync_raw_acad_table_geometry_btrs",
+    "register_source_handle_mapping",
     "register_source_entity_handle_mapping",
     "reorder_objects_by_source_order",
     "map_extension_subtree_handles",
@@ -6768,6 +6769,21 @@ def register_source_entity_handle_mapping(source_entity: DXFEntity, target_entit
     target_handle = target_entity.dxf.get("handle")
     if source_handle and target_handle:
         _raw_object_handle_mapping(doc)[str(source_handle)] = str(target_handle)
+
+
+def register_source_handle_mapping(
+    source_handle: str, target_entity: DXFEntity
+) -> None:
+    """Register a source handle for an existing target resource entity.
+
+    :param source_handle: Handle used by the source document.
+    :param target_entity: Existing equivalent entity in the target document.
+    """
+    doc = target_entity.doc
+    target_handle = target_entity.dxf.get("handle")
+    if doc is None or not target_handle:
+        raise const.DXFStructureError("valid target DXF entity required")
+    _raw_object_handle_mapping(doc)[str(source_handle)] = str(target_handle)
 
 
 def snapshot_object_handle_order(doc: Drawing) -> tuple[str, ...]:

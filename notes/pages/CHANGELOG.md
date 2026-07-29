@@ -7,6 +7,7 @@
 		- matches complete property mappings against dynamic property-table rows
 	- NEW: load ASCII or Binary DXF data directly from bytes and binary streams
 	- NEW: inspect and shrink bounded MTEXT to one rendered line with explicit fitting options
+	- NEW: generate entity source with transitive DXF dependencies and collision-safe resource names
 	- NEW: first-class support for `FIELD` DXF objects
 		- `FIELD` objects are loaded/exported as real typed DXF objects instead of unimplemented placeholders
 		- low-level helpers added for field inspection and authoring

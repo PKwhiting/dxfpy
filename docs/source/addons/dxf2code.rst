@@ -107,8 +107,66 @@ Full-document replay example:
 The generated replay script writes ``output`` when ``rebuild_original.py`` is
 executed.
 
+Dependency-complete snippets
+----------------------------
+
+`entities_to_code_with_dependencies` generates snippet-sized entity source
+preceded by the required layers, linetypes, text styles, dimension styles, and
+nested block definitions. Referenced ``MLEADERSTYLE`` and ``TABLESTYLE``
+objects are recreated as needed. This allows the generated entities to be
+recreated in a different drawing without manually collecting their resource
+dependencies.
+
+Use `namespace_resource_names` before generation when uploaded or otherwise
+independent content must not bind to same-named resources in the target drawing.
+This function mutates the source drawing and preserves standard DXF resources;
+additional application-owned names can be protected explicitly.
+
+.. code-block:: Python
+
+    import dxfpy
+    from dxfpy.addons.dxf2code import (
+        entities_to_code_with_dependencies,
+        namespace_resource_names,
+    )
+
+    namespace_resource_names(
+        source_doc,
+        "UPLOAD_7F3A",
+        protected_names={"layers": {"APPLICATION_LAYER"}},
+    )
+    source = entities_to_code_with_dependencies(
+        source_doc,
+        source_doc.modelspace(),
+        layout="target_layout",
+    )
+
+    namespace = {
+        "dxfpy": dxfpy,
+        "doc": target_doc,
+        "target_layout": target_doc.blocks.new("IMPORTED_CONTENT"),
+    }
+    exec(source.import_str() + "\n" + source.code_str(), namespace)
+
+The supported ``protected_names`` keys are ``"layers"``, ``"linetypes"``,
+``"styles"``, and ``"dimstyles"``. Missing required table resources are
+reported as :class:`~dxfpy.lldxf.const.DXFStructureError` rather than producing
+source with a known dangling reference. Object-property ``FIELD`` references
+that cross independently generated entity or block scopes are rejected for the
+same reason. As with the other snippet APIs, unsupported entity structures can
+still be emitted as diagnostic comments and should be validated before
+executing persisted source.
+
+The result is executable Python, not a sandboxed data format. Execute generated
+source only in a trusted environment after validating the source DXF and the
+selected entities.
+
 
 .. autofunction:: entities_to_code
+
+.. autofunction:: entities_to_code_with_dependencies
+
+.. autofunction:: namespace_resource_names
 
 .. autofunction:: block_to_code
 

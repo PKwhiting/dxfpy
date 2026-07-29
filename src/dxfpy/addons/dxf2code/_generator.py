@@ -109,6 +109,7 @@ class _SourceCodeGenerator:
         self._deferred_code: list[str] = []
         self._post_block_deferred_code: list[str] = []
         self._translated_handles: set[str] = set()
+        self._mappable_handles: set[str] = set()
         self._emitted_handles: set[str] = set()
 
     @staticmethod
@@ -155,13 +156,13 @@ class _SourceCodeGenerator:
 
         """
         ignore = set(ignore) if ignore else set()
-        entities = list(entities)
+        entities = [entity for entity in entities if entity.dxftype() not in ignore]
         self._translated_handles = self._collect_translated_handles(entities)
+        self._mappable_handles = self._collect_mappable_handles(entities)
         self.add_source_code_line("_entity_map = {}")
 
         for entity in entities:
-            if entity.dxftype() not in ignore:
-                self.translate_entity(entity)
+            self.translate_entity(entity)
         if self._deferred_code:
             self.add_source_code_line("# recreate hosted FIELD objects")
             self.add_source_code_lines(self._deferred_code)
@@ -292,10 +293,28 @@ class _SourceCodeGenerator:
                     handles.add(attrib_handle)
         return handles
 
-    def _register_entity_handle(self, entity: DXFEntity, var_name: str = "e") -> None:
+    def _collect_mappable_handles(self, entities: Iterable[DXFEntity]) -> set[str]:
+        handles: set[str] = set()
+        for entity in entities:
+            dxftype = entity.dxftype()
+            if not self._should_register_translated_entity(dxftype):
+                continue
+            if self._entity_can_be_translated(entity):
+                handles.update(self._collect_translated_handles((entity,)))
+        return handles
+
+    def _register_entity_handle(
+        self,
+        entity: DXFEntity,
+        var_name: str = "e",
+        *,
+        include_in_field_scope: bool = True,
+    ) -> None:
         handle = entity.dxf.get("handle")
         if handle:
             self._emitted_handles.add(handle)
+            if include_in_field_scope:
+                self.code.entity_handles.add(str(handle))
             self.add_source_code_line(
                 f'_entity_map[{json.dumps(handle)}] = {var_name}'
             )
@@ -315,18 +334,42 @@ class _SourceCodeGenerator:
     def _format_xdata_payload(self, payload: Sequence[tuple[int, Any]]) -> str:
         items: list[str] = []
         for code, value in payload:
-            if code == 1005 and isinstance(value, str) and value in self._emitted_handles:
+            if code == 1005 and isinstance(value, str) and value in self._mappable_handles:
                 value_expr = f'_entity_map[{json.dumps(value)}].dxf.handle'
             else:
                 value_expr = self._format_python_value(value)
             items.append(f"({code}, {value_expr})")
         return f"[{', '.join(items)}]"
 
-    def _emit_entity_xdata(self, entity: DXFEntity, var_name: str = "e") -> None:
+    def _emit_entity_xdata(
+        self,
+        entity: DXFEntity,
+        var_name: str = "e",
+        *,
+        indent: int = 0,
+        defer_forward_references: bool = True,
+    ) -> None:
         for appid, payload in self._preservable_xdata(entity):
-            self.add_source_code_line(
-                f"{var_name}.set_xdata({json.dumps(appid)}, {self._format_xdata_payload(payload)})"
+            target = var_name
+            has_forward_reference = any(
+                code == 1005
+                and isinstance(value, str)
+                and value in self._mappable_handles
+                and value not in self._emitted_handles
+                for code, value in payload
             )
+            handle = entity.dxf.get("handle")
+            if defer_forward_references and has_forward_reference and handle:
+                target = f'_entity_map[{json.dumps(handle)}]'
+                self.add_deferred_source_code_line(
+                    " " * indent
+                    + f"{target}.set_xdata({json.dumps(appid)}, {self._format_xdata_payload(payload)})"
+                )
+            else:
+                self.add_source_code_line(
+                    " " * indent
+                    + f"{target}.set_xdata({json.dumps(appid)}, {self._format_xdata_payload(payload)})"
+                )
 
     def _emit_entity_proxy_graphic(
         self, entity: DXFEntity, var_name: str = "e"
@@ -402,6 +445,9 @@ class _SourceCodeGenerator:
             return None
         dxftype = resource.dxftype()
         if dxftype == "STYLE":
+            if getattr(resource, "is_shape_file", False):
+                font = resource.dxf.get("font", "")
+                return f"{self.doc}.styles.get_shx({json.dumps(font)}).dxf.handle"
             return f"{self.doc}.styles.get({json.dumps(resource.dxf.name)}).dxf.handle"
         if dxftype == "LTYPE":
             return f"{self.doc}.linetypes.get({json.dumps(resource.dxf.name)}).dxf.handle"
@@ -422,7 +468,7 @@ class _SourceCodeGenerator:
         return None
 
     def _emit_raw_resource_entry_restore(
-        self, entity: DXFEntity, var_name: str = "t"
+        self, entity: DXFEntity, var_name: str = "t", *, indent: int = 0
     ) -> None:
         from dxfpy.dynblkhelper import snapshot_raw_entity_export
 
@@ -443,8 +489,44 @@ class _SourceCodeGenerator:
             "from dxfpy.dynblkhelper import restore_raw_entity_export"
         )
         self.add_source_code_line(
-            f"restore_raw_entity_export({var_name}, {self._format_python_value(snapshot)}, ({joined}))"
+            " " * indent
+            + f"restore_raw_entity_export({var_name}, {self._format_python_value(snapshot)}, ({joined}))"
         )
+
+    def _schedule_final_raw_xdata_restore(
+        self, entity: DXFEntity, target_expr: str
+    ) -> None:
+        if entity.xdata is None:
+            return
+        snapshot = self._snapshot_raw_entity_export_for_codegen(entity)
+        pairs = self._raw_entity_handle_mapping_pairs(entity, snapshot.text)
+        joined = ", ".join(pairs)
+        if len(pairs) == 1:
+            joined += ","
+        self.add_import_statement(
+            "from dxfpy.dynblkhelper import restore_raw_entity_export"
+        )
+        self.add_deferred_source_code_line(
+            f"restore_raw_entity_export({target_expr}, {self._format_python_value(snapshot)}, ({joined}))"
+        )
+
+    def _raw_entity_handle_mapping_pairs(
+        self, entity: DXFEntity, raw_text: str
+    ) -> list[str]:
+        own_handles = {entity.dxf.get("handle", ""), entity.dxf.get("owner", "")}
+        pairs: list[str] = []
+        for source_handle in self._raw_handle_refs_from_text(raw_text):
+            if source_handle in own_handles:
+                continue
+            if source_handle in self._mappable_handles:
+                expression = f'_entity_map[{json.dumps(source_handle)}].dxf.handle'
+            else:
+                expression = self._resource_handle_expr_from_source_handle(
+                    entity, source_handle
+                )
+            if expression is not None:
+                pairs.append(f'({json.dumps(source_handle)}, {expression})')
+        return pairs
 
     @staticmethod
     def _has_acad_field_xdict(entity: DXFEntity) -> bool:
@@ -514,8 +596,14 @@ class _SourceCodeGenerator:
 
     def _register_block_handle(self, block) -> None:
         if block.block is not None:
-            self._register_entity_handle(block.block, var_name="b.block")
-        self._register_entity_handle(block.block_record, var_name="b.block_record")
+            self._register_entity_handle(
+                block.block, var_name="b.block", include_in_field_scope=False
+            )
+        self._register_entity_handle(
+            block.block_record,
+            var_name="b.block_record",
+            include_in_field_scope=False,
+        )
 
     @staticmethod
     def _read_field_value(field, marker_code: int, marker_value: str) -> Any:
@@ -1027,25 +1115,89 @@ class _SourceCodeGenerator:
         for entity in block:
             if entity.dxftype() != "ACAD_TABLE":
                 continue
+            load_linked_data = getattr(entity, "load_linked_data", None)
+            if callable(load_linked_data):
+                load_linked_data()
             block_record_handle = entity.dxf.get("block_record_handle")
             geometry_name = entity.dxf.get("geometry")
-            if not block_record_handle or not geometry_name:
-                continue
-            block_record_handle = str(block_record_handle)
-            if block_record_handle in seen:
-                continue
-            geometry_block = doc.blocks.get(geometry_name) if doc is not None else None
-            if geometry_block is None or not geometry_block.block_record_handle:
-                continue
-            geometry_name = str(geometry_name)
-            block_expr = f"{self.doc}.blocks.get({json.dumps(geometry_name)})"
-            target_expr = (
-                f"({block_expr}.block_record_handle "
-                f"if {block_expr} is not None else {json.dumps(block_record_handle)})"
+            geometry_block = (
+                doc.blocks.get(geometry_name)
+                if doc is not None and geometry_name
+                else None
             )
-            pairs.append((block_record_handle, target_expr))
-            seen.add(block_record_handle)
+            if block_record_handle and geometry_block is not None:
+                source_handle = str(block_record_handle)
+                if source_handle not in seen and geometry_block.block_record_handle:
+                    block_name = str(geometry_name)
+                    self.code.blocks.add(block_name)
+                    block_expr = f"{self.doc}.blocks.get({json.dumps(block_name)})"
+                    target_expr = (
+                        f"({block_expr}.block_record_handle "
+                        f"if {block_expr} is not None else {json.dumps(source_handle)})"
+                    )
+                    pairs.append((source_handle, target_expr))
+                    seen.add(source_handle)
+            for source_handle, block_name in self._raw_acad_table_cell_blocks(
+                entity, doc
+            ):
+                if source_handle in seen:
+                    continue
+                self.code.blocks.add(block_name)
+                block_expr = f"{self.doc}.blocks.get({json.dumps(block_name)})"
+                target_expr = (
+                    f"({block_expr}.block_record_handle "
+                    f"if {block_expr} is not None else {json.dumps(source_handle)})"
+                )
+                pairs.append((source_handle, target_expr))
+                seen.add(source_handle)
+            for source_handle, target_expr in self._raw_acad_table_attdef_handles(
+                entity, doc
+            ):
+                if source_handle not in seen:
+                    pairs.append((source_handle, target_expr))
+                    seen.add(source_handle)
         return tuple(pairs)
+
+    @staticmethod
+    def _raw_acad_table_cell_blocks(entity, doc) -> tuple[tuple[str, str], ...]:
+        data = getattr(entity, "data", None)
+        if data is None or doc is None:
+            return ()
+        blocks: list[tuple[str, str]] = []
+        for cell in data.cells:
+            handles = [cell.block_record_handle]
+            if cell.wrapper_block_record_handle:
+                handles.append(cell.wrapper_block_record_handle)
+            for handle in handles:
+                record = doc.entitydb.get(handle) if handle else None
+                if record is not None and record.dxftype() == "BLOCK_RECORD":
+                    blocks.append((str(handle), str(record.dxf.name)))
+        return tuple(blocks)
+
+    def _raw_acad_table_attdef_handles(
+        self, entity, doc
+    ) -> tuple[tuple[str, str], ...]:
+        data = getattr(entity, "data", None)
+        if data is None or doc is None:
+            return ()
+        mappings: list[tuple[str, str]] = []
+        for cell in data.cells:
+            record = doc.entitydb.get(cell.block_record_handle)
+            if record is None or record.dxftype() != "BLOCK_RECORD":
+                continue
+            block_expr = f"{self.doc}.blocks.get({json.dumps(record.dxf.name)})"
+            for attribute in cell.block_attributes:
+                attdef = doc.entitydb.get(attribute.handle)
+                if attdef is None or attdef.dxftype() != "ATTDEF":
+                    continue
+                source_handle = str(attribute.handle)
+                tag = json.dumps(attdef.dxf.tag)
+                target_expr = (
+                    f"next((_attdef.dxf.handle for _attdef in {block_expr}.query('ATTDEF') "
+                    f"if _attdef.dxf.tag == {tag}), {json.dumps(source_handle)})"
+                )
+                mappings.append((source_handle, target_expr))
+        return tuple(mappings)
 
     def _emit_raw_dynamic_definition_restore(
         self,
@@ -2108,10 +2260,11 @@ class _SourceCodeGenerator:
         table = f"{self.doc}.{TABLENAMES[dxftype]}"
         dxfattribs = _purge_handles(dxfattribs)
         name = dxfattribs.pop("name")
+        name_literal = json.dumps(name)
         s = [
-            f"if '{name}' not in {table}:",
+            f"if {name_literal} not in {table}:",
             f"    t = {table}.new(",
-            f"        '{name}',",
+            f"        {name_literal},",
             "        dxfattribs={",
         ]
         s.extend(_fmt_mapping(dxfattribs, indent=12))
@@ -2334,6 +2487,17 @@ class _SourceCodeGenerator:
             )
             if post_parent_field_attr_restore_lines:
                 self.add_deferred_source_code_lines(post_parent_field_attr_restore_lines)
+        handle = entity.dxf.get("handle")
+        if handle:
+            self._schedule_final_raw_xdata_restore(
+                entity, f'_entity_map[{json.dumps(handle)}]'
+            )
+        for attrib in entity.attribs:
+            handle = attrib.dxf.get("handle")
+            if handle:
+                self._schedule_final_raw_xdata_restore(
+                    attrib, f'_entity_map[{json.dumps(handle)}]'
+                )
 
     def _mtext(self, entity: MText) -> None:
         self.add_source_code_lines(
@@ -3031,9 +3195,12 @@ class _SourceCodeGenerator:
         self.add_source_code_lines(
             self.generic_api_call("DIMENSION", entity.dxfattribs())
         )
-        if entity.get_geometry_block() is None:
+        geometry = entity.get_geometry_block()
+        if geometry is None:
             self.add_source_code_line("e.render()")
             self.add_source_code_line("")
+        else:
+            self.code.blocks.add(geometry.name)
         return
 
     def _image(self, entity: Image):
@@ -3242,17 +3409,66 @@ class _SourceCodeGenerator:
             indent=0,
         )
         self.add_source_code_line("t.pattern_tags = LinetypePattern(tags)")
+        self._rebind_linetype_style(ltype)
         self._emit_entity_xdata(ltype, var_name="t")
         self._emit_raw_resource_entry_restore(ltype, var_name="t")
 
+    def _rebind_linetype_style(self, ltype: Linetype) -> None:
+        """Rebind a complex linetype to the target STYLE handle."""
+        if ltype.doc is None:
+            return
+        handle = ltype.pattern_tags.get_style_handle()
+        style = ltype.doc.styles.get_entry_by_handle(handle)
+        if style is None:
+            return
+        name = style.dxf.get("name", "")
+        if name:
+            expression = f"{self.doc}.styles.get({json.dumps(name)})"
+        elif style.is_shape_file:
+            font = style.dxf.get("font", "")
+            expression = f"{self.doc}.styles.get_shx({json.dumps(font)})"
+        else:
+            return
+        self.add_source_code_line(
+            f"t.pattern_tags.set_style_handle({expression}.dxf.handle)"
+        )
+
     def _style(self, style: DXFEntity):
         name = style.dxf.name
-        self.add_source_code_lines(
-            self.new_table_entry("STYLE", style.dxfattribs())
-        )
-        self.add_source_code_line(f"t = {self.doc}.styles.get({json.dumps(name)})")
+        if not name and getattr(style, "is_shape_file", False):
+            self._shx_style(style)
+            return
+        else:
+            self.add_source_code_lines(
+                self.new_table_entry("STYLE", style.dxfattribs())
+            )
+            self.add_source_code_line(f"t = {self.doc}.styles.get({json.dumps(name)})")
         self._emit_entity_xdata(style, var_name="t")
         self._emit_raw_resource_entry_restore(style, var_name="t")
+
+    def _shx_style(self, style: DXFEntity) -> None:
+        """Emit one unnamed SHX shape STYLE entry."""
+        dxfattribs = _purge_handles(style.dxfattribs())
+        dxfattribs.pop("name", None)
+        font = dxfattribs.pop("font")
+        expression = f"{self.doc}.styles.find_shx({json.dumps(font)})"
+        self.add_source_code_line(f"t = {expression}")
+        self.add_source_code_line("if t is None:")
+        self.add_source_code_line(
+            f"    t = {self.doc}.styles.add_shx(",
+        )
+        self.add_source_code_line(f"        {json.dumps(font)},")
+        self.add_source_code_line("        dxfattribs={")
+        self.add_source_code_lines(_fmt_mapping(dxfattribs, indent=12))
+        self.add_source_code_line("        },")
+        self.add_source_code_line("    )")
+        self._emit_entity_xdata(
+            style,
+            var_name="t",
+            indent=4,
+            defer_forward_references=False,
+        )
+        self._emit_raw_resource_entry_restore(style, var_name="t", indent=4)
 
     def _dimstyle(self, dimstyle: DXFEntity):
         name = dimstyle.dxf.name

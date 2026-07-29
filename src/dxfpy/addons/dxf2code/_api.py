@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING, Iterable, Optional
 
 from ._code import Code
@@ -16,8 +17,9 @@ def entities_to_code(
     layout: str = "layout",
     ignore: Optional[Iterable[str]] = None,
     runtime_var: str | None = None,
+    drawing: str = "doc",
 ) -> Code:
-    code = _SourceCodeGenerator(layout=layout, runtime_var=runtime_var)
+    code = _SourceCodeGenerator(layout=layout, doc=drawing, runtime_var=runtime_var)
     code.translate_entities(entities, ignore=ignore)
     return code.code
 
@@ -32,9 +34,11 @@ def block_to_code(
     dxfattribs = _purge_handles(block.block.dxfattribs())
     block_name = dxfattribs.pop("name")
     base_point = dxfattribs.pop("base_point")
-    code = _SourceCodeGenerator(layout="b", full_document_mode=full_document_mode)
+    code = _SourceCodeGenerator(
+        layout="b", doc=drawing, full_document_mode=full_document_mode
+    )
     prolog = (
-        f'b = {drawing}.blocks.new("{block_name}", base_point={base_point}, '
+        f"b = {drawing}.blocks.new({json.dumps(block_name)}, base_point={base_point}, "
         "dxfattribs={"
     )
     code.add_source_code_line(prolog)
@@ -59,6 +63,9 @@ def block_to_code(
         )
     if not code._needs_raw_dynamic_block_layout_fallback(block):
         code.translate_entities(block, ignore=ignore)
+    else:
+        code.add_source_code_line("_entity_map = {}")
+        code.code.entity_handles.update(code._collect_translated_handles(block))
     code._register_block_handle(block)
     code._emit_dynamic_block_metadata(block)
     if code._post_block_deferred_code:

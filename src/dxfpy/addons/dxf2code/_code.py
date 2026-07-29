@@ -41,6 +41,7 @@ class Code:
         self.linetypes: set[str] = set()
         self.dimstyles: set[str] = set()
         self.blocks: set[str] = set()
+        self.entity_handles: set[str] = set()
 
     def code_str(self, indent: int = 0) -> str:
         lead_str = " " * indent
@@ -73,4 +74,5 @@ class Code:
         self.styles.update(code.styles)
         self.dimstyles.update(code.dimstyles)
         self.blocks.update(code.blocks)
+        self.entity_handles.update(code.entity_handles)
         self.add_lines(code.code, indent=indent)
