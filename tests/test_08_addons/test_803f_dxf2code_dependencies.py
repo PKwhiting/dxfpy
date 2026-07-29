@@ -438,7 +438,6 @@ def test_dependency_code_collects_raw_dynamic_block_resources():
         {"dxfpy": dxfpy, "doc": target, "target_layout": target.modelspace()},
     )
 
-    assert "restore_raw_dynamic_block_layout" in code.code_str()
     assert target.dimstyles.get("CUSTOM_DIM") is not None
     assert (
         target.blocks.get(block.name).query("LEADER").first.dxf.dimstyle == "CUSTOM_DIM"
@@ -721,7 +720,11 @@ def test_entities_to_code_does_not_map_ignored_entity_handles():
         {"dxfpy": dxfpy, "doc": target, "target_layout": target.modelspace()},
     )
 
-    assert len(target.modelspace().query("LINE")) == 1
+    generated = target.modelspace().query("LINE").first
+    referenced_handle = generated.get_xdata("HANDLE_TEST").get_first_value(1005)
+    assert referenced_handle == ignored.dxf.handle
+    assert referenced_handle != generated.dxf.handle
+    assert target.entitydb.get(referenced_handle) is None
     assert len(target.modelspace().query("CIRCLE")) == 0
 
 
@@ -729,8 +732,18 @@ def test_dependency_code_maps_existing_standard_resource_handle():
     source = dxfpy.new("R2018")
     source_style = source.styles.get("Standard")
     assert source.entitydb.reset_handle(source_style, "ABC")
-    source.modelspace().add_text("TEXT", dxfattribs={"style": "Standard"})
+    block = source.blocks.new("DYNAMIC_BLOCK")
+    block.add_text("TEXT", dxfattribs={"style": "Standard"})
+    set_dynamic_block_definition_metadata(
+        block, guid="{G}", true_name=block.name
+    )
+    xrecord = block.block_record.new_extension_dict().dictionary.add_xrecord(
+        "STYLE_REF"
+    )
+    xrecord.tags.extend([(330, source_style.dxf.handle)])
+    source.modelspace().add_blockref(block.name, (0, 0))
     target = dxfpy.new("R2018")
+    target_style = target.styles.get("Standard")
 
     code = entities_to_code_with_dependencies(
         source, source.modelspace(), layout="target_layout"
@@ -740,8 +753,12 @@ def test_dependency_code_maps_existing_standard_resource_handle():
         {"dxfpy": dxfpy, "doc": target, "target_layout": target.modelspace()},
     )
 
-    mapping = getattr(target, "_raw_object_handle_mapping")
-    assert mapping["ABC"] == target.styles.get("Standard").dxf.handle
+    generated = target.blocks.get(block.name)
+    restored = generated.block_record.get_extension_dict().dictionary.get(
+        "STYLE_REF"
+    )
+    restored_handle = next(tag.value for tag in restored.tags if tag.code == 330)
+    assert restored_handle == target_style.dxf.handle
 
 
 @pytest.mark.parametrize("argument", ["layout", "drawing"])

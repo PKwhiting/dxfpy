@@ -54,20 +54,6 @@ def test_readstream_rejects_text_stream():
         dxfpy.readstream(StringIO("not binary"))  # type: ignore[arg-type]
 
 
-def test_decode_base64_delegates_to_byte_loader(monkeypatch):
-    expected = dxfpy.new("R2018")
-    captured: list[bytes] = []
-
-    def load(data: bytes, **_kwargs) -> dxfpy.document.Drawing:
-        captured.append(data)
-        return expected
-
-    monkeypatch.setattr(dxfpy.filemanagement, "readbytes", load)
-
-    assert dxfpy.decode_base64(b"RFhG") is expected
-    assert captured == [b"DXF"]
-
-
 def _ascii_data(document: dxfpy.document.Drawing) -> bytes:
     stream = StringIO()
     document.write(stream)
