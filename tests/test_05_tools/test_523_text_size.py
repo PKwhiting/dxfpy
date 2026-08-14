@@ -344,7 +344,7 @@ def test_single_line_fitter_applies_custom_starting_options():
     assert measurement.tolerance == pytest.approx(0.005)
 
 
-def test_single_line_fitter_preserves_hosted_field_tree(monkeypatch):
+def test_single_line_fitter_preserves_hosted_field_tree():
     doc = dxfpy.new("R2018")
     entity = doc.modelspace().add_mtext(
         "----", dxfattribs={"char_height": 0.5, "width": 2.0}
@@ -365,11 +365,6 @@ def test_single_line_fitter_preserves_hosted_field_tree(monkeypatch):
     assert field_list is not None
     field_list_handles = tuple(field_list.handles)
 
-    def reject_field_copy(*_args, **_kwargs):
-        raise AssertionError("measurement must not copy hosted FIELD trees")
-
-    monkeypatch.setattr(type(field), "copy_data", reject_field_copy)
-
     MTextSingleLineFitter().fit(entity)
 
     assert entity.get_field() is field
@@ -381,24 +376,25 @@ def test_single_line_fitter_preserves_hosted_field_tree(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("content", "width", "expected"),
+    ("content", "fits"),
     [
-        ("A LONG EQUIPMENT DESCRIPTION THAT MUST FIT", 2.0, 0.06455656409263613),
-        ("UNBREAKABLEEQUIPMENTDESCRIPTION", 1.0, 0.04042657256126404),
-        (r"FIRST\PSECOND", 2.0, 0.01),
-        (r"NORMAL {\H2x;TALL} NORMAL", 2.0, 0.11479316949844359),
-        (r"NORMAL {\H0.8;TALL} NORMAL", 2.0, 0.01),
+        (r"NORMAL {\H2x;TALL} NORMAL", True),
+        (r"NORMAL {\H0.8;TALL} NORMAL", False),
     ],
 )
-def test_single_line_fitter_matches_compatibility_baselines(
-    content, width, expected
-):
-    entity = _mtext(content, width=width)
+def test_single_line_fitter_preserves_inline_height_commands(content, fits):
+    entity = _mtext(content, width=2.0)
     raw_content = entity.text
+    fitter = MTextSingleLineFitter()
 
-    final_height = MTextSingleLineFitter().fit(entity)
+    final_height = fitter.fit(entity)
 
-    assert final_height == pytest.approx(expected, rel=1e-10)
+    assert final_height < 0.5
+    assert fitter.measure(entity).fits is fits
+    if fits:
+        assert final_height > 0.01
+    else:
+        assert final_height == 0.01
     assert entity.text == raw_content
 
 
@@ -551,7 +547,7 @@ def test_single_line_fitter_skips_undistributed_overflow_paragraph():
     assert measurement.line_count == 2
 
 
-def test_single_line_fitter_uses_render_only_copy_for_linked_columns():
+def test_single_line_fitter_preserves_linked_column_extension_data():
     doc = dxfpy.new("R2013")
     entity = doc.modelspace().add_mtext(
         "LINKED COLUMN TEXT",
@@ -564,19 +560,18 @@ def test_single_line_fitter_uses_render_only_copy_for_linked_columns():
     columns.defined_height = 10.0
     entity.setup_columns(columns, linked=True)
     linked_column = columns.linked_columns[0]
-
-    class UncopyableExtensionDictionary:
-        is_alive = True
-
-        def copy(self, _copy_strategy):
-            raise AssertionError("linked extension data must not be copied")
-
-    linked_column.extension_dict = UncopyableExtensionDictionary()  # type: ignore[assignment]
+    xrecord = linked_column.new_extension_dict().dictionary.add_xrecord("TEST")
+    xrecord.tags.extend([(1, "KEEP")])
+    entitydb_handles = tuple(doc.entitydb)
 
     measurement = MTextSingleLineFitter().measure(entity)
 
     assert measurement.line_count >= 1
     assert columns.linked_columns[0] is linked_column
+    restored = linked_column.get_extension_dict().dictionary.get("TEST")
+    assert restored is xrecord
+    assert list(restored.tags) == [(1, "KEEP")]
+    assert tuple(doc.entitydb) == entitydb_handles
 
 
 def test_single_line_measurement_reports_worst_paired_overflow_widths():

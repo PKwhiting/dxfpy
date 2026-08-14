@@ -54,8 +54,22 @@ class Code:
         return self.code_str()
 
     def import_str(self, indent: int = 0) -> str:
+        """Return deterministic import source.
+
+        :param indent: Number of spaces prepended to each import.
+        :return: Sorted import statements joined by newlines.
+        """
         lead_str = " " * indent
-        return "\n".join(lead_str + line for line in self.imports)
+        return "\n".join(lead_str + line for line in sorted(self.imports))
+
+    def source_str(self, indent: int = 0) -> str:
+        """Return imports and generated code as executable source.
+
+        :param indent: Number of spaces prepended to each source line.
+        :return: Deterministic imports followed by generated code.
+        """
+        sections = (self.import_str(indent), self.code_str(indent))
+        return "\n".join(section for section in sections if section)
 
     def add_import(self, statement: str) -> None:
         self.imports.add(statement)

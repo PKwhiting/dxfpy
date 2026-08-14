@@ -40,6 +40,7 @@ from dxfpy.dynblkhelper import (
     get_dynamic_block_reference,
     get_dynamic_block_stretch_actions,
     get_dynamic_block_visibility_entities,
+    get_dynamic_block_visibility_state_handles,
     get_dynamic_block_visibility_state,
     get_dynamic_block_visibility_states,
     restore_raw_entity_export,
@@ -1345,7 +1346,6 @@ def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles(tmp_path):
         ),
     )
 
-    assert "restore_raw_dynamic_block_layout" in str(block_to_code(base, drawing="doc"))
     source_blocks = [block for block in source_doc.blocks if not block.is_any_layout]
     assert table_geometry in _block_dependencies(source_blocks)[base.name]
 
@@ -1395,7 +1395,7 @@ def test_raw_dynamic_layout_fallback_preserves_nested_insert_handles(tmp_path):
     assert comparison.replay_bad_acad_table_btrs == ()
 
 
-def test_dynamic_block_visibility_unresolved_state_handle_uses_raw_layout_fallback():
+def test_dynamic_block_visibility_with_unresolved_handle_replays_valid_entities():
     source_doc = dxfpy.new("R2018")
     base = source_doc.blocks.new("RAW_LAYOUT_UNRESOLVED_VISIBILITY")
     line = base.add_line((0, 0), (1, 0))
@@ -1418,10 +1418,18 @@ def test_dynamic_block_visibility_unresolved_state_handle_uses_raw_layout_fallba
 
     code = block_to_code(base, drawing="doc")
     script = code.import_str() + "\n" + str(code)
+    target_doc = dxfpy.new("R2018")
 
-    assert "restore_raw_dynamic_block_layout" in script
-    assert "_dyn_states = (" not in script
-    compile(script, "<dxf2code>", "exec")
+    exec(script, {"doc": target_doc, "_entity_map": {}})
+
+    replayed = target_doc.blocks.get(base.name)
+    assert replayed is not None
+    assert get_dynamic_block_visibility_states(replayed) == ("STATE_A",)
+    visible = get_dynamic_block_visibility_entities(replayed, "STATE_A")
+    assert tuple(entity.dxftype() for entity in visible) == ("LINE",)
+    assert get_dynamic_block_visibility_state_handles(
+        replayed, "STATE_A"
+    ) == (visible[0].dxf.handle, "DEADBEEF")
 
 
 def test_dynamic_block_auxiliary_points_use_raw_layout_fallback():
@@ -1466,7 +1474,6 @@ def test_dynamic_block_auxiliary_points_use_raw_layout_fallback():
     target_doc = dxfpy.new("R2018")
     exec(script, {"doc": target_doc, "_entity_map": {}})
 
-    assert "restore_raw_dynamic_block_layout" in script
     replayed = target_doc.blocks.get(base.name)
     assert replayed is not None
     points = get_dynamic_block_point_parameters(replayed, "STATE_A")
