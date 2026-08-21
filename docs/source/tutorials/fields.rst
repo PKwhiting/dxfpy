@@ -46,6 +46,35 @@ Supported operators are ``+``, ``-``, ``*``, ``/``, unary ``+`` and ``-``,
 parentheses, and numeric literals. Expressions are parsed by a restricted
 validator and are never passed to Python ``eval()``.
 
+Text-case formats
+-----------------
+
+Use :class:`dxfpy.fields.FieldFormat` rather than raw AutoCAD format strings
+for supported text transforms. Apply the format to direct property sources and
+calculated expressions independently:
+
+.. code-block:: python
+
+    from dxfpy.fields import FieldFormat, drawing_property
+
+    mtext.set_field(
+        "ATTACHMENT: {{attachment}} / {{count * watts / 1000}} KW",
+        values={
+            "attachment": drawing_property(
+                "Attachment",
+                value="unirac rm 10",
+                display="UNIRAC RM 10",
+                field_format=FieldFormat.UPPERCASE,
+            ),
+            "count": 10,
+            "watts": 400,
+        },
+        expression_field_format=FieldFormat.UPPERCASE,
+    )
+
+Available values are ``UPPERCASE``, ``LOWERCASE``, ``FIRST_CAPITAL``, and
+``TITLE_CASE``. Custom AutoCAD format strings remain supported where needed.
+
 Pass ``deferred=True`` when calculated operands should be evaluated later by
 the CAD application. Deferred arithmetic skips local numeric evaluation and
 uses ``####`` as its cached display, so empty drawing properties are supported:
@@ -88,6 +117,8 @@ Public source helpers
 ---------------------
 
 .. module:: dxfpy.fields
+
+.. autoclass:: FieldFormat
 
 .. autofunction:: drawing_property
 
