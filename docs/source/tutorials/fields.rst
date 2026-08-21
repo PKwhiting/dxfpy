@@ -61,7 +61,10 @@ calculated expressions independently:
         "ATTACHMENT: {{attachment}} / {{count * watts / 1000}} KW",
         values={
             "attachment": drawing_property(
-                "Attachment", field_format=FieldFormat.UPPERCASE
+                "Attachment",
+                value="unirac rm 10",
+                display="UNIRAC RM 10",
+                field_format=FieldFormat.UPPERCASE,
             ),
             "count": 10,
             "watts": 400,
