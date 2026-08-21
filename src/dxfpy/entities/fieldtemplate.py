@@ -79,7 +79,8 @@ def drawing_property(
     :param name: Custom drawing property name.
     :param value: Optional property value to set.
     :param display: Optional cached display value.
-    :param field_format: Native field-format string.
+    :param field_format: Native field-format string. Use
+        ``dxfpy.fields.FieldFormat`` for supported text-case transforms.
     :return: Immutable drawing-property source.
     """
     return DrawingProperty(name, value, display, field_format)
@@ -113,7 +114,8 @@ def object_property(
 
     :param target: Bound target DXF entity.
     :param property_name: Object property name, such as ``Length``.
-    :param field_format: Native field-format string.
+    :param field_format: Native field-format string. Use
+        ``dxfpy.fields.FieldFormat`` for supported text-case transforms.
     :param value: Optional cached property value.
     :param display: Optional cached display value.
     :return: Immutable object-property source.
@@ -706,7 +708,8 @@ def attach_field_template(
     :param values: Named template sources and drawing-property values.
     :param deferred: Defer arithmetic cache evaluation to the CAD application.
     :param expression_field_format: Native field-format string for calculated
-        expressions.
+        expressions. Use ``dxfpy.fields.FieldFormat`` for supported text-case
+        transforms.
     :param register_field_list: Register the complete tree globally.
     :return: Attached text-wrapper FIELD.
     """

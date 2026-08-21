@@ -9,7 +9,12 @@ import dxfpy
 import pytest
 
 from dxfpy.entities import Field
-from dxfpy.fields import drawing_property, drawing_variable, object_property
+from dxfpy.fields import (
+    FieldFormat,
+    drawing_property,
+    drawing_variable,
+    object_property,
+)
 from dxfpy.math import Vec2
 
 
@@ -37,6 +42,13 @@ def field_value_format(field: Field) -> str | None:
         elif in_field_value and tag.code == 304 and tag.value == "ACVALUE_END":
             return None
     return None
+
+
+def test_text_case_field_format_constants_match_autocad_codes():
+    assert FieldFormat.UPPERCASE == "%tc1"
+    assert FieldFormat.LOWERCASE == "%tc2"
+    assert FieldFormat.FIRST_CAPITAL == "%tc3"
+    assert FieldFormat.TITLE_CASE == "%tc4"
 
 
 def test_mtext_set_field_creates_drawing_property_from_plain_value():
@@ -85,16 +97,22 @@ def test_template_field_roundtrip_preserves_requested_native_formats():
                 "Attachment",
                 value="unirac rm 10",
                 display="UNIRAC RM 10",
-                field_format="%tc1",
+                field_format=FieldFormat.UPPERCASE,
             ),
             "module_count": drawing_property(
-                "Module Count", value=10, display="10", field_format="%tc1"
+                "Module Count",
+                value=10,
+                display="10",
+                field_format=FieldFormat.UPPERCASE,
             ),
             "watts": drawing_property(
-                "Watts", value=400, display="400", field_format="%tc1"
+                "Watts",
+                value=400,
+                display="400",
+                field_format=FieldFormat.UPPERCASE,
             ),
         },
-        expression_field_format="%tc1",
+        expression_field_format=FieldFormat.UPPERCASE,
     )
 
     loaded = roundtrip(doc)
@@ -124,7 +142,7 @@ def test_template_expression_format_is_supported_by_all_hosts():
         wrapper = host.set_field(
             "{{count * watts / 1000}} KW",
             values={"count": 10, "watts": 400},
-            expression_field_format="%tc1",
+            expression_field_format=FieldFormat.UPPERCASE,
         )
         expression = wrapper.get_child_fields()[0]
 

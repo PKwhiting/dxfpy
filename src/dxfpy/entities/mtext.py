@@ -1321,7 +1321,8 @@ class MText(DXFGraphic):
         :param deferred: Defer arithmetic cache evaluation to the CAD
             application.
         :param expression_field_format: Native field-format string for
-            calculated expressions.
+            calculated expressions. Use ``dxfpy.fields.FieldFormat`` for
+            supported text-case transforms.
         :param register_field_list: Register a compiled tree globally; enabled
             by default for templates. Explicit ``True`` also registers an
             existing low-level FIELD tree.
