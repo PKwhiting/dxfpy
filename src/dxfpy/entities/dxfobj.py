@@ -1295,7 +1295,7 @@ class Field(DXFObject):
                 (90, value_dtype),
                 (1, value),
                 (94, 0),
-                (300, ""),
+                (300, field_format),
                 (302, ""),
                 (304, "ACVALUE_END"),
                 (301, display),

@@ -26,6 +26,19 @@ def make_multileader(doc):
     return builder.multileader
 
 
+def field_value_format(field: Field) -> str | None:
+    """Return the format stored in the field-value cache."""
+    in_field_value = False
+    for tag in field.tags:
+        if tag.code == 7 and tag.value == "ACFD_FIELD_VALUE":
+            in_field_value = True
+        elif in_field_value and tag.code == 300:
+            return tag.value
+        elif in_field_value and tag.code == 304 and tag.value == "ACVALUE_END":
+            return None
+    return None
+
+
 def test_mtext_set_field_creates_drawing_property_from_plain_value():
     doc = dxfpy.new("R2018")
     mtext = doc.modelspace().add_mtext("")
@@ -60,6 +73,63 @@ def test_template_field_roundtrip_preserves_complete_tree():
     assert loaded_mtext.text == "Client: Acme"
     assert wrapper.field_code == "Client: %<\\_FldIdx 0>%"
     assert wrapper.get_child_fields()[0].field_code.endswith("ClientName")
+
+
+def test_template_field_roundtrip_preserves_requested_native_formats():
+    doc = dxfpy.new("R2018")
+    mtext = doc.modelspace().add_mtext("")
+    mtext.set_field(
+        "ATTACHMENT: {{attachment}} / {{module_count * watts / 1000}} KW",
+        values={
+            "attachment": drawing_property(
+                "Attachment",
+                value="unirac rm 10",
+                display="UNIRAC RM 10",
+                field_format="%tc1",
+            ),
+            "module_count": drawing_property(
+                "Module Count", value=10, display="10", field_format="%tc1"
+            ),
+            "watts": drawing_property(
+                "Watts", value=400, display="400", field_format="%tc1"
+            ),
+        },
+        expression_field_format="%tc1",
+    )
+
+    loaded = roundtrip(doc)
+    loaded_mtext = loaded.modelspace().query("MTEXT")[0]
+    wrapper = loaded_mtext.get_field()
+    assert wrapper is not None
+    native_fields = [
+        field
+        for field in wrapper.get_field_tree()
+        if field.field_code.startswith(("\\AcVar ", "\\AcExpr "))
+    ]
+
+    assert len(native_fields) == 4
+    assert all(field.field_code.endswith(r'\f "%tc1"') for field in native_fields)
+    assert all(field_value_format(field) == "%tc1" for field in native_fields)
+
+
+def test_template_expression_format_is_supported_by_all_hosts():
+    doc = dxfpy.new("R2018")
+    hosts = (
+        doc.modelspace().add_mtext(""),
+        doc.modelspace().add_text(""),
+        make_multileader(doc),
+    )
+
+    for host in hosts:
+        wrapper = host.set_field(
+            "{{count * watts / 1000}} KW",
+            values={"count": 10, "watts": 400},
+            expression_field_format="%tc1",
+        )
+        expression = wrapper.get_child_fields()[0]
+
+        assert expression.field_code.endswith(r'\f "%tc1"')
+        assert field_value_format(expression) == "%tc1"
 
 
 def test_template_fields_register_field_list_by_default():

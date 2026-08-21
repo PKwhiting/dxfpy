@@ -607,10 +607,12 @@ class _FieldTemplateCompiler:
         host: _FieldTemplateHost,
         values: Mapping[str, FieldTemplateValue],
         deferred: bool,
+        expression_field_format: str,
     ) -> None:
         self._resolver = _SourceResolver(host, values)
         self._include_eval_option = host.dxftype() != "MULTILEADER"
         self._deferred = deferred
+        self._expression_field_format = expression_field_format
 
     def compile(self, template: str) -> _CompiledTemplate:
         """Compile a FIELD template without mutating a document."""
@@ -662,6 +664,7 @@ class _FieldTemplateCompiler:
         field = Field._build_virtual_acexpr(
             expression.field_code(),
             children,
+            field_format=self._expression_field_format,
             value=cached_value,
             display=display,
             include_eval_option=self._include_eval_option,
@@ -693,6 +696,7 @@ def attach_field_template(
     values: Mapping[str, FieldTemplateValue] | None,
     deferred: bool,
     register_field_list: bool,
+    expression_field_format: str = "%lu2",
 ) -> Field:
     """Compile and attach a user-facing FIELD template to `host`.
 
@@ -701,6 +705,8 @@ def attach_field_template(
     :param key: Nested ``ACAD_FIELD`` dictionary key.
     :param values: Named template sources and drawing-property values.
     :param deferred: Defer arithmetic cache evaluation to the CAD application.
+    :param expression_field_format: Native field-format string for calculated
+        expressions.
     :param register_field_list: Register the complete tree globally.
     :return: Attached text-wrapper FIELD.
     """
@@ -714,10 +720,13 @@ def attach_field_template(
         )
     if type(deferred) is not bool:
         raise const.DXFTypeError("deferred must be a bool")
-    supplied_values = _require_values(values)
-    compiled = _FieldTemplateCompiler(host, supplied_values, deferred).compile(
-        template
+    expression_field_format = _dxf_string(
+        expression_field_format, "expression field format"
     )
+    supplied_values = _require_values(values)
+    compiled = _FieldTemplateCompiler(
+        host, supplied_values, deferred, expression_field_format
+    ).compile(template)
     wrapper = host.set_linked_fields(
         compiled.child_fields,
         key=key,
